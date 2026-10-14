@@ -37,6 +37,24 @@ internal object ParticleBeatTrace {
     const val CONTENT_ANALYSIS = 6L
     /** 驱动绘制完成：帧号、目标、提交、绘制完成、呈现；负值表示不支持或未发生。 */
     const val RENDER_COMPLETE = 7L
+    /** 整页消费：捕获开始、图像到达、栅栏完成、主线程接收、上传完成、旧图像归还后放行。 */
+    const val PAGE_IMAGE = 8L
+    /** 页面遍历请求：时刻、是否仍在等待上一张图像。 */
+    const val PAGE_REQUEST = 9L
+    /** 流体准备的同步阶段：阶段序号、进入、退出。仅记录超过半毫秒的步骤。 */
+    const val FLOW_STAGE = 10L
+    /** 流体初始化：细项（0 程序、1 合并流场 CPU、2 合并流场上传）、开始、结束。 */
+    const val FLOW_INITIALIZE = 11L
+    /** 流体 CPU 建材：开始、像素拷贝完成、解包完成、模型完成、边界／历史完成。 */
+    const val FLOW_MATERIAL = 12L
+    /** 建材模型耗时：完成时刻、分类、释放场（含分类）、填充，单位纳秒。 */
+    const val FLOW_MATERIAL_STATS = 13L
+    /** 页面图像获取细分：通知、acquire 完成、fence 完成、包装完成。 */
+    const val PAGE_IMAGE_ACQUIRE = 14L
+    /** 页面上传细分：入队、开始执行、导入完成、回收 Bitmap 完成。 */
+    const val PAGE_IMAGE_UPLOAD = 15L
+    /** 页面提交时钟：捕获开始、默认动画时钟、实际单调时钟。 */
+    const val PAGE_FRAME_TIME = 16L
 
     /** [SKIP] 的原因码。 */
     const val SKIP_CANCELLED = 0L
@@ -46,10 +64,12 @@ internal object ParticleBeatTrace {
     const val SKIP_SAME_POSITION = 4L
 
     /** 一轮取证最多留多少行；超过就丢最早的（左滑一格约 1500 行）。 */
-    private const val CAPACITY = 12_000
+    private const val CAPACITY = 48_000
 
     @Volatile var enabled = false
         private set
+    /** 仅 debug 探针订阅实际滚动容器绘制；区分原窗口遍历与独立整页记录。 */
+    @Volatile var doingDrawObserver: ((androidx.recyclerview.widget.RecyclerView) -> Unit)? = null
 
     private val rows = ArrayDeque<LongArray>(1024)
 
@@ -59,7 +79,7 @@ internal object ParticleBeatTrace {
         enabled = true
     }
 
-    fun stop() { enabled = false }
+    fun stop() { enabled = false; doingDrawObserver = null }
 
     fun record(vararg values: Long) {
         if (!BuildConfig.DEBUG || !enabled) return

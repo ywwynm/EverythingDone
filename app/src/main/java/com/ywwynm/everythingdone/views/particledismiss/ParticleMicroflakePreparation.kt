@@ -26,7 +26,8 @@ internal class ParticleMicroflakePreparation(
      * 为 true 时构造不开工，等 [start]。飘散的零拷贝快照（硬件位图）用它：GPU 直接用那块缓冲，只在零拷贝失败、
      * 要退回拷贝上传时才把像素拷回内存。
      */
-    startLazily: Boolean = false
+    startLazily: Boolean = false,
+    private val gestureSamples: Int? = null
 ) {
     private val started = System.nanoTime()
 
@@ -47,6 +48,7 @@ internal class ParticleMicroflakePreparation(
     @Volatile private var sourcePixels: IntArray? = null
 
     private val task = FutureTask {
+        val taskStarted = if (ParticleBeatTrace.enabled) System.nanoTime() else 0L
         // 这段计算直接阻塞用户可见首帧，所以默认仍用显示优先级。
         // 但涟漪或上一层粒子正在播时，它与主线程、RenderThread 抢同一批大核——
         // 那种处境下让出优先级，只让真正在出帧的线程留在 DISPLAY（见 1.7）。
@@ -69,6 +71,7 @@ internal class ParticleMicroflakePreparation(
             // 3.2：只从 Bitmap 拷一次。copyPixelsToBuffer 对 ARGB_8888 给出的就是 R,G,B,A，
             // 与旧路径 getPixels + packColors 的结果逐字节相同（ParticleSnapshotBytesTest 守住）。
             val rgba = copyPixels(bitmap)
+            val pixelsAt = if (ParticleBeatTrace.enabled) System.nanoTime() else 0L
             val count = bitmap.width * bitmap.height
             if (rgba != null) {
                 // 先把上传字节交出去：GL 线程可以立刻建前景纹理，不等材料模型算完。
@@ -82,9 +85,13 @@ internal class ParticleMicroflakePreparation(
                 pixelsReady.complete(Unit)
             }
             sourcePixels = argb
+            val unpackedAt = if (ParticleBeatTrace.enabled) System.nanoTime() else 0L
             // 第四批 ②：这一屏就是**下一次**新建的预测素材。这里只多留一个引用，不复制像素。
             ParticleCreationPrewarm.remember(spec, argb)
-            if (deferred) null else buildModel(argb)
+            (if (deferred) null else buildModel(argb)).also {
+                if (ParticleBeatTrace.enabled) ParticleBeatTrace.record(ParticleBeatTrace.FLOW_MATERIAL,
+                    taskStarted, pixelsAt, unpackedAt, modelBuiltAt, System.nanoTime())
+            }
         } catch (error: Throwable) {
             pixelsReady.completeExceptionally(error)
             throw error
@@ -105,10 +112,21 @@ internal class ParticleMicroflakePreparation(
     }
 
     @Volatile private var modelTask: FutureTask<ParticleMicroflakeRenderer.Input>? = null
+    private var modelBuiltAt = 0L
 
     private fun buildModel(argb: IntArray): ParticleMicroflakeRenderer.Input =
         ParticleTrace.section("particle-material") {
-            ParticleMicroflakeRenderer.fromSpec(assets, 0, 0, density, spec, argb).also {
+            val input = ParticleMicroflakeRenderer.fromSpec(assets, 0, 0, density, spec, argb)
+            modelBuiltAt = if (ParticleBeatTrace.enabled) System.nanoTime() else 0L
+            if (ParticleBeatTrace.enabled) ParticleBeatTrace.record(ParticleBeatTrace.FLOW_MATERIAL_STATS,
+                modelBuiltAt, *((listOf("classificationMs", "releaseMs", "populationMs").map {
+                    ((input.materials.statistics[it] ?: 0.0) * 1e6).toLong()
+                }).toLongArray()))
+            input.copy(
+                bodyGoneProgress = ParticleBodyRelease.progress(input.materials.values,
+                    input.rules.number("release_spread") + input.rules.number("white_spread") * input.materials.bodyWeight),
+                gestureHistory = gestureSamples?.let { ParticleReversePlan(input.materials.values, it) }
+            ).also {
                 buildMs = (System.nanoTime() - started) / 1e6
             }
         }

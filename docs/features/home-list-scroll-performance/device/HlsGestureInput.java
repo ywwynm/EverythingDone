@@ -51,6 +51,20 @@ public final class HlsGestureInput {
         } finally {
             System.out.println("HLS_UP " + System.nanoTime() + " " + SystemClock.elapsedRealtimeNanos()); send(manager, inject, down, args[2].equals("CANCEL") ? MotionEvent.ACTION_CANCEL : MotionEvent.ACTION_UP, x, y);
         }
+        // 同一进程中再次按下，避免两次 adb/app_process 启动间隔掩盖短距离惯性急停。
+        String stopAfter = System.getenv("HLS_STOP_AFTER_MS");
+        if (stopAfter != null) {
+            long delay = Long.parseLong(stopAfter);
+            if (!args[2].equals("UP") || delay < 0 || delay > 1000) throw new IllegalArgumentException("stop delay");
+            SystemClock.sleep(delay);
+            long stopDown = SystemClock.uptimeMillis();
+            System.out.println("HLS_STOP_DOWN " + System.nanoTime() + " " + SystemClock.elapsedRealtimeNanos());
+            send(manager, inject, stopDown, MotionEvent.ACTION_DOWN, x, y);
+            SystemClock.sleep(120);
+            // 不触发清单项点击。
+            send(manager, inject, stopDown, MotionEvent.ACTION_CANCEL, x, y);
+            System.out.println("HLS_STOP_CANCEL " + System.nanoTime() + " " + SystemClock.elapsedRealtimeNanos());
+        }
     }
 
     private static int mode = 2;

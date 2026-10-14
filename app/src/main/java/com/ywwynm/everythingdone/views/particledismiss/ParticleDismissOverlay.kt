@@ -114,7 +114,8 @@ internal class ParticleDismissOverlay(
     private val preparation = ParticleMicroflakePreparation(
         context.assets, resources.displayMetrics.density, spec, deferred = prepared != null || isDrift,
         // 飘散的零拷贝快照：GPU 直接用那块缓冲，只在零拷贝失败时才把像素拷回内存
-        startLazily = isDrift && spec.snapshot.config == Bitmap.Config.HARDWARE)
+        startLazily = isDrift && spec.snapshot.config == Bitmap.Config.HARDWARE,
+        gestureSamples = if (!isDrift && gesture != null) ParticleReversePlan.MAX_SAMPLES else null)
 
     private val isCondense get() = spec.reverse
 

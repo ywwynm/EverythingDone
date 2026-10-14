@@ -81,6 +81,7 @@ class ParticlePresentationRegressionProbe : Instrumentation() {
                 .putExtra("dynamic_background", args.getString("dynamic_background") == "true")
                 .putExtra("doing_long_card", args.getString("doing_long_card") == "true")
                 .putExtra("existing_thing_id", args.getString("existing_thing_id")?.toLongOrNull() ?: -1L)
+                .putExtra("doing_fixture", args.getString("doing_fixture", "text"))
                 .putExtra("card_height_dp", args.getString("card_height_dp")?.toIntOrNull() ?: 180)
                 .putExtra("card_count", args.getString("card_count")?.toIntOrNull() ?: 1)
                 .also { intent ->
@@ -98,8 +99,13 @@ class ParticlePresentationRegressionProbe : Instrumentation() {
                 .put("pageSelection", pageOverride?.toString() ?: "business_default").put("expectPage", expectPage)
                 .put("parentBounds", parentBounds?.let { org.json.JSONArray(listOf(it.left, it.top, it.right, it.bottom)) })
                 .put("reportFolder", report?.folder?.absolutePath).toString())
-            val deadline = SystemClock.uptimeMillis() + if (args.containsKey("existing_thing_id")) 90000 else 60000
+            val deadline = SystemClock.uptimeMillis() + if (args.containsKey("existing_thing_id") ||
+                args.getString("doing_fixture") == "video") 90000 else 60000
             var injected = false
+            if (args.getString("scheduler_check") == "true") {
+                DoingFrameCallbackChecks.verify(this, checkNotNull(activity))
+                report?.event("doing_frame_callbacks_verified")
+            }
             var lastUiRequest = ""
             var lastCommand = ""
             while (!File(folder, "finish").exists() && SystemClock.uptimeMillis() < deadline) {

@@ -1,0 +1,242 @@
+[
+  {
+    "device": "meizu",
+    "run": "real-checklist-1-1791970402271832600",
+    "traceRows": 38573,
+    "scope": "all",
+    "windows": 3,
+    "recordMs": {
+      "count": 2751,
+      "p50": 0.174,
+      "p90": 0.417,
+      "p95": 0.484,
+      "max": 1.901
+    },
+    "syncMs": {
+      "count": 2751,
+      "p50": 0.276,
+      "p90": 0.496,
+      "p95": 0.688,
+      "max": 7.082
+    },
+    "chain": {
+      "imageAvailableMs": {
+        "count": 2751,
+        "p50": 2.648,
+        "p90": 3.32,
+        "p95": 3.587,
+        "max": 8.971
+      },
+      "fenceMs": {
+        "count": 2751,
+        "p50": 2.449,
+        "p90": 2.774,
+        "p95": 3.01,
+        "max": 10.02
+      },
+      "mainDispatchMs": {
+        "count": 2751,
+        "p50": 0.092,
+        "p90": 0.617,
+        "p95": 3.25,
+        "max": 15.369
+      },
+      "uploadMs": {
+        "count": 2751,
+        "p50": 0.461,
+        "p90": 1.127,
+        "p95": 1.442,
+        "max": 8.737
+      },
+      "releaseGateMs": {
+        "count": 2751,
+        "p50": 0.003,
+        "p90": 0.009,
+        "p95": 0.013,
+        "max": 1.576
+      },
+      "totalMs": {
+        "count": 2751,
+        "p50": 5.827,
+        "p90": 8.431,
+        "p95": 9.325,
+        "max": 21.721
+      }
+    },
+    "requests": 2762,
+    "requestsWhileBusy": 478,
+    "hardwareSyncStatuses": {
+      "0": 2751
+    },
+    "recordOver8ms": 0,
+    "syncOver8ms": 0,
+    "compositeStartToDriverRenderCompleteMs": {
+      "count": 2545,
+      "p50": 1.227,
+      "p90": 1.469,
+      "p95": 1.654,
+      "max": 5.159
+    },
+    "clockCallbackCadence": {
+      "fps": 120.38,
+      "intervalMs": {
+        "count": 2822,
+        "p50": 8.287,
+        "p90": 8.293,
+        "p95": 8.296,
+        "max": 24.198
+      }
+    },
+    "outputBeatCadence": {
+      "fps": 120.38,
+      "intervalMs": {
+        "count": 2822,
+        "p50": 8.287,
+        "p90": 8.293,
+        "p95": 8.296,
+        "max": 24.198
+      }
+    },
+    "captureCadence": {
+      "fps": 117.97,
+      "intervalMs": {
+        "count": 2748,
+        "p50": 8.278,
+        "p90": 9.233,
+        "p95": 9.858,
+        "max": 42.995
+      }
+    },
+    "requestCadence": {
+      "fps": 118.44,
+      "intervalMs": {
+        "count": 2759,
+        "p50": 8.277,
+        "p90": 8.661,
+        "p95": 9.381,
+        "max": 42.995
+      }
+    },
+    "snapshotRetiredDuringWindows": 24
+  },
+  {
+    "device": "samsung",
+    "run": "real-checklist-1-1791970402271832600",
+    "traceRows": 40314,
+    "scope": "all",
+    "windows": 3,
+    "recordMs": {
+      "count": 2665,
+      "p50": 0.085,
+      "p90": 0.23,
+      "p95": 0.287,
+      "max": 0.974
+    },
+    "syncMs": {
+      "count": 2665,
+      "p50": 0.491,
+      "p90": 0.721,
+      "p95": 0.887,
+      "max": 12.613
+    },
+    "chain": {
+      "imageAvailableMs": {
+        "count": 2665,
+        "p50": 3.345,
+        "p90": 4.377,
+        "p95": 4.724,
+        "max": 14.747
+      },
+      "fenceMs": {
+        "count": 2665,
+        "p50": 3.208,
+        "p90": 3.72,
+        "p95": 4.048,
+        "max": 7.518
+      },
+      "mainDispatchMs": {
+        "count": 2665,
+        "p50": 0.153,
+        "p90": 1.468,
+        "p95": 1.846,
+        "max": 8.042
+      },
+      "uploadMs": {
+        "count": 2665,
+        "p50": 0.552,
+        "p90": 1.26,
+        "p95": 1.739,
+        "max": 8.575
+      },
+      "releaseGateMs": {
+        "count": 2665,
+        "p50": 0.015,
+        "p90": 0.028,
+        "p95": 0.072,
+        "max": 8.261
+      },
+      "totalMs": {
+        "count": 2665,
+        "p50": 8.151,
+        "p90": 9.425,
+        "p95": 10.002,
+        "max": 22.999
+      }
+    },
+    "requests": 2915,
+    "requestsWhileBusy": 2398,
+    "hardwareSyncStatuses": {
+      "0": 2665
+    },
+    "recordOver8ms": 0,
+    "syncOver8ms": 7,
+    "compositeStartToDriverRenderCompleteMs": {
+      "count": 2497,
+      "p50": 1.372,
+      "p90": 3.658,
+      "p95": 6.303,
+      "max": 9.059
+    },
+    "clockCallbackCadence": {
+      "fps": 130.23,
+      "intervalMs": {
+        "count": 3033,
+        "p50": 8.335,
+        "p90": 8.337,
+        "p95": 8.338,
+        "max": 8.372
+      }
+    },
+    "outputBeatCadence": {
+      "fps": 119.97,
+      "intervalMs": {
+        "count": 2794,
+        "p50": 8.335,
+        "p90": 8.337,
+        "p95": 8.338,
+        "max": 8.372
+      }
+    },
+    "captureCadence": {
+      "fps": 114.57,
+      "intervalMs": {
+        "count": 2662,
+        "p50": 8.355,
+        "p90": 9.605,
+        "p95": 10.31,
+        "max": 51.172
+      }
+    },
+    "requestCadence": {
+      "fps": 125.34,
+      "intervalMs": {
+        "count": 2912,
+        "p50": 8.268,
+        "p90": 8.786,
+        "p95": 9.08,
+        "max": 51.192
+      }
+    },
+    "snapshotRetiredDuringWindows": 24
+  }
+]

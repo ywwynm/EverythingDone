@@ -34,6 +34,8 @@ class ParticlePageCompositeProbe : Instrumentation() {
         check(target != EGL14.EGL_NO_SURFACE && ParticleGl.bind(target))
         val base = ParticleGlBitmapLayer("pixel-reference", -2, false, underlay = true)
         val bitmapRenderer = ParticleGlBitmapRenderer(targetContext.assets)
+        val directParity = if (android.os.Build.VERSION.SDK_INT >= 34)
+            ParticleHardwarePageParity.compare(bitmapRenderer) else "低于 API 34，跳过整页直接缓冲"
         val bitmap = Bitmap.createBitmap(width - 13, height - 21, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap); val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         for (y in 0 until bitmap.height step 13) {
@@ -92,6 +94,6 @@ class ParticlePageCompositeProbe : Instrumentation() {
             bitmap.recycle(); hardware.recycle(); particle.recycle()
             ParticleGl.bindIdle(); EGL14.eglDestroySurface(ParticleGl.display, target)
         }
-        return "通过 $cases 组合成对照；最大通道差 $maximum，变化通道 $differing/${cases.toLong() * a.size}"
+        return "$directParity；通过 $cases 组合成对照；最大通道差 $maximum，变化通道 $differing/${cases.toLong() * a.size}"
     }
 }

@@ -26,9 +26,14 @@ internal class ParticleDoingPage(private val activity: Activity) : AutoCloseable
         host.addView(content, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT))
         ParticleFrameTimestamps.preload()
-        val started = android.os.SystemClock.uptimeMillis()
+        var started = 0L
         val listener = ViewTreeObserver.OnPreDrawListener {
             if (!closed && !activity.isFinishing) {
+                // SurfaceView 到首次遍历才被请求；复杂内容的初始化耗时不能占用其等待期限。
+                if (started == 0L) {
+                    started = android.os.SystemClock.uptimeMillis()
+                    diagnostic?.event("doing_scene_bootstrap_started")
+                }
                 val surfaceWindow = shared ?: ParticleWindowSurface.of(activity)?.also {
                     shared = it
                     it.pageContentActive = true

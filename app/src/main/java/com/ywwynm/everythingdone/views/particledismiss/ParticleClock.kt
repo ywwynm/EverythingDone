@@ -180,6 +180,15 @@ internal object ParticleClock {
 
     fun setListener(action: (Long) -> Unit) { listener = action }
 
+    /** Doing 滚动的一次性真实帧通知，不参与粒子分频，也不改变其订阅和启停。 */
+    fun postFrameCallback(callback: Choreographer.FrameCallback) {
+        handler.post { Choreographer.getInstance().postFrameCallback(callback) }
+    }
+
+    fun removeFrameCallback(callback: Choreographer.FrameCallback) {
+        handler.post { Choreographer.getInstance().removeFrameCallback(callback) }
+    }
+
     /** 幂等；[stop] 之后再 [start] 会重新对相位。 */
     fun start() {
         if (running) return

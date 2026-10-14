@@ -4,6 +4,7 @@ package com.ywwynm.everythingdone.views.particledismiss
 internal object ParticleBodyRelease {
     fun progress(values: FloatArray, releaseSpread: Float): Float {
         require(values.size % 12 == 0)
+        if (ParticleMaterialNative.enabled) return ParticleMaterialNative.bodyRelease(values, releaseSpread)
         var end = 0f
         for (i in values.indices step 12) {
             val birth = values[i + 2]

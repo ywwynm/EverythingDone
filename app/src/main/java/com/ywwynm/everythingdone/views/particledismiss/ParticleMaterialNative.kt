@@ -89,6 +89,10 @@ internal object ParticleMaterialNative {
 
     external fun packState(material: FloatArray, count: Int, state: ByteBuffer)
 
+    external fun bodyRelease(values: FloatArray, releaseSpread: Float): Float
+    external fun reverseRanges(values: FloatArray, samples: Int, ranges: IntArray): Int
+    external fun classifyPixels(pixels: IntArray, width: Int, height: Int, stride: Int): LongArray
+
     external fun populate(nx: Int, ny: Int, width: Float, height: Float, pixels: IntArray,
         pixelWidth: Int, pixelHeight: Int, seed: Int, release: FloatArray, offsets: FloatArray,
         normalX: FloatArray, normalY: FloatArray, compression: FloatArray,

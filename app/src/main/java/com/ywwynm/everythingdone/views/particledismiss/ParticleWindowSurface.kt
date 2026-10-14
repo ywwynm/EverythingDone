@@ -55,6 +55,10 @@ internal class ParticleWindowSurface private constructor(
     private val diagnostic get() = ParticlePresentationDiagnostics.of(activity)
     private var diagnosticGlRecorded = false
     private val frameRateOwner = Any()
+    private val pageFrameCallbacks by lazy {
+        if (Build.VERSION.SDK_INT >= 28) Handler.createAsync(Looper.getMainLooper())
+        else Handler(Looper.getMainLooper())
+    }
     @Volatile private var textureSubmitted = false
     @Volatile private var texturePresentedAt = 0L
     private var textureRevealed = false
@@ -214,6 +218,14 @@ internal class ParticleWindowSurface private constructor(
                       releaseSource: () -> Unit, onUploaded: (() -> Unit)? = null, done: (Boolean) -> Unit) =
         uploadGlPixels(layer, bitmap, x, y, alpha, releaseSource, done, onUploaded)
 
+    /** 接管 Java 缓冲句柄；Image 租约仍保留到最后一次 GPU 采样结束。 */
+    @androidx.annotation.RequiresApi(31)
+    fun uploadGlHardwareBuffer(layer: ParticleGlBitmapLayer, buffer: android.hardware.HardwareBuffer,
+                               x: Float, y: Float, alpha: Float, releaseSource: () -> Unit,
+                               onUploaded: (() -> Unit)? = null, done: (Boolean) -> Unit) =
+        uploadGlPixels(layer, x, y, alpha, releaseSource, done, onUploaded,
+            buffer::close, asynchronousCallback = true) { it.upload(layer, buffer) }
+
     /** 仅在 changeGlLayers 的 GL 任务内调用；退下的页面缓冲等最后一次 GPU 读取再归还。 */
     fun retireGlImage(layer: ParticleGlBitmapLayer) {
         layer.visible = false
@@ -223,21 +235,37 @@ internal class ParticleWindowSurface private constructor(
 
     private fun uploadGlPixels(layer: ParticleGlBitmapLayer, bitmap: Bitmap, x: Float, y: Float, alpha: Float,
                                releaseSource: (() -> Unit)?, done: (Boolean) -> Unit,
-                               onUploaded: (() -> Unit)? = null) {
+                               onUploaded: (() -> Unit)? = null) =
+        uploadGlPixels(layer, x, y, alpha, releaseSource, done, onUploaded,
+            bitmap::recycle) { it.upload(layer, bitmap) }
+
+    private fun uploadGlPixels(layer: ParticleGlBitmapLayer, x: Float, y: Float, alpha: Float,
+                               releaseSource: (() -> Unit)?, done: (Boolean) -> Unit,
+                               onUploaded: (() -> Unit)?, releasePixels: () -> Unit,
+                               asynchronousCallback: Boolean = false,
+                               upload: (ParticleGlBitmapRenderer) -> Unit) {
+        fun complete(ready: Boolean) {
+            if (asynchronousCallback) pageFrameCallbacks.post { done(ready && !layer.closed && !detached) }
+            else activity.runOnUiThread { done(ready && !layer.closed && !detached) }
+        }
+        val queuedAt = if (pageContentActive && ParticleBeatTrace.enabled) System.nanoTime() else 0L
         ParticleGl.post {
+            val enteredAt = if (queuedAt != 0L) System.nanoTime() else 0L
             if (detached || layer.closed || layer.group?.closing == true) {
-                bitmap.recycle()
+                releasePixels()
                 releaseSource?.invoke()
                 diagnostic?.event("gl_layer_upload_cancelled", mapOf("layer" to layer.name))
-                activity.runOnUiThread { done(false) }
+                complete(false)
                 return@post
             }
             var sourceHandled = false
+            var importedAt = 0L
             val result = runCatching {
                 check(ParticleGl.ensureContextReady())
                 val renderer = bitmapRenderer ?: ParticleGl.presentationRenderer(assets).also { bitmapRenderer = it }
                 val uploadBegan = System.nanoTime()
-                renderer.upload(layer, bitmap)
+                upload(renderer)
+                if (queuedAt != 0L) importedAt = System.nanoTime()
                 val uploadMs = (System.nanoTime() - uploadBegan) / 1e6
                 if (releaseSource != null && layer.eglImage == 0L) {
                     ParticleGlImageLease.releaseAfterReading(releaseSource, if (pageContentActive) 1 else 4)
@@ -253,12 +281,14 @@ internal class ParticleWindowSurface private constructor(
                     "ownedHardwareCopy" to (layer.copyHardwareToOwned && layer.eglImage == 0L),
                     "meaning" to "texture_ready_not_screen_verified"))
             }
-            bitmap.recycle()
+            releasePixels()
+            if (queuedAt != 0L) ParticleBeatTrace.record(ParticleBeatTrace.PAGE_IMAGE_UPLOAD,
+                queuedAt, enteredAt, importedAt, System.nanoTime())
             result.exceptionOrNull()?.let {
                 if (!sourceHandled) releaseSource?.invoke()
                 diagnostic?.event("gl_layer_upload_failed", mapOf("layer" to layer.name, "error" to it.toString()))
             }
-            activity.runOnUiThread { done(result.isSuccess && !layer.closed && !detached) }
+            complete(result.isSuccess && !layer.closed && !detached)
             ParticleGl.wake()
         }
     }

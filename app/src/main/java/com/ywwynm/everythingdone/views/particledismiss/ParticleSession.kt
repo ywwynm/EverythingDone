@@ -227,6 +227,8 @@ internal class ParticleSession(
     override fun advanceOnce(shared: ParticleMicroflakeRenderer.Shared?): Boolean {
         if (cancelled) return false
         checkNotNull(shared) { "流体会话需要共享资源" }
+        val traceStage = stage.ordinal.toLong()
+        val traceStarted = if (ParticleBeatTrace.enabled) System.nanoTime() else 0L
         return try {
             when (stage) {
                 Stage.PIPELINE -> {
@@ -274,7 +276,9 @@ internal class ParticleSession(
                     else preparation.poll(shared.width, shared.height) ?: return false
                     inputReadyAt = System.nanoTime()
                     checkNotNull(renderer).prepare(input)
-                    bodyGoneProgress = ParticleBodyRelease.progress(input.materials.values,
+                    if (ParticleBeatTrace.enabled) ParticleBeatTrace.record(ParticleBeatTrace.FLOW_INITIALIZE,
+                        5L, inputReadyAt, System.nanoTime())
+                    bodyGoneProgress = input.bodyGoneProgress ?: ParticleBodyRelease.progress(input.materials.values,
                         input.rules.number("release_spread") +
                             input.rules.number("white_spread") * input.materials.bodyWeight)
                     particleCount = checkNotNull(renderer).particleCount
@@ -297,6 +301,9 @@ internal class ParticleSession(
         } catch (error: Throwable) {
             fail(error)
             false
+        } finally {
+            if (traceStarted != 0L && System.nanoTime() - traceStarted > 500_000L)
+                ParticleBeatTrace.record(ParticleBeatTrace.FLOW_STAGE, traceStage, traceStarted, System.nanoTime())
         }
     }
 
@@ -333,8 +340,14 @@ internal class ParticleSession(
         // 历史缓冲的建立与手势第 0 档都留在出帧上下文里：第 0 档与首帧绘制同流，次序由 GL 保证。
         ParticleGl.useForeground()
         if (isGesture) {
+            val began = if (ParticleBeatTrace.enabled) System.nanoTime() else 0L
             active.beginReverse(ParticleReversePlan.MAX_SAMPLES, precomputeProbe = false, async = async)
+            val historyReady = if (ParticleBeatTrace.enabled) System.nanoTime() else 0L
             active.seedGesture()
+            if (ParticleBeatTrace.enabled) {
+                ParticleBeatTrace.record(ParticleBeatTrace.FLOW_INITIALIZE, 6L, began, historyReady)
+                ParticleBeatTrace.record(ParticleBeatTrace.FLOW_INITIALIZE, 7L, historyReady, System.nanoTime())
+            }
             return
         }
         val samples = ParticleReversePlan.samplesFor(durationSeconds, refreshRate)

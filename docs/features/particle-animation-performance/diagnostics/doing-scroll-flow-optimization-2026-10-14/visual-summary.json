@@ -1,0 +1,686 @@
+[
+  {
+    "device": "meizu",
+    "run": "visual-video-drift-1791968189158174300",
+    "frames": 1717,
+    "videoDuration": 25.96558888888889,
+    "clockChangedFrames": 1028,
+    "gifChangedFramesFirstSecond": 22,
+    "clockRestMeanDelta": 0.0,
+    "mediaBefore": {
+      "animated": [
+        {
+          "type": "GifDrawable",
+          "running": true,
+          "width": 896,
+          "height": 672,
+          "frames": 75,
+          "frameIndex": 5
+        }
+      ],
+      "images": [
+        {
+          "id": "iv_custom_bg_doing",
+          "shown": true
+        },
+        {
+          "id": "iv_bg_doing",
+          "shown": true
+        },
+        {
+          "id": "iv_thing_image",
+          "type": "GifDrawable",
+          "width": 896,
+          "height": 672,
+          "shown": true
+        },
+        {
+          "id": "fab_add_5_min",
+          "shown": true
+        },
+        {
+          "id": "fab_strict_mode",
+          "type": "BitmapDrawable",
+          "width": 84,
+          "height": 84,
+          "shown": true
+        },
+        {
+          "id": "fab_cancel_doing",
+          "type": "BitmapDrawable",
+          "width": 84,
+          "height": 84,
+          "shown": true
+        }
+      ],
+      "pausedForProbe": 0,
+      "sourceExtension": "mp4",
+      "derivedPreviewReady": true,
+      "coverAutoplay": true
+    },
+    "mediaAfter": {
+      "animated": [
+        {
+          "type": "GifDrawable",
+          "running": true,
+          "width": 896,
+          "height": 672,
+          "frames": 75,
+          "frameIndex": 44
+        }
+      ],
+      "images": [
+        {
+          "id": "iv_custom_bg_doing",
+          "shown": true
+        },
+        {
+          "id": "iv_bg_doing",
+          "shown": true
+        },
+        {
+          "id": "iv_thing_image",
+          "type": "GifDrawable",
+          "width": 896,
+          "height": 672,
+          "shown": true
+        },
+        {
+          "id": "fab_add_5_min",
+          "shown": true
+        },
+        {
+          "id": "fab_strict_mode",
+          "type": "BitmapDrawable",
+          "width": 84,
+          "height": 84,
+          "shown": true
+        },
+        {
+          "id": "fab_cancel_doing",
+          "type": "BitmapDrawable",
+          "width": 84,
+          "height": 84,
+          "shown": true
+        }
+      ],
+      "pausedForProbe": 0,
+      "sourceExtension": "mp4",
+      "derivedPreviewReady": true,
+      "coverAutoplay": true
+    },
+    "recording": "screenrecord, visual inspection only",
+    "instrument": "INSTRUMENTATION_RESULT: result=完成\n\nINSTRUMENTATION_CODE: 0",
+    "gifChangedSamples": 976
+  },
+  {
+    "device": "meizu",
+    "run": "visual-video-flow-1791968228899542200",
+    "frames": 1704,
+    "videoDuration": 25.956377777777778,
+    "clockChangedFrames": 1119,
+    "gifChangedFramesFirstSecond": 36,
+    "clockRestMeanDelta": 0.0,
+    "mediaBefore": {
+      "animated": [
+        {
+          "type": "GifDrawable",
+          "running": true,
+          "width": 896,
+          "height": 672,
+          "frames": 75,
+          "frameIndex": 7
+        }
+      ],
+      "images": [
+        {
+          "id": "iv_custom_bg_doing",
+          "shown": true
+        },
+        {
+          "id": "iv_bg_doing",
+          "shown": true
+        },
+        {
+          "id": "iv_thing_image",
+          "type": "GifDrawable",
+          "width": 896,
+          "height": 672,
+          "shown": true
+        },
+        {
+          "id": "fab_add_5_min",
+          "shown": true
+        },
+        {
+          "id": "fab_strict_mode",
+          "type": "BitmapDrawable",
+          "width": 84,
+          "height": 84,
+          "shown": true
+        },
+        {
+          "id": "fab_cancel_doing",
+          "type": "BitmapDrawable",
+          "width": 84,
+          "height": 84,
+          "shown": true
+        }
+      ],
+      "pausedForProbe": 0,
+      "sourceExtension": "mp4",
+      "derivedPreviewReady": true,
+      "coverAutoplay": true
+    },
+    "mediaAfter": {
+      "animated": [
+        {
+          "type": "GifDrawable",
+          "running": true,
+          "width": 896,
+          "height": 672,
+          "frames": 75,
+          "frameIndex": 58
+        }
+      ],
+      "images": [
+        {
+          "id": "iv_custom_bg_doing",
+          "shown": true
+        },
+        {
+          "id": "iv_bg_doing",
+          "shown": true
+        },
+        {
+          "id": "iv_thing_image",
+          "type": "GifDrawable",
+          "width": 896,
+          "height": 672,
+          "shown": true
+        },
+        {
+          "id": "fab_add_5_min",
+          "shown": true
+        },
+        {
+          "id": "fab_strict_mode",
+          "type": "BitmapDrawable",
+          "width": 84,
+          "height": 84,
+          "shown": true
+        },
+        {
+          "id": "fab_cancel_doing",
+          "type": "BitmapDrawable",
+          "width": 84,
+          "height": 84,
+          "shown": true
+        }
+      ],
+      "pausedForProbe": 0,
+      "sourceExtension": "mp4",
+      "derivedPreviewReady": true,
+      "coverAutoplay": true
+    },
+    "recording": "screenrecord, visual inspection only",
+    "instrument": "INSTRUMENTATION_RESULT: result=完成\n\nINSTRUMENTATION_CODE: 0",
+    "gifChangedSamples": 1098
+  },
+  {
+    "device": "samsung",
+    "run": "visual-video-drift-1791967859349147200",
+    "frames": 2045,
+    "videoDuration": 25.916144444444445,
+    "clockChangedFrames": 1019,
+    "gifChangedFramesFirstSecond": 64,
+    "clockRestMeanDelta": 0.0,
+    "mediaBefore": {
+      "animated": [
+        {
+          "type": "GifDrawable",
+          "running": true,
+          "width": 960,
+          "height": 720,
+          "frames": 75,
+          "frameIndex": 52
+        }
+      ],
+      "images": [
+        {
+          "id": "iv_custom_bg_doing",
+          "shown": true
+        },
+        {
+          "id": "iv_bg_doing",
+          "shown": true
+        },
+        {
+          "id": "iv_thing_image",
+          "type": "GifDrawable",
+          "width": 960,
+          "height": 720,
+          "shown": true
+        },
+        {
+          "id": "fab_add_5_min",
+          "shown": true
+        },
+        {
+          "id": "fab_strict_mode",
+          "type": "BitmapDrawable",
+          "width": 90,
+          "height": 90,
+          "shown": true
+        },
+        {
+          "id": "fab_cancel_doing",
+          "type": "BitmapDrawable",
+          "width": 90,
+          "height": 90,
+          "shown": true
+        }
+      ],
+      "pausedForProbe": 0,
+      "sourceExtension": "mp4",
+      "derivedPreviewReady": true,
+      "coverAutoplay": true
+    },
+    "mediaAfter": {
+      "animated": [
+        {
+          "type": "GifDrawable",
+          "running": true,
+          "width": 960,
+          "height": 720,
+          "frames": 75,
+          "frameIndex": 63
+        }
+      ],
+      "images": [
+        {
+          "id": "iv_custom_bg_doing",
+          "shown": true
+        },
+        {
+          "id": "iv_bg_doing",
+          "shown": true
+        },
+        {
+          "id": "iv_thing_image",
+          "type": "GifDrawable",
+          "width": 960,
+          "height": 720,
+          "shown": true
+        },
+        {
+          "id": "fab_add_5_min",
+          "shown": true
+        },
+        {
+          "id": "fab_strict_mode",
+          "type": "BitmapDrawable",
+          "width": 90,
+          "height": 90,
+          "shown": true
+        },
+        {
+          "id": "fab_cancel_doing",
+          "type": "BitmapDrawable",
+          "width": 90,
+          "height": 90,
+          "shown": true
+        }
+      ],
+      "pausedForProbe": 0,
+      "sourceExtension": "mp4",
+      "derivedPreviewReady": true,
+      "coverAutoplay": true
+    },
+    "recording": "screenrecord, visual inspection only",
+    "instrument": "INSTRUMENTATION_RESULT: result=完成\n\nINSTRUMENTATION_CODE: 0",
+    "gifChangedSamples": 995
+  },
+  {
+    "device": "samsung",
+    "run": "visual-video-flow-1791967901319889100",
+    "frames": 2068,
+    "videoDuration": 25.956166666666668,
+    "clockChangedFrames": 1011,
+    "gifChangedFramesFirstSecond": 60,
+    "clockRestMeanDelta": 0.0,
+    "mediaBefore": {
+      "animated": [
+        {
+          "type": "GifDrawable",
+          "running": true,
+          "width": 960,
+          "height": 720,
+          "frames": 75,
+          "frameIndex": 55
+        }
+      ],
+      "images": [
+        {
+          "id": "iv_custom_bg_doing",
+          "shown": true
+        },
+        {
+          "id": "iv_bg_doing",
+          "shown": true
+        },
+        {
+          "id": "iv_thing_image",
+          "type": "GifDrawable",
+          "width": 960,
+          "height": 720,
+          "shown": true
+        },
+        {
+          "id": "fab_add_5_min",
+          "shown": true
+        },
+        {
+          "id": "fab_strict_mode",
+          "type": "BitmapDrawable",
+          "width": 90,
+          "height": 90,
+          "shown": true
+        },
+        {
+          "id": "fab_cancel_doing",
+          "type": "BitmapDrawable",
+          "width": 90,
+          "height": 90,
+          "shown": true
+        }
+      ],
+      "pausedForProbe": 0,
+      "sourceExtension": "mp4",
+      "derivedPreviewReady": true,
+      "coverAutoplay": true
+    },
+    "mediaAfter": {
+      "animated": [
+        {
+          "type": "GifDrawable",
+          "running": true,
+          "width": 960,
+          "height": 720,
+          "frames": 75,
+          "frameIndex": 71
+        }
+      ],
+      "images": [
+        {
+          "id": "iv_custom_bg_doing",
+          "shown": true
+        },
+        {
+          "id": "iv_bg_doing",
+          "shown": true
+        },
+        {
+          "id": "iv_thing_image",
+          "type": "GifDrawable",
+          "width": 960,
+          "height": 720,
+          "shown": true
+        },
+        {
+          "id": "fab_add_5_min",
+          "shown": true
+        },
+        {
+          "id": "fab_strict_mode",
+          "type": "BitmapDrawable",
+          "width": 90,
+          "height": 90,
+          "shown": true
+        },
+        {
+          "id": "fab_cancel_doing",
+          "type": "BitmapDrawable",
+          "width": 90,
+          "height": 90,
+          "shown": true
+        }
+      ],
+      "pausedForProbe": 0,
+      "sourceExtension": "mp4",
+      "derivedPreviewReady": true,
+      "coverAutoplay": true
+    },
+    "recording": "screenrecord, visual inspection only",
+    "instrument": "INSTRUMENTATION_RESULT: result=完成\n\nINSTRUMENTATION_CODE: 0",
+    "gifChangedSamples": 1088
+  },
+  {
+    "device": "tablet",
+    "run": "visual-video-drift-1791969112281751700",
+    "frames": 14,
+    "videoDuration": 24.32,
+    "clockChangedFrames": 11,
+    "gifChangedFramesFirstSecond": 0,
+    "clockRestMeanDelta": 0.0,
+    "mediaBefore": {
+      "animated": [
+        {
+          "type": "GifDrawable",
+          "running": true,
+          "width": 672,
+          "height": 504,
+          "frames": 75,
+          "frameIndex": 53
+        }
+      ],
+      "images": [
+        {
+          "id": "iv_custom_bg_doing",
+          "shown": true
+        },
+        {
+          "id": "iv_bg_doing",
+          "shown": true
+        },
+        {
+          "id": "iv_thing_image",
+          "type": "GifDrawable",
+          "width": 672,
+          "height": 504,
+          "shown": true
+        },
+        {
+          "id": "fab_add_5_min",
+          "shown": true
+        },
+        {
+          "id": "fab_strict_mode",
+          "type": "BitmapDrawable",
+          "width": 63,
+          "height": 63,
+          "shown": true
+        },
+        {
+          "id": "fab_cancel_doing",
+          "type": "BitmapDrawable",
+          "width": 63,
+          "height": 63,
+          "shown": true
+        }
+      ],
+      "pausedForProbe": 0,
+      "sourceExtension": "mp4",
+      "derivedPreviewReady": true,
+      "coverAutoplay": true
+    },
+    "mediaAfter": {
+      "animated": [
+        {
+          "type": "GifDrawable",
+          "running": true,
+          "width": 672,
+          "height": 504,
+          "frames": 75,
+          "frameIndex": 14
+        }
+      ],
+      "images": [
+        {
+          "id": "iv_custom_bg_doing",
+          "shown": true
+        },
+        {
+          "id": "iv_bg_doing",
+          "shown": true
+        },
+        {
+          "id": "iv_thing_image",
+          "type": "GifDrawable",
+          "width": 672,
+          "height": 504,
+          "shown": true
+        },
+        {
+          "id": "fab_add_5_min",
+          "shown": true
+        },
+        {
+          "id": "fab_strict_mode",
+          "type": "BitmapDrawable",
+          "width": 63,
+          "height": 63,
+          "shown": true
+        },
+        {
+          "id": "fab_cancel_doing",
+          "type": "BitmapDrawable",
+          "width": 63,
+          "height": 63,
+          "shown": true
+        }
+      ],
+      "pausedForProbe": 0,
+      "sourceExtension": "mp4",
+      "derivedPreviewReady": true,
+      "coverAutoplay": true
+    },
+    "recording": "PNG sequence, about 0.5 FPS; not cadence evidence",
+    "instrument": "INSTRUMENTATION_RESULT: result=完成\n\nINSTRUMENTATION_CODE: 0",
+    "gifChangedSamples": 13
+  },
+  {
+    "device": "tablet",
+    "run": "visual-video-flow-1791969149858691100",
+    "frames": 15,
+    "videoDuration": 25.88,
+    "clockChangedFrames": 11,
+    "gifChangedFramesFirstSecond": 0,
+    "clockRestMeanDelta": 0.0,
+    "mediaBefore": {
+      "animated": [
+        {
+          "type": "GifDrawable",
+          "running": true,
+          "width": 672,
+          "height": 504,
+          "frames": 75,
+          "frameIndex": 55
+        }
+      ],
+      "images": [
+        {
+          "id": "iv_custom_bg_doing",
+          "shown": true
+        },
+        {
+          "id": "iv_bg_doing",
+          "shown": true
+        },
+        {
+          "id": "iv_thing_image",
+          "type": "GifDrawable",
+          "width": 672,
+          "height": 504,
+          "shown": true
+        },
+        {
+          "id": "fab_add_5_min",
+          "shown": true
+        },
+        {
+          "id": "fab_strict_mode",
+          "type": "BitmapDrawable",
+          "width": 63,
+          "height": 63,
+          "shown": true
+        },
+        {
+          "id": "fab_cancel_doing",
+          "type": "BitmapDrawable",
+          "width": 63,
+          "height": 63,
+          "shown": true
+        }
+      ],
+      "pausedForProbe": 0,
+      "sourceExtension": "mp4",
+      "derivedPreviewReady": true,
+      "coverAutoplay": true
+    },
+    "mediaAfter": {
+      "animated": [
+        {
+          "type": "GifDrawable",
+          "running": true,
+          "width": 672,
+          "height": 504,
+          "frames": 75,
+          "frameIndex": 12
+        }
+      ],
+      "images": [
+        {
+          "id": "iv_custom_bg_doing",
+          "shown": true
+        },
+        {
+          "id": "iv_bg_doing",
+          "shown": true
+        },
+        {
+          "id": "iv_thing_image",
+          "type": "GifDrawable",
+          "width": 672,
+          "height": 504,
+          "shown": true
+        },
+        {
+          "id": "fab_add_5_min",
+          "shown": true
+        },
+        {
+          "id": "fab_strict_mode",
+          "type": "BitmapDrawable",
+          "width": 63,
+          "height": 63,
+          "shown": true
+        },
+        {
+          "id": "fab_cancel_doing",
+          "type": "BitmapDrawable",
+          "width": 63,
+          "height": 63,
+          "shown": true
+        }
+      ],
+      "pausedForProbe": 0,
+      "sourceExtension": "mp4",
+      "derivedPreviewReady": true,
+      "coverAutoplay": true
+    },
+    "recording": "PNG sequence, about 0.5 FPS; not cadence evidence",
+    "instrument": "INSTRUMENTATION_RESULT: result=完成\n\nINSTRUMENTATION_CODE: 0",
+    "gifChangedSamples": 14
+  }
+]

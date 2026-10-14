@@ -60,7 +60,10 @@ internal object ParticleMicroflakeModel {
         require(width > 0 && height > 0 && pixels.size == pixelWidth * pixelHeight)
         require(particleSizeScale.isFinite() && particleSizeScale > 0f)
         require(particleAmount.isFinite() && particleAmount in .1f..1.6f)
-        val panel = ParticleMicroflakeContent.panel(pixels, pixelWidth, pixelHeight, rules)
+        val sampleStep = ceil(sqrt(pixels.size / 65536.0)).toInt().coerceAtLeast(1)
+        val classification = if (ParticleMaterialNative.enabled)
+            ParticleMaterialNative.classifyPixels(pixels, pixelWidth, pixelHeight, sampleStep) else null
+        val panel = ParticleMicroflakeContent.panel(pixels, pixelWidth, pixelHeight, rules, classification)
         val copyLimit = rules.number("content_copies").toInt()
         val budget = 1.0 + copyLimit * panel.weight.toDouble() * (1.0 - panel.fraction)
         // 基础颗粒预算按与飘散相同的设备像素面积确定；大小在逻辑坐标中独立校准。
@@ -93,10 +96,9 @@ internal object ParticleMicroflakeModel {
             else nx.toFloat() / ceil(width / baseCell).toInt().coerceAtLeast(2)) * particleSizeScale
         val particleScaleY = (if (aligned || requested > 0f) (diameter / cellY).toFloat()
             else ny.toFloat() / ceil(height / baseCell).toInt().coerceAtLeast(2)) * particleSizeScale
-        var opaque = 0
-        var white = 0
-        val sampleStep = ceil(sqrt(pixels.size / 65536.0)).toInt().coerceAtLeast(1)
-        for (y in 0 until pixelHeight step sampleStep) for (x in 0 until pixelWidth step sampleStep) {
+        var opaque = classification?.get(5)?.toInt() ?: 0
+        var white = classification?.get(6)?.toInt() ?: 0
+        if (classification == null) for (y in 0 until pixelHeight step sampleStep) for (x in 0 until pixelWidth step sampleStep) {
             val c = pixels[y * pixelWidth + x]
             if (c ushr 24 > 242) {
                 opaque++

@@ -202,6 +202,78 @@ extern "C" JNIEXPORT void JNICALL JNI_NAME(packState)(JNIEnv* e,jobject,jfloatAr
     for(int i=0;i<count;++i){state[i*8]=material.p[i*12];state[i*8+1]=material.p[i*12+1];}
 }
 
+// 这两段仅搬运原来的逐材料循环；编译选项禁止 FMA 和 fast-math，保留 float 舍入边界。
+extern "C" JNIEXPORT jfloat JNICALL JNI_NAME(bodyRelease)(JNIEnv* e,jobject,jfloatArray valuesArray,jfloat spread){
+    Floats values(e,valuesArray);
+    if(!values.p)return 0.f;
+    float end=0.f;
+    const int size=e->GetArrayLength(valuesArray);
+    for(int i=0;i<size;i+=12){
+        const float birth=values.p[i+2];
+        const float source=birth-spread*(values.p[i+11]-.5f);
+        const float tail=source+.060f;
+        if(std::isnan(birth))return birth;
+        if(std::isnan(tail))return tail;
+        end=std::max(end,std::max(birth,tail));
+    }
+    return std::clamp(end+.001f,0.f,1.f);
+}
+
+// 面板分箱与白色像素统计共享原采样下标；这里只累计整数，比例与平滑仍在 Kotlin 中求值。
+extern "C" JNIEXPORT jlongArray JNICALL JNI_NAME(classifyPixels)(JNIEnv* e,jobject,jintArray pixelsArray,
+    jint width,jint height,jint stride){
+    if(width<=0||height<=0||stride<=0||int64_t(width)*height!=e->GetArrayLength(pixelsArray)){
+        e->ThrowNew(e->FindClass("java/lang/IllegalArgumentException"),"Invalid pixel dimensions");return nullptr;
+    }
+    Ints pixels(e,pixelsArray);
+    if(!pixels.p)return nullptr;
+    std::array<int,4096> counts{},first;
+    std::array<std::array<int64_t,4096>,3> sums{};
+    first.fill(INT32_MAX);
+    jlong result[7]{};
+    for(int y=0;y<height;y+=stride)for(int x=0;x<width;x+=stride){
+        const int at=y*width+x;const uint32_t c=uint32_t(pixels.p[at]);
+        const int alpha=c>>24,r=(c>>16)&255,g=(c>>8)&255,b=c&255;
+        if(alpha>242){result[5]++;if(std::min(r,std::min(g,b))>229)result[6]++;}
+        if(alpha!=255)continue;
+        const int key=(r/16)*256+(g/16)*16+b/16;
+        counts[key]++;first[key]=std::min(first[key],at);
+        sums[0][key]+=r;sums[1][key]+=g;sums[2][key]+=b;result[0]++;
+    }
+    int best=0;
+    for(int key=0;key<4096;++key)
+        if(counts[key]>counts[best]||(counts[key]==counts[best]&&first[key]<first[best]))best=key;
+    result[1]=counts[best];for(int i=0;i<3;++i)result[i+2]=sums[i][best];
+    auto out=e->NewLongArray(7);if(out)e->SetLongArrayRegion(out,0,7,result);return out;
+}
+
+extern "C" JNIEXPORT jint JNICALL JNI_NAME(reverseRanges)(JNIEnv* e,jobject,jfloatArray valuesArray,
+    jint samples,jintArray rangesArray){
+    Floats values(e,valuesArray);
+    if(!values.p)return 0;
+    const int count=e->GetArrayLength(valuesArray)/12;
+    if(samples<1||samples>60||e->GetArrayLength(rangesArray)!=count*4){
+        e->ThrowNew(e->FindClass("java/lang/IllegalArgumentException"),"Invalid history dimensions");return 0;
+    }
+    jint* ranges=e->GetIntArrayElements(rangesArray,nullptr);
+    if(!ranges)return 0;
+    int64_t states=0;
+    for(int i=0;i<count;++i){
+        const float birth=values.p[i*12+2];
+        const float death=birth+values.p[i*12+6];
+        const float firstSample=birth*samples, lastSample=death*samples;
+        const int first=int(std::clamp(std::floor(double(firstSample))-1.,0.,double(samples)));
+        const int last=int(std::clamp(std::ceil(double(lastSample))+1.,double(first),double(samples)));
+        ranges[i*4]=first;ranges[i*4+1]=last;ranges[i*4+2]=jint(states);ranges[i*4+3]=0;
+        states+=last-first+1;
+    }
+    e->ReleaseIntArrayElements(rangesArray,ranges,0);
+    if(states>INT32_MAX/20){
+        e->ThrowNew(e->FindClass("java/lang/ArithmeticException"),"History size overflow");return 0;
+    }
+    return jint(states*20);
+}
+
 // 只移动取样循环到本地代码，避免冷启动时上万次 DirectByteBuffer 整字访问。
 // 逐字节组合保证任意切片对齐及 LITTLE_ENDIAN 契约，位置和上限均由调用方原样保留。
 extern "C" JNIEXPORT jintArray JNICALL JNI_NAME(gatherRgba)(JNIEnv* e,jobject,jobject rgbaBuffer,

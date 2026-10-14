@@ -1,0 +1,227 @@
+[
+  {
+    "dataset": "text",
+    "device": "meizu",
+    "run": "refresh-drift-1791963686414140300",
+    "build": "202610140713",
+    "reportSha256": "52c9fe5c3a3e7e1d17dc1268f4e39920d89080be651e01eb0c7fb0534d68b2bb",
+    "events": 3445,
+    "pageSelection": "business_default"
+  },
+  {
+    "dataset": "text",
+    "device": "meizu",
+    "run": "refresh-flow-1791963708366311000",
+    "build": "202610140713",
+    "reportSha256": "04c3b92a706098fd1c7341ba6c3d2eafd962369dde6e0df4eb27251e2bfd74eb",
+    "events": 3355,
+    "pageSelection": "business_default"
+  },
+  {
+    "dataset": "text",
+    "device": "samsung",
+    "run": "refresh-drift-1791963395323716300",
+    "build": "202610140713",
+    "reportSha256": "e66ec7f559cc4a8e3dcd3eee8bea9219bfe5625deb2aa4e4cbd3e631d9cbf1d8",
+    "events": 3335,
+    "pageSelection": "business_default"
+  },
+  {
+    "dataset": "text",
+    "device": "samsung",
+    "run": "refresh-flow-1791963415354974300",
+    "build": "202610140713",
+    "reportSha256": "82a7d073087f7ea04b64ad2a7a9010ec957e49e825ecd4aeff250f50c04a71e5",
+    "events": 3181,
+    "pageSelection": "business_default"
+  },
+  {
+    "dataset": "text",
+    "device": "tablet",
+    "run": "refresh-drift-1791963395323716300",
+    "build": "202610140713",
+    "reportSha256": "fba754da0278aada8aa9191a798bc121acecef4d114b74141773cc0f018a5a9a",
+    "events": 3358,
+    "pageSelection": "business_default"
+  },
+  {
+    "dataset": "text",
+    "device": "tablet",
+    "run": "refresh-flow-1791963415174913600",
+    "build": "202610140713",
+    "reportSha256": "e81a59b5e48db26c0439fa09dc63d5b1c0cbc59d583bafc23276f10d38c0d058",
+    "events": 3272,
+    "pageSelection": "business_default"
+  },
+  {
+    "dataset": "complex",
+    "device": "meizu",
+    "run": "refresh-checklist-drift-1791964626296328200",
+    "build": "0",
+    "reportSha256": "47e7528177e5b24d8014a0f17fc806b4f73952522577007204451773c41e4e97",
+    "events": 3115,
+    "pageSelection": "business_default"
+  },
+  {
+    "dataset": "complex",
+    "device": "meizu",
+    "run": "refresh-checklist-flow-1791964650375030100",
+    "build": "0",
+    "reportSha256": "16eb835925c488537f7807b2966d5ea8b61a653b51fc8eee701a0dca9b46de66",
+    "events": 3094,
+    "pageSelection": "business_default"
+  },
+  {
+    "dataset": "complex",
+    "device": "meizu",
+    "run": "refresh-image-drift-1791964508408444400",
+    "build": "0",
+    "reportSha256": "94a7f7771bd810c6f9eff873c5d693c2a390ad2f682099925d9c2d228d0db583",
+    "events": 3620,
+    "pageSelection": "business_default"
+  },
+  {
+    "dataset": "complex",
+    "device": "meizu",
+    "run": "refresh-image-flow-1791964530519019800",
+    "build": "0",
+    "reportSha256": "ef03a99ed977a8dad3a53d4575a77687dfcd554d4692882907ad1ebcf28b5b1d",
+    "events": 3464,
+    "pageSelection": "business_default"
+  },
+  {
+    "dataset": "complex",
+    "device": "meizu",
+    "run": "refresh-video-drift-1791964552706721100",
+    "build": "0",
+    "reportSha256": "00464965237c629dc5020555ebfff498306c544f284cbafd17254f414239e917",
+    "events": 4885,
+    "pageSelection": "business_default"
+  },
+  {
+    "dataset": "complex",
+    "device": "meizu",
+    "run": "refresh-video-flow-1791964602869282800",
+    "build": "0",
+    "reportSha256": "85865050e92abed75a9f02f964f871cb6719fe67edad55bb2c579f1a6a99ebb7",
+    "events": 3210,
+    "pageSelection": "business_default"
+  },
+  {
+    "dataset": "complex",
+    "device": "samsung",
+    "run": "refresh-checklist-drift-1791964620219145700",
+    "build": "0",
+    "reportSha256": "471b3c34e0c490db6cfa17e771e026642113c918ca325a1d0829c5f60b78f3e8",
+    "events": 3297,
+    "pageSelection": "business_default"
+  },
+  {
+    "dataset": "complex",
+    "device": "samsung",
+    "run": "refresh-checklist-flow-1791964640380547200",
+    "build": "0",
+    "reportSha256": "a2ed52104907b744dfe2161698512a9e3e846809b82449a374f1898bf238d9db",
+    "events": 3162,
+    "pageSelection": "business_default"
+  },
+  {
+    "dataset": "complex",
+    "device": "samsung",
+    "run": "refresh-image-drift-1791964508408444400",
+    "build": "0",
+    "reportSha256": "20ad843c15777dc88e63b0843b48bc8fc9590408d3abfff400b0eab4b6114a16",
+    "events": 3276,
+    "pageSelection": "business_default"
+  },
+  {
+    "dataset": "complex",
+    "device": "samsung",
+    "run": "refresh-image-flow-1791964528525816400",
+    "build": "0",
+    "reportSha256": "4175fb8f56e02391fb11f5b12ddbe825227e74bd0b52fac289b460f9a6fa3c69",
+    "events": 3117,
+    "pageSelection": "business_default"
+  },
+  {
+    "dataset": "complex",
+    "device": "samsung",
+    "run": "refresh-video-drift-1791964548793625200",
+    "build": "0",
+    "reportSha256": "fc882e585609c8e84f4026a391a377217c2abad07739a45b69673f925bdba046",
+    "events": 5958,
+    "pageSelection": "business_default"
+  },
+  {
+    "dataset": "complex",
+    "device": "samsung",
+    "run": "refresh-video-flow-1791964599640487500",
+    "build": "0",
+    "reportSha256": "891070e11d6bfc2c471d76c1f781a444078ab1876b30709ac824f9e911b65b50",
+    "events": 3266,
+    "pageSelection": "business_default"
+  },
+  {
+    "dataset": "complex",
+    "device": "tablet",
+    "run": "refresh-checklist-drift-1791964430125530400",
+    "build": "0",
+    "reportSha256": "10699847ed306f9e35b61bf5863c63d0639537d21c1459887d38a83d4373c68a",
+    "events": 3484,
+    "pageSelection": "business_default"
+  },
+  {
+    "dataset": "complex",
+    "device": "tablet",
+    "run": "refresh-checklist-flow-1791964449976326100",
+    "build": "0",
+    "reportSha256": "809ed84ab12bb70c5cbbd99b155daf5f8dd37c00a61f53308674db663de66ad4",
+    "events": 3326,
+    "pageSelection": "business_default"
+  },
+  {
+    "dataset": "complex",
+    "device": "tablet",
+    "run": "refresh-image-drift-1791964327823999400",
+    "build": "0",
+    "reportSha256": "81a326e7baca69b89d33a84ae09d41b365482a8a41e85b6a826c9018919d157d",
+    "events": 3372,
+    "pageSelection": "business_default"
+  },
+  {
+    "dataset": "complex",
+    "device": "tablet",
+    "run": "refresh-image-flow-1791964347903450800",
+    "build": "0",
+    "reportSha256": "ad735b9df24f1858a1a97e91950eed31ebd833b50f417a77f6d215ab74efecb0",
+    "events": 3316,
+    "pageSelection": "business_default"
+  },
+  {
+    "dataset": "complex",
+    "device": "tablet",
+    "run": "refresh-video-drift-1791964367985907600",
+    "build": "0",
+    "reportSha256": "27893cf0f4af3f184fc80087a18556937bb57d6d7c84060f11588414a2f0b466",
+    "events": 4718,
+    "pageSelection": "business_default"
+  },
+  {
+    "dataset": "complex",
+    "device": "tablet",
+    "run": "refresh-video-flow-1791964409848501200",
+    "build": "0",
+    "reportSha256": "be42e08164e7cadc7f09806d9aaf457820be6c81ff9c6500e9c6408dbb299d09",
+    "events": 3370,
+    "pageSelection": "business_default"
+  },
+  {
+    "dataset": "video-recheck",
+    "device": "meizu",
+    "run": "refresh-video-flow-1791964732348387300",
+    "build": "0",
+    "reportSha256": "42b4c60d95be98ec2f699aefb55fef82a83c51162d6f38b386a96a2aafcc6b37",
+    "events": 3253,
+    "pageSelection": "business_default"
+  }
+]

@@ -1,0 +1,2486 @@
+{
+  "baseline": {
+    "samsung": {
+      "runs": 3,
+      "all": {
+        "name": "all",
+        "segments": 138,
+        "fps": 112.98,
+        "activeDurationMs": 52338.354,
+        "matchedPresentedFrames": 5901,
+        "matchedFramesPerActiveSecond": 112.75,
+        "presentedFramesInWindow": 5838,
+        "presentedFramesPerActiveSecond": 111.54,
+        "intervalMs": {
+          "count": 5763,
+          "p50": 8.335,
+          "p90": 8.337,
+          "p95": 16.668,
+          "max": 33.356
+        },
+        "over12_5msPct": 5.83,
+        "over25msCount": 16,
+        "over50msCount": 0
+      },
+      "drag": {
+        "name": "drag",
+        "segments": 69,
+        "fps": 112.91,
+        "activeDurationMs": 47017.001,
+        "matchedPresentedFrames": 5292,
+        "matchedFramesPerActiveSecond": 112.56,
+        "presentedFramesInWindow": 5225,
+        "presentedFramesPerActiveSecond": 111.13,
+        "intervalMs": {
+          "count": 5223,
+          "p50": 8.335,
+          "p90": 8.337,
+          "p95": 16.668,
+          "max": 33.356
+        },
+        "over12_5msPct": 5.86,
+        "over25msCount": 16,
+        "over50msCount": 0
+      },
+      "fling": {
+        "name": "fling",
+        "segments": 69,
+        "fps": 113.66,
+        "activeDurationMs": 5321.353,
+        "matchedPresentedFrames": 609,
+        "matchedFramesPerActiveSecond": 114.44,
+        "presentedFramesInWindow": 613,
+        "presentedFramesPerActiveSecond": 115.2,
+        "intervalMs": {
+          "count": 540,
+          "p50": 8.335,
+          "p90": 8.338,
+          "p95": 16.666,
+          "max": 17.149
+        },
+        "over12_5msPct": 5.56,
+        "over25msCount": 0,
+        "over50msCount": 0
+      },
+      "blocks": {
+        "bottom": {
+          "name": "bottom",
+          "segments": 48,
+          "fps": 110.86,
+          "activeDurationMs": 4643.048,
+          "matchedPresentedFrames": 498,
+          "matchedFramesPerActiveSecond": 107.26,
+          "presentedFramesInWindow": 460,
+          "presentedFramesPerActiveSecond": 99.07,
+          "intervalMs": {
+            "count": 450,
+            "p50": 8.335,
+            "p90": 8.337,
+            "p95": 16.668,
+            "max": 25.005
+          },
+          "over12_5msPct": 7.78,
+          "over25msCount": 2,
+          "over50msCount": 0
+        },
+        "middle": {
+          "name": "middle",
+          "segments": 42,
+          "fps": 111.14,
+          "activeDurationMs": 16273.662,
+          "matchedPresentedFrames": 1815,
+          "matchedFramesPerActiveSecond": 111.53,
+          "presentedFramesInWindow": 1802,
+          "presentedFramesPerActiveSecond": 110.73,
+          "intervalMs": {
+            "count": 1773,
+            "p50": 8.335,
+            "p90": 8.337,
+            "p95": 16.67,
+            "max": 33.356
+          },
+          "over12_5msPct": 7.45,
+          "over25msCount": 7,
+          "over50msCount": 0
+        },
+        "top": {
+          "name": "top",
+          "segments": 48,
+          "fps": 114.2,
+          "activeDurationMs": 31421.644,
+          "matchedPresentedFrames": 3588,
+          "matchedFramesPerActiveSecond": 114.19,
+          "presentedFramesInWindow": 3576,
+          "presentedFramesPerActiveSecond": 113.81,
+          "intervalMs": {
+            "count": 3540,
+            "p50": 8.335,
+            "p90": 8.337,
+            "p95": 8.34,
+            "max": 33.338
+          },
+          "over12_5msPct": 4.77,
+          "over25msCount": 7,
+          "over50msCount": 0
+        }
+      },
+      "perRun": [
+        {
+          "run": "real-checklist-1-1791970245368188600",
+          "all": 111.05,
+          "drag": 111.02,
+          "fling": 111.35
+        },
+        {
+          "run": "real-checklist-2-1791970279676409900",
+          "all": 113.34,
+          "drag": 113.39,
+          "fling": 112.85
+        },
+        {
+          "run": "real-checklist-3-1791970314032373000",
+          "all": 114.51,
+          "drag": 114.3,
+          "fling": 116.45
+        }
+      ]
+    },
+    "meizu": {
+      "runs": 3,
+      "all": {
+        "name": "all",
+        "segments": 69,
+        "fps": 116.9,
+        "activeDurationMs": 47577.191,
+        "matchedPresentedFrames": 5515,
+        "matchedFramesPerActiveSecond": 115.92,
+        "presentedFramesInWindow": 5469,
+        "presentedFramesPerActiveSecond": 114.95,
+        "intervalMs": {
+          "count": 5446,
+          "p50": 8.288,
+          "p90": 8.292,
+          "p95": 8.294,
+          "max": 24.859
+        },
+        "over12_5msPct": 3.21,
+        "over25msCount": 0,
+        "over50msCount": 0
+      },
+      "drag": {
+        "name": "drag",
+        "segments": 69,
+        "fps": 116.9,
+        "activeDurationMs": 47577.191,
+        "matchedPresentedFrames": 5515,
+        "matchedFramesPerActiveSecond": 115.92,
+        "presentedFramesInWindow": 5469,
+        "presentedFramesPerActiveSecond": 114.95,
+        "intervalMs": {
+          "count": 5446,
+          "p50": 8.288,
+          "p90": 8.292,
+          "p95": 8.294,
+          "max": 24.859
+        },
+        "over12_5msPct": 3.21,
+        "over25msCount": 0,
+        "over50msCount": 0
+      },
+      "fling": {
+        "name": "fling",
+        "segments": 0,
+        "fps": null,
+        "activeDurationMs": null,
+        "matchedPresentedFrames": null,
+        "matchedFramesPerActiveSecond": null,
+        "presentedFramesInWindow": null,
+        "presentedFramesPerActiveSecond": null,
+        "intervalMs": {
+          "count": 0,
+          "p50": null,
+          "p90": null,
+          "p95": null,
+          "max": null
+        },
+        "over12_5msPct": null,
+        "over25msCount": 0,
+        "over50msCount": 0
+      },
+      "blocks": {
+        "bottom": {
+          "name": "bottom",
+          "segments": 24,
+          "fps": 117.73,
+          "activeDurationMs": 4135.06,
+          "matchedPresentedFrames": 464,
+          "matchedFramesPerActiveSecond": 112.21,
+          "presentedFramesInWindow": 436,
+          "presentedFramesPerActiveSecond": 105.44,
+          "intervalMs": {
+            "count": 440,
+            "p50": 8.288,
+            "p90": 8.291,
+            "p95": 8.293,
+            "max": 16.586
+          },
+          "over12_5msPct": 2.5,
+          "over25msCount": 0,
+          "over50msCount": 0
+        },
+        "middle": {
+          "name": "middle",
+          "segments": 21,
+          "fps": 117.37,
+          "activeDurationMs": 14750.187,
+          "matchedPresentedFrames": 1728,
+          "matchedFramesPerActiveSecond": 117.15,
+          "presentedFramesInWindow": 1722,
+          "presentedFramesPerActiveSecond": 116.74,
+          "intervalMs": {
+            "count": 1707,
+            "p50": 8.289,
+            "p90": 8.293,
+            "p95": 8.294,
+            "max": 16.584
+          },
+          "over12_5msPct": 2.81,
+          "over25msCount": 0,
+          "over50msCount": 0
+        },
+        "top": {
+          "name": "top",
+          "segments": 24,
+          "fps": 116.55,
+          "activeDurationMs": 28691.945,
+          "matchedPresentedFrames": 3323,
+          "matchedFramesPerActiveSecond": 115.82,
+          "presentedFramesInWindow": 3311,
+          "presentedFramesPerActiveSecond": 115.4,
+          "intervalMs": {
+            "count": 3299,
+            "p50": 8.288,
+            "p90": 8.292,
+            "p95": 8.294,
+            "max": 24.859
+          },
+          "over12_5msPct": 3.52,
+          "over25msCount": 0,
+          "over50msCount": 0
+        }
+      },
+      "perRun": [
+        {
+          "run": "real-checklist-1-1791970245368188600",
+          "all": 117.28,
+          "drag": 117.28,
+          "fling": null
+        },
+        {
+          "run": "real-checklist-2-1791970282038479300",
+          "all": 118.09,
+          "drag": 118.09,
+          "fling": null
+        },
+        {
+          "run": "real-checklist-3-1791970318803173600",
+          "all": 115.31,
+          "drag": 115.31,
+          "fling": null
+        }
+      ]
+    }
+  },
+  "contact-compare": {
+    "samsung": {
+      "runs": 2,
+      "all": {
+        "name": "all",
+        "segments": 82,
+        "fps": 116.61,
+        "activeDurationMs": 64327.913,
+        "matchedPresentedFrames": 7472,
+        "matchedFramesPerActiveSecond": 116.15,
+        "presentedFramesInWindow": 7435,
+        "presentedFramesPerActiveSecond": 115.58,
+        "intervalMs": {
+          "count": 7390,
+          "p50": 8.335,
+          "p90": 8.337,
+          "p95": 8.338,
+          "max": 25.01
+        },
+        "over12_5msPct": 2.83,
+        "over25msCount": 4,
+        "over50msCount": 0
+      },
+      "drag": {
+        "name": "drag",
+        "segments": 42,
+        "fps": 116.82,
+        "activeDurationMs": 54285.521,
+        "matchedPresentedFrames": 6300,
+        "matchedFramesPerActiveSecond": 116.05,
+        "presentedFramesInWindow": 6271,
+        "presentedFramesPerActiveSecond": 115.52,
+        "intervalMs": {
+          "count": 6258,
+          "p50": 8.335,
+          "p90": 8.337,
+          "p95": 8.338,
+          "max": 25.01
+        },
+        "over12_5msPct": 2.65,
+        "over25msCount": 3,
+        "over50msCount": 0
+      },
+      "fling": {
+        "name": "fling",
+        "segments": 40,
+        "fps": 115.49,
+        "activeDurationMs": 10042.393,
+        "matchedPresentedFrames": 1172,
+        "matchedFramesPerActiveSecond": 116.71,
+        "presentedFramesInWindow": 1164,
+        "presentedFramesPerActiveSecond": 115.91,
+        "intervalMs": {
+          "count": 1132,
+          "p50": 8.335,
+          "p90": 8.337,
+          "p95": 8.338,
+          "max": 25.006
+        },
+        "over12_5msPct": 3.8,
+        "over25msCount": 1,
+        "over50msCount": 0
+      },
+      "blocks": {
+        "contact": {
+          "name": "contact",
+          "segments": 2,
+          "fps": 117.15,
+          "activeDurationMs": 27989.557,
+          "matchedPresentedFrames": 3279,
+          "matchedFramesPerActiveSecond": 117.15,
+          "presentedFramesInWindow": 3277,
+          "presentedFramesPerActiveSecond": 117.08,
+          "intervalMs": {
+            "count": 3277,
+            "p50": 8.335,
+            "p90": 8.337,
+            "p95": 8.338,
+            "max": 25.003
+          },
+          "over12_5msPct": 2.38,
+          "over25msCount": 1,
+          "over50msCount": 0
+        },
+        "lifted": {
+          "name": "lifted",
+          "segments": 80,
+          "fps": 116.19,
+          "activeDurationMs": 36338.357,
+          "matchedPresentedFrames": 4193,
+          "matchedFramesPerActiveSecond": 115.39,
+          "presentedFramesInWindow": 4158,
+          "presentedFramesPerActiveSecond": 114.42,
+          "intervalMs": {
+            "count": 4113,
+            "p50": 8.335,
+            "p90": 8.337,
+            "p95": 8.338,
+            "max": 25.01
+          },
+          "over12_5msPct": 3.19,
+          "over25msCount": 3,
+          "over50msCount": 0
+        }
+      },
+      "perRun": [
+        {
+          "run": "real-checklist-1-1791970619268806000",
+          "all": 115.81,
+          "drag": 116.02,
+          "fling": 114.68
+        },
+        {
+          "run": "real-checklist-2-1791970681206517900",
+          "all": 117.42,
+          "drag": 117.62,
+          "fling": 116.3
+        }
+      ]
+    },
+    "meizu": {
+      "runs": 2,
+      "all": {
+        "name": "all",
+        "segments": 82,
+        "fps": 112.66,
+        "activeDurationMs": 58601.201,
+        "matchedPresentedFrames": 6542,
+        "matchedFramesPerActiveSecond": 111.64,
+        "presentedFramesInWindow": 6515,
+        "presentedFramesPerActiveSecond": 111.18,
+        "intervalMs": {
+          "count": 6460,
+          "p50": 8.288,
+          "p90": 8.293,
+          "p95": 16.566,
+          "max": 49.717
+        },
+        "over12_5msPct": 6.38,
+        "over25msCount": 17,
+        "over50msCount": 0
+      },
+      "drag": {
+        "name": "drag",
+        "segments": 42,
+        "fps": 113.7,
+        "activeDurationMs": 54252.968,
+        "matchedPresentedFrames": 6147,
+        "matchedFramesPerActiveSecond": 113.3,
+        "presentedFramesInWindow": 6105,
+        "presentedFramesPerActiveSecond": 112.53,
+        "intervalMs": {
+          "count": 6105,
+          "p50": 8.288,
+          "p90": 8.293,
+          "p95": 16.564,
+          "max": 33.112
+        },
+        "over12_5msPct": 6.09,
+        "over25msCount": 1,
+        "over50msCount": 0
+      },
+      "fling": {
+        "name": "fling",
+        "segments": 40,
+        "fps": 97.37,
+        "activeDurationMs": 4348.233,
+        "matchedPresentedFrames": 395,
+        "matchedFramesPerActiveSecond": 90.84,
+        "presentedFramesInWindow": 410,
+        "presentedFramesPerActiveSecond": 94.29,
+        "intervalMs": {
+          "count": 355,
+          "p50": 8.288,
+          "p90": 16.571,
+          "p95": 24.861,
+          "max": 49.717
+        },
+        "over12_5msPct": 11.27,
+        "over25msCount": 16,
+        "over50msCount": 0
+      },
+      "blocks": {
+        "contact": {
+          "name": "contact",
+          "segments": 2,
+          "fps": 115.48,
+          "activeDurationMs": 27983.852,
+          "matchedPresentedFrames": 3232,
+          "matchedFramesPerActiveSecond": 115.5,
+          "presentedFramesInWindow": 3229,
+          "presentedFramesPerActiveSecond": 115.39,
+          "intervalMs": {
+            "count": 3230,
+            "p50": 8.289,
+            "p90": 8.293,
+            "p95": 8.462,
+            "max": 24.868
+          },
+          "over12_5msPct": 4.46,
+          "over25msCount": 0,
+          "over50msCount": 0
+        },
+        "lifted": {
+          "name": "lifted",
+          "segments": 80,
+          "fps": 109.97,
+          "activeDurationMs": 30617.348,
+          "matchedPresentedFrames": 3310,
+          "matchedFramesPerActiveSecond": 108.11,
+          "presentedFramesInWindow": 3286,
+          "presentedFramesPerActiveSecond": 107.32,
+          "intervalMs": {
+            "count": 3230,
+            "p50": 8.286,
+            "p90": 8.294,
+            "p95": 16.568,
+            "max": 49.717
+          },
+          "over12_5msPct": 8.3,
+          "over25msCount": 17,
+          "over50msCount": 0
+        }
+      },
+      "perRun": [
+        {
+          "run": "real-checklist-1-1791970619269806000",
+          "all": 111.78,
+          "drag": 112.84,
+          "fling": 96.65
+        },
+        {
+          "run": "real-checklist-2-1791970684613507400",
+          "all": 113.54,
+          "drag": 114.56,
+          "fling": 98.13
+        }
+      ]
+    }
+  },
+  "trace": {
+    "samsung": [
+      {
+        "device": "samsung",
+        "run": "real-checklist-1-1791970402271832600",
+        "traceRows": 40314,
+        "scope": "all",
+        "windows": 3,
+        "recordMs": {
+          "count": 2665,
+          "p50": 0.085,
+          "p90": 0.23,
+          "p95": 0.287,
+          "max": 0.974
+        },
+        "syncMs": {
+          "count": 2665,
+          "p50": 0.491,
+          "p90": 0.721,
+          "p95": 0.887,
+          "max": 12.613
+        },
+        "chain": {
+          "imageAvailableMs": {
+            "count": 2665,
+            "p50": 3.345,
+            "p90": 4.377,
+            "p95": 4.724,
+            "max": 14.747
+          },
+          "fenceMs": {
+            "count": 2665,
+            "p50": 3.208,
+            "p90": 3.72,
+            "p95": 4.048,
+            "max": 7.518
+          },
+          "mainDispatchMs": {
+            "count": 2665,
+            "p50": 0.153,
+            "p90": 1.468,
+            "p95": 1.846,
+            "max": 8.042
+          },
+          "uploadMs": {
+            "count": 2665,
+            "p50": 0.552,
+            "p90": 1.26,
+            "p95": 1.739,
+            "max": 8.575
+          },
+          "releaseGateMs": {
+            "count": 2665,
+            "p50": 0.015,
+            "p90": 0.028,
+            "p95": 0.072,
+            "max": 8.261
+          },
+          "totalMs": {
+            "count": 2665,
+            "p50": 8.151,
+            "p90": 9.425,
+            "p95": 10.002,
+            "max": 22.999
+          }
+        },
+        "requests": 2915,
+        "requestsWhileBusy": 2398,
+        "hardwareSyncStatuses": {
+          "0": 2665
+        },
+        "recordOver8ms": 0,
+        "syncOver8ms": 7,
+        "compositeStartToDriverRenderCompleteMs": {
+          "count": 2497,
+          "p50": 1.372,
+          "p90": 3.658,
+          "p95": 6.303,
+          "max": 9.059
+        },
+        "clockCallbackCadence": {
+          "fps": 130.23,
+          "intervalMs": {
+            "count": 3033,
+            "p50": 8.335,
+            "p90": 8.337,
+            "p95": 8.338,
+            "max": 8.372
+          }
+        },
+        "outputBeatCadence": {
+          "fps": 119.97,
+          "intervalMs": {
+            "count": 2794,
+            "p50": 8.335,
+            "p90": 8.337,
+            "p95": 8.338,
+            "max": 8.372
+          }
+        },
+        "captureCadence": {
+          "fps": 114.57,
+          "intervalMs": {
+            "count": 2662,
+            "p50": 8.355,
+            "p90": 9.605,
+            "p95": 10.31,
+            "max": 51.172
+          }
+        },
+        "requestCadence": {
+          "fps": 125.34,
+          "intervalMs": {
+            "count": 2912,
+            "p50": 8.268,
+            "p90": 8.786,
+            "p95": 9.08,
+            "max": 51.192
+          }
+        },
+        "snapshotRetiredDuringWindows": 24
+      }
+    ],
+    "meizu": [
+      {
+        "device": "meizu",
+        "run": "real-checklist-1-1791970402271832600",
+        "traceRows": 38573,
+        "scope": "all",
+        "windows": 3,
+        "recordMs": {
+          "count": 2751,
+          "p50": 0.174,
+          "p90": 0.417,
+          "p95": 0.484,
+          "max": 1.901
+        },
+        "syncMs": {
+          "count": 2751,
+          "p50": 0.276,
+          "p90": 0.496,
+          "p95": 0.688,
+          "max": 7.082
+        },
+        "chain": {
+          "imageAvailableMs": {
+            "count": 2751,
+            "p50": 2.648,
+            "p90": 3.32,
+            "p95": 3.587,
+            "max": 8.971
+          },
+          "fenceMs": {
+            "count": 2751,
+            "p50": 2.449,
+            "p90": 2.774,
+            "p95": 3.01,
+            "max": 10.02
+          },
+          "mainDispatchMs": {
+            "count": 2751,
+            "p50": 0.092,
+            "p90": 0.617,
+            "p95": 3.25,
+            "max": 15.369
+          },
+          "uploadMs": {
+            "count": 2751,
+            "p50": 0.461,
+            "p90": 1.127,
+            "p95": 1.442,
+            "max": 8.737
+          },
+          "releaseGateMs": {
+            "count": 2751,
+            "p50": 0.003,
+            "p90": 0.009,
+            "p95": 0.013,
+            "max": 1.576
+          },
+          "totalMs": {
+            "count": 2751,
+            "p50": 5.827,
+            "p90": 8.431,
+            "p95": 9.325,
+            "max": 21.721
+          }
+        },
+        "requests": 2762,
+        "requestsWhileBusy": 478,
+        "hardwareSyncStatuses": {
+          "0": 2751
+        },
+        "recordOver8ms": 0,
+        "syncOver8ms": 0,
+        "compositeStartToDriverRenderCompleteMs": {
+          "count": 2545,
+          "p50": 1.227,
+          "p90": 1.469,
+          "p95": 1.654,
+          "max": 5.159
+        },
+        "clockCallbackCadence": {
+          "fps": 120.38,
+          "intervalMs": {
+            "count": 2822,
+            "p50": 8.287,
+            "p90": 8.293,
+            "p95": 8.296,
+            "max": 24.198
+          }
+        },
+        "outputBeatCadence": {
+          "fps": 120.38,
+          "intervalMs": {
+            "count": 2822,
+            "p50": 8.287,
+            "p90": 8.293,
+            "p95": 8.296,
+            "max": 24.198
+          }
+        },
+        "captureCadence": {
+          "fps": 117.97,
+          "intervalMs": {
+            "count": 2748,
+            "p50": 8.278,
+            "p90": 9.233,
+            "p95": 9.858,
+            "max": 42.995
+          }
+        },
+        "requestCadence": {
+          "fps": 118.44,
+          "intervalMs": {
+            "count": 2759,
+            "p50": 8.277,
+            "p90": 8.661,
+            "p95": 9.381,
+            "max": 42.995
+          }
+        },
+        "snapshotRetiredDuringWindows": 24
+      }
+    ]
+  },
+  "fling": {
+    "samsung": {
+      "runs": 3,
+      "all": {
+        "name": "all",
+        "segments": 144,
+        "fps": 114.15,
+        "activeDurationMs": 29842.017,
+        "matchedPresentedFrames": 3375,
+        "matchedFramesPerActiveSecond": 113.1,
+        "presentedFramesInWindow": 3251,
+        "presentedFramesPerActiveSecond": 108.94,
+        "intervalMs": {
+          "count": 3231,
+          "p50": 8.335,
+          "p90": 8.337,
+          "p95": 12.598,
+          "max": 25.006
+        },
+        "over12_5msPct": 5.01,
+        "over25msCount": 2,
+        "over50msCount": 0
+      },
+      "drag": {
+        "name": "drag",
+        "segments": 72,
+        "fps": 107.04,
+        "activeDurationMs": 6576.743,
+        "matchedPresentedFrames": 651,
+        "matchedFramesPerActiveSecond": 98.99,
+        "presentedFramesInWindow": 558,
+        "presentedFramesPerActiveSecond": 84.84,
+        "intervalMs": {
+          "count": 579,
+          "p50": 8.335,
+          "p90": 16.668,
+          "p95": 16.67,
+          "max": 16.675
+        },
+        "over12_5msPct": 12.09,
+        "over25msCount": 0,
+        "over50msCount": 0
+      },
+      "fling": {
+        "name": "fling",
+        "segments": 72,
+        "fps": 115.82,
+        "activeDurationMs": 23265.274,
+        "matchedPresentedFrames": 2724,
+        "matchedFramesPerActiveSecond": 117.08,
+        "presentedFramesInWindow": 2693,
+        "presentedFramesPerActiveSecond": 115.75,
+        "intervalMs": {
+          "count": 2652,
+          "p50": 8.335,
+          "p90": 8.337,
+          "p95": 8.338,
+          "max": 25.006
+        },
+        "over12_5msPct": 3.47,
+        "over25msCount": 2,
+        "over50msCount": 0
+      },
+      "blocks": {
+        "fling_fast": {
+          "name": "fling_fast",
+          "segments": 72,
+          "fps": 113.41,
+          "activeDurationMs": 9585.906,
+          "matchedPresentedFrames": 1056,
+          "matchedFramesPerActiveSecond": 110.16,
+          "presentedFramesInWindow": 1001,
+          "presentedFramesPerActiveSecond": 104.42,
+          "intervalMs": {
+            "count": 984,
+            "p50": 8.335,
+            "p90": 8.338,
+            "p95": 16.666,
+            "max": 25.003
+          },
+          "over12_5msPct": 5.69,
+          "over25msCount": 1,
+          "over50msCount": 0
+        },
+        "fling_medium": {
+          "name": "fling_medium",
+          "segments": 72,
+          "fps": 114.47,
+          "activeDurationMs": 20256.111,
+          "matchedPresentedFrames": 2319,
+          "matchedFramesPerActiveSecond": 114.48,
+          "presentedFramesInWindow": 2250,
+          "presentedFramesPerActiveSecond": 111.08,
+          "intervalMs": {
+            "count": 2247,
+            "p50": 8.335,
+            "p90": 8.337,
+            "p95": 8.34,
+            "max": 25.006
+          },
+          "over12_5msPct": 4.72,
+          "over25msCount": 1,
+          "over50msCount": 0
+        }
+      },
+      "perRun": [
+        {
+          "run": "real-checklist-1-1791971475088240500",
+          "all": 113.28,
+          "drag": 107.26,
+          "fling": 114.71
+        },
+        {
+          "run": "real-checklist-1-1791971625912498300",
+          "all": 114.35,
+          "drag": 106.4,
+          "fling": 116.18
+        },
+        {
+          "run": "real-checklist-2-1791971689091759800",
+          "all": 114.81,
+          "drag": 107.44,
+          "fling": 116.57
+        }
+      ]
+    },
+    "meizu": {
+      "runs": 3,
+      "all": {
+        "name": "all",
+        "segments": 144,
+        "fps": 108.52,
+        "activeDurationMs": 15544.737,
+        "matchedPresentedFrames": 1490,
+        "matchedFramesPerActiveSecond": 95.85,
+        "presentedFramesInWindow": 1478,
+        "presentedFramesPerActiveSecond": 95.08,
+        "intervalMs": {
+          "count": 1346,
+          "p50": 8.286,
+          "p90": 8.291,
+          "p95": 16.568,
+          "max": 41.409
+        },
+        "over12_5msPct": 6.84,
+        "over25msCount": 20,
+        "over50msCount": 0
+      },
+      "drag": {
+        "name": "drag",
+        "segments": 72,
+        "fps": 114.22,
+        "activeDurationMs": 6577.487,
+        "matchedPresentedFrames": 671,
+        "matchedFramesPerActiveSecond": 102.01,
+        "presentedFramesInWindow": 583,
+        "presentedFramesPerActiveSecond": 88.64,
+        "intervalMs": {
+          "count": 599,
+          "p50": 8.285,
+          "p90": 8.289,
+          "p95": 8.448,
+          "max": 33.129
+        },
+        "over12_5msPct": 4.84,
+        "over25msCount": 2,
+        "over50msCount": 0
+      },
+      "fling": {
+        "name": "fling",
+        "segments": 72,
+        "fps": 104.35,
+        "activeDurationMs": 8967.25,
+        "matchedPresentedFrames": 819,
+        "matchedFramesPerActiveSecond": 91.33,
+        "presentedFramesInWindow": 895,
+        "presentedFramesPerActiveSecond": 99.81,
+        "intervalMs": {
+          "count": 747,
+          "p50": 8.287,
+          "p90": 8.292,
+          "p95": 16.577,
+          "max": 41.409
+        },
+        "over12_5msPct": 8.43,
+        "over25msCount": 18,
+        "over50msCount": 0
+      },
+      "blocks": {
+        "fling_fast": {
+          "name": "fling_fast",
+          "segments": 72,
+          "fps": 108.81,
+          "activeDurationMs": 5255.524,
+          "matchedPresentedFrames": 484,
+          "matchedFramesPerActiveSecond": 92.09,
+          "presentedFramesInWindow": 476,
+          "presentedFramesPerActiveSecond": 90.57,
+          "intervalMs": {
+            "count": 412,
+            "p50": 8.286,
+            "p90": 8.291,
+            "p95": 16.569,
+            "max": 33.151
+          },
+          "over12_5msPct": 6.55,
+          "over25msCount": 7,
+          "over50msCount": 0
+        },
+        "fling_medium": {
+          "name": "fling_medium",
+          "segments": 72,
+          "fps": 108.4,
+          "activeDurationMs": 10289.213,
+          "matchedPresentedFrames": 1006,
+          "matchedFramesPerActiveSecond": 97.77,
+          "presentedFramesInWindow": 1002,
+          "presentedFramesPerActiveSecond": 97.38,
+          "intervalMs": {
+            "count": 934,
+            "p50": 8.286,
+            "p90": 8.29,
+            "p95": 16.567,
+            "max": 41.409
+          },
+          "over12_5msPct": 6.96,
+          "over25msCount": 13,
+          "over50msCount": 0
+        }
+      },
+      "perRun": [
+        {
+          "run": "real-checklist-1-1791971475088240500",
+          "all": 112.23,
+          "drag": 114.48,
+          "fling": 110.69
+        },
+        {
+          "run": "real-checklist-1-1791971625912498300",
+          "all": 109.98,
+          "drag": 116.33,
+          "fling": 104.9
+        },
+        {
+          "run": "real-checklist-2-1791971691205815100",
+          "all": 102.87,
+          "drag": 111.61,
+          "fling": 96.55
+        }
+      ]
+    }
+  },
+  "fling-checklist": {
+    "samsung": {
+      "runs": 2,
+      "all": {
+        "name": "all",
+        "segments": 48,
+        "fps": 116.47,
+        "activeDurationMs": 21620.745,
+        "matchedPresentedFrames": 2477,
+        "matchedFramesPerActiveSecond": 114.57,
+        "presentedFramesInWindow": 2442,
+        "presentedFramesPerActiveSecond": 112.95,
+        "intervalMs": {
+          "count": 2429,
+          "p50": 8.335,
+          "p90": 8.337,
+          "p95": 8.338,
+          "max": 25.009
+        },
+        "over12_5msPct": 2.96,
+        "over25msCount": 1,
+        "over50msCount": 0
+      },
+      "drag": {
+        "name": "drag",
+        "segments": 24,
+        "fps": 110.57,
+        "activeDurationMs": 2399.313,
+        "matchedPresentedFrames": 224,
+        "matchedFramesPerActiveSecond": 93.36,
+        "presentedFramesInWindow": 191,
+        "presentedFramesPerActiveSecond": 79.61,
+        "intervalMs": {
+          "count": 200,
+          "p50": 8.336,
+          "p90": 8.337,
+          "p95": 16.67,
+          "max": 16.675
+        },
+        "over12_5msPct": 8.5,
+        "over25msCount": 0,
+        "over50msCount": 0
+      },
+      "fling": {
+        "name": "fling",
+        "segments": 24,
+        "fps": 117.03,
+        "activeDurationMs": 19221.432,
+        "matchedPresentedFrames": 2253,
+        "matchedFramesPerActiveSecond": 117.21,
+        "presentedFramesInWindow": 2251,
+        "presentedFramesPerActiveSecond": 117.11,
+        "intervalMs": {
+          "count": 2229,
+          "p50": 8.335,
+          "p90": 8.337,
+          "p95": 8.337,
+          "max": 25.009
+        },
+        "over12_5msPct": 2.47,
+        "over25msCount": 1,
+        "over50msCount": 0
+      },
+      "blocks": {
+        "fling_fast": {
+          "name": "fling_fast",
+          "segments": 24,
+          "fps": 115.94,
+          "activeDurationMs": 11533.915,
+          "matchedPresentedFrames": 1317,
+          "matchedFramesPerActiveSecond": 114.18,
+          "presentedFramesInWindow": 1302,
+          "presentedFramesPerActiveSecond": 112.88,
+          "intervalMs": {
+            "count": 1293,
+            "p50": 8.335,
+            "p90": 8.337,
+            "p95": 8.338,
+            "max": 16.679
+          },
+          "over12_5msPct": 3.48,
+          "over25msCount": 0,
+          "over50msCount": 0
+        },
+        "fling_medium": {
+          "name": "fling_medium",
+          "segments": 24,
+          "fps": 117.09,
+          "activeDurationMs": 10086.83,
+          "matchedPresentedFrames": 1160,
+          "matchedFramesPerActiveSecond": 115.0,
+          "presentedFramesInWindow": 1140,
+          "presentedFramesPerActiveSecond": 113.02,
+          "intervalMs": {
+            "count": 1136,
+            "p50": 8.335,
+            "p90": 8.337,
+            "p95": 8.337,
+            "max": 25.009
+          },
+          "over12_5msPct": 2.38,
+          "over25msCount": 1,
+          "over50msCount": 0
+        }
+      },
+      "perRun": [
+        {
+          "run": "real-checklist-1-1791971795509378400",
+          "all": 116.3,
+          "drag": 112.19,
+          "fling": 116.68
+        },
+        {
+          "run": "real-checklist-2-1791971848455001600",
+          "all": 116.65,
+          "drag": 108.96,
+          "fling": 117.4
+        }
+      ]
+    },
+    "meizu": {
+      "runs": 2,
+      "all": {
+        "name": "all",
+        "segments": 48,
+        "fps": 44.94,
+        "activeDurationMs": 28357.728,
+        "matchedPresentedFrames": 1026,
+        "matchedFramesPerActiveSecond": 36.18,
+        "presentedFramesInWindow": 1033,
+        "presentedFramesPerActiveSecond": 36.43,
+        "intervalMs": {
+          "count": 978,
+          "p50": 8.283,
+          "p90": 16.566,
+          "p95": 132.43,
+          "max": 537.91
+        },
+        "over12_5msPct": 12.99,
+        "over25msCount": 82,
+        "over50msCount": 73
+      },
+      "drag": {
+        "name": "drag",
+        "segments": 24,
+        "fps": 108.19,
+        "activeDurationMs": 2159.255,
+        "matchedPresentedFrames": 179,
+        "matchedFramesPerActiveSecond": 82.9,
+        "presentedFramesInWindow": 141,
+        "presentedFramesPerActiveSecond": 65.3,
+        "intervalMs": {
+          "count": 155,
+          "p50": 8.281,
+          "p90": 16.556,
+          "p95": 16.562,
+          "max": 16.567
+        },
+        "over12_5msPct": 11.61,
+        "over25msCount": 0,
+        "over50msCount": 0
+      },
+      "fling": {
+        "name": "fling",
+        "segments": 24,
+        "fps": 40.49,
+        "activeDurationMs": 26198.473,
+        "matchedPresentedFrames": 847,
+        "matchedFramesPerActiveSecond": 32.33,
+        "presentedFramesInWindow": 892,
+        "presentedFramesPerActiveSecond": 34.05,
+        "intervalMs": {
+          "count": 823,
+          "p50": 8.283,
+          "p90": 24.888,
+          "p95": 132.506,
+          "max": 537.91
+        },
+        "over12_5msPct": 13.24,
+        "over25msCount": 82,
+        "over50msCount": 73
+      },
+      "blocks": {
+        "fling_fast": {
+          "name": "fling_fast",
+          "segments": 24,
+          "fps": 41.54,
+          "activeDurationMs": 14808.812,
+          "matchedPresentedFrames": 521,
+          "matchedFramesPerActiveSecond": 35.18,
+          "presentedFramesInWindow": 525,
+          "presentedFramesPerActiveSecond": 35.45,
+          "intervalMs": {
+            "count": 497,
+            "p50": 8.284,
+            "p90": 24.848,
+            "p95": 134.146,
+            "max": 537.91
+          },
+          "over12_5msPct": 14.08,
+          "over25msCount": 46,
+          "over50msCount": 42
+        },
+        "fling_medium": {
+          "name": "fling_medium",
+          "segments": 24,
+          "fps": 49.1,
+          "activeDurationMs": 13548.916,
+          "matchedPresentedFrames": 505,
+          "matchedFramesPerActiveSecond": 37.27,
+          "presentedFramesInWindow": 508,
+          "presentedFramesPerActiveSecond": 37.49,
+          "intervalMs": {
+            "count": 481,
+            "p50": 8.282,
+            "p90": 16.562,
+            "p95": 115.902,
+            "max": 389.166
+          },
+          "over12_5msPct": 11.85,
+          "over25msCount": 36,
+          "over50msCount": 31
+        }
+      },
+      "perRun": [
+        {
+          "run": "real-checklist-1-1791971795509378400",
+          "all": 46.56,
+          "drag": 108.27,
+          "fling": 42.0
+        },
+        {
+          "run": "real-checklist-2-1791971853700200200",
+          "all": 43.45,
+          "drag": 108.12,
+          "fling": 39.1
+        }
+      ]
+    }
+  },
+  "fling-video": {
+    "samsung": {
+      "runs": 2,
+      "all": {
+        "name": "all",
+        "segments": 48,
+        "fps": 112.59,
+        "activeDurationMs": 21106.927,
+        "matchedPresentedFrames": 2366,
+        "matchedFramesPerActiveSecond": 112.1,
+        "presentedFramesInWindow": 2325,
+        "presentedFramesPerActiveSecond": 110.15,
+        "intervalMs": {
+          "count": 2318,
+          "p50": 8.335,
+          "p90": 8.338,
+          "p95": 16.668,
+          "max": 25.015
+        },
+        "over12_5msPct": 6.47,
+        "over25msCount": 2,
+        "over50msCount": 0
+      },
+      "drag": {
+        "name": "drag",
+        "segments": 24,
+        "fps": 106.82,
+        "activeDurationMs": 2386.97,
+        "matchedPresentedFrames": 235,
+        "matchedFramesPerActiveSecond": 98.45,
+        "presentedFramesInWindow": 203,
+        "presentedFramesPerActiveSecond": 85.05,
+        "intervalMs": {
+          "count": 211,
+          "p50": 8.335,
+          "p90": 16.666,
+          "p95": 16.67,
+          "max": 17.052
+        },
+        "over12_5msPct": 12.32,
+        "over25msCount": 0,
+        "over50msCount": 0
+      },
+      "fling": {
+        "name": "fling",
+        "segments": 24,
+        "fps": 113.2,
+        "activeDurationMs": 18719.957,
+        "matchedPresentedFrames": 2131,
+        "matchedFramesPerActiveSecond": 113.84,
+        "presentedFramesInWindow": 2122,
+        "presentedFramesPerActiveSecond": 113.35,
+        "intervalMs": {
+          "count": 2107,
+          "p50": 8.335,
+          "p90": 8.338,
+          "p95": 16.668,
+          "max": 25.015
+        },
+        "over12_5msPct": 5.89,
+        "over25msCount": 2,
+        "over50msCount": 0
+      },
+      "blocks": {
+        "fling_fast": {
+          "name": "fling_fast",
+          "segments": 24,
+          "fps": 112.74,
+          "activeDurationMs": 11339.57,
+          "matchedPresentedFrames": 1271,
+          "matchedFramesPerActiveSecond": 112.09,
+          "presentedFramesInWindow": 1251,
+          "presentedFramesPerActiveSecond": 110.32,
+          "intervalMs": {
+            "count": 1247,
+            "p50": 8.335,
+            "p90": 8.338,
+            "p95": 16.668,
+            "max": 25.015
+          },
+          "over12_5msPct": 6.34,
+          "over25msCount": 1,
+          "over50msCount": 0
+        },
+        "fling_medium": {
+          "name": "fling_medium",
+          "segments": 24,
+          "fps": 112.41,
+          "activeDurationMs": 9767.356,
+          "matchedPresentedFrames": 1095,
+          "matchedFramesPerActiveSecond": 112.11,
+          "presentedFramesInWindow": 1074,
+          "presentedFramesPerActiveSecond": 109.96,
+          "intervalMs": {
+            "count": 1071,
+            "p50": 8.336,
+            "p90": 8.338,
+            "p95": 16.668,
+            "max": 25.011
+          },
+          "over12_5msPct": 6.63,
+          "over25msCount": 1,
+          "over50msCount": 0
+        }
+      },
+      "perRun": [
+        {
+          "run": "real-checklist-1-1791971912013876900",
+          "all": 111.96,
+          "drag": 105.98,
+          "fling": 112.61
+        },
+        {
+          "run": "real-checklist-2-1791971964637541000",
+          "all": 113.21,
+          "drag": 107.67,
+          "fling": 113.78
+        }
+      ]
+    },
+    "meizu": {
+      "runs": 2,
+      "all": {
+        "name": "all",
+        "segments": 48,
+        "fps": 43.02,
+        "activeDurationMs": 31588.785,
+        "matchedPresentedFrames": 1263,
+        "matchedFramesPerActiveSecond": 39.98,
+        "presentedFramesInWindow": 1274,
+        "presentedFramesPerActiveSecond": 40.33,
+        "intervalMs": {
+          "count": 1215,
+          "p50": 8.287,
+          "p90": 33.147,
+          "p95": 132.542,
+          "max": 546.634
+        },
+        "over12_5msPct": 14.24,
+        "over25msCount": 127,
+        "over50msCount": 117
+      },
+      "drag": {
+        "name": "drag",
+        "segments": 24,
+        "fps": 104.9,
+        "activeDurationMs": 2218.454,
+        "matchedPresentedFrames": 183,
+        "matchedFramesPerActiveSecond": 82.49,
+        "presentedFramesInWindow": 154,
+        "presentedFramesPerActiveSecond": 69.42,
+        "intervalMs": {
+          "count": 159,
+          "p50": 8.285,
+          "p90": 16.565,
+          "p95": 16.571,
+          "max": 33.126
+        },
+        "over12_5msPct": 13.21,
+        "over25msCount": 1,
+        "over50msCount": 0
+      },
+      "fling": {
+        "name": "fling",
+        "segments": 24,
+        "fps": 39.51,
+        "activeDurationMs": 29370.331,
+        "matchedPresentedFrames": 1080,
+        "matchedFramesPerActiveSecond": 36.77,
+        "presentedFramesInWindow": 1120,
+        "presentedFramesPerActiveSecond": 38.13,
+        "intervalMs": {
+          "count": 1056,
+          "p50": 8.287,
+          "p90": 99.398,
+          "p95": 140.725,
+          "max": 546.634
+        },
+        "over12_5msPct": 14.39,
+        "over25msCount": 126,
+        "over50msCount": 117
+      },
+      "blocks": {
+        "fling_fast": {
+          "name": "fling_fast",
+          "segments": 24,
+          "fps": 39.43,
+          "activeDurationMs": 17061.878,
+          "matchedPresentedFrames": 649,
+          "matchedFramesPerActiveSecond": 38.04,
+          "presentedFramesInWindow": 654,
+          "presentedFramesPerActiveSecond": 38.33,
+          "intervalMs": {
+            "count": 625,
+            "p50": 8.287,
+            "p90": 104.378,
+            "p95": 140.752,
+            "max": 480.368
+          },
+          "over12_5msPct": 14.72,
+          "over25msCount": 81,
+          "over50msCount": 74
+        },
+        "fling_medium": {
+          "name": "fling_medium",
+          "segments": 24,
+          "fps": 47.62,
+          "activeDurationMs": 14526.907,
+          "matchedPresentedFrames": 614,
+          "matchedFramesPerActiveSecond": 42.27,
+          "presentedFramesInWindow": 620,
+          "presentedFramesPerActiveSecond": 42.68,
+          "intervalMs": {
+            "count": 590,
+            "p50": 8.287,
+            "p90": 16.573,
+            "p95": 128.77,
+            "max": 546.634
+          },
+          "over12_5msPct": 13.73,
+          "over25msCount": 46,
+          "over50msCount": 43
+        }
+      },
+      "perRun": [
+        {
+          "run": "real-checklist-1-1791971912013876900",
+          "all": 41.73,
+          "drag": 105.63,
+          "fling": 38.07
+        },
+        {
+          "run": "real-checklist-2-1791971967827605000",
+          "all": 44.19,
+          "drag": 104.23,
+          "fling": 40.82
+        }
+      ]
+    }
+  },
+  "fling-trace": {
+    "samsung": [
+      {
+        "device": "samsung",
+        "run": "real-checklist-1-1791972082745222400",
+        "traceRows": 27634,
+        "scope": "all",
+        "windows": 2,
+        "recordMs": {
+          "count": 1596,
+          "p50": 0.089,
+          "p90": 0.299,
+          "p95": 0.357,
+          "max": 1.193
+        },
+        "syncMs": {
+          "count": 1596,
+          "p50": 0.513,
+          "p90": 0.805,
+          "p95": 0.885,
+          "max": 10.597
+        },
+        "chain": {
+          "imageAvailableMs": {
+            "count": 1596,
+            "p50": 3.183,
+            "p90": 4.284,
+            "p95": 4.631,
+            "max": 12.708
+          },
+          "fenceMs": {
+            "count": 1596,
+            "p50": 2.871,
+            "p90": 3.183,
+            "p95": 3.392,
+            "max": 12.67
+          },
+          "mainDispatchMs": {
+            "count": 1596,
+            "p50": 0.148,
+            "p90": 1.565,
+            "p95": 1.847,
+            "max": 10.566
+          },
+          "uploadMs": {
+            "count": 1596,
+            "p50": 0.525,
+            "p90": 1.183,
+            "p95": 1.511,
+            "max": 12.762
+          },
+          "releaseGateMs": {
+            "count": 1596,
+            "p50": 0.015,
+            "p90": 0.025,
+            "p95": 0.028,
+            "max": 1.507
+          },
+          "totalMs": {
+            "count": 1596,
+            "p50": 7.364,
+            "p90": 8.989,
+            "p95": 9.555,
+            "max": 30.17
+          }
+        },
+        "requests": 2349,
+        "requestsWhileBusy": 1755,
+        "hardwareSyncStatuses": {
+          "0": 1596
+        },
+        "recordOver8ms": 0,
+        "syncOver8ms": 1,
+        "compositeStartToDriverRenderCompleteMs": {
+          "count": 1478,
+          "p50": 1.331,
+          "p90": 1.981,
+          "p95": 2.476,
+          "max": 4.42
+        },
+        "clockCallbackCadence": {
+          "fps": 151.97,
+          "intervalMs": {
+            "count": 3889,
+            "p50": 8.334,
+            "p90": 8.336,
+            "p95": 8.337,
+            "max": 8.956
+          }
+        },
+        "outputBeatCadence": {
+          "fps": 119.96,
+          "intervalMs": {
+            "count": 3070,
+            "p50": 8.335,
+            "p90": 8.337,
+            "p95": 8.338,
+            "max": 8.956
+          }
+        },
+        "captureCadence": {
+          "fps": 64.51,
+          "intervalMs": {
+            "count": 1594,
+            "p50": 8.274,
+            "p90": 9.171,
+            "p95": 9.802,
+            "max": 712.687
+          }
+        },
+        "requestCadence": {
+          "fps": 95.0,
+          "intervalMs": {
+            "count": 2347,
+            "p50": 7.213,
+            "p90": 8.447,
+            "p95": 8.62,
+            "max": 712.678
+          }
+        },
+        "snapshotRetiredDuringWindows": 8,
+        "flingPhases": {
+          "fling": {
+            "device": "samsung",
+            "run": "real-checklist-1-1791972082745222400",
+            "traceRows": 27634,
+            "scope": "fling",
+            "windows": 8,
+            "recordMs": {
+              "count": 879,
+              "p50": 0.075,
+              "p90": 0.104,
+              "p95": 0.136,
+              "max": 0.478
+            },
+            "syncMs": {
+              "count": 879,
+              "p50": 0.591,
+              "p90": 0.768,
+              "p95": 0.815,
+              "max": 4.329
+            },
+            "chain": {
+              "imageAvailableMs": {
+                "count": 879,
+                "p50": 3.389,
+                "p90": 4.218,
+                "p95": 4.464,
+                "max": 7.447
+              },
+              "fenceMs": {
+                "count": 879,
+                "p50": 2.942,
+                "p90": 3.204,
+                "p95": 3.354,
+                "max": 5.348
+              },
+              "mainDispatchMs": {
+                "count": 879,
+                "p50": 0.584,
+                "p90": 1.761,
+                "p95": 1.939,
+                "max": 3.456
+              },
+              "uploadMs": {
+                "count": 879,
+                "p50": 0.485,
+                "p90": 1.078,
+                "p95": 1.349,
+                "max": 10.171
+              },
+              "releaseGateMs": {
+                "count": 879,
+                "p50": 0.014,
+                "p90": 0.021,
+                "p95": 0.024,
+                "max": 1.333
+              },
+              "totalMs": {
+                "count": 879,
+                "p50": 8.063,
+                "p90": 9.033,
+                "p95": 9.41,
+                "max": 18.247
+              }
+            },
+            "requests": 1610,
+            "requestsWhileBusy": 1522,
+            "hardwareSyncStatuses": {
+              "0": 879
+            },
+            "recordOver8ms": 0,
+            "syncOver8ms": 0,
+            "compositeStartToDriverRenderCompleteMs": {
+              "count": 796,
+              "p50": 1.337,
+              "p90": 2.195,
+              "p95": 2.649,
+              "max": 4.42
+            },
+            "clockCallbackCadence": {
+              "fps": 240.67,
+              "intervalMs": {
+                "count": 1631,
+                "p50": 1.508,
+                "p90": 7.541,
+                "p95": 7.636,
+                "max": 8.335
+              }
+            },
+            "outputBeatCadence": {
+              "fps": 119.97,
+              "intervalMs": {
+                "count": 812,
+                "p50": 8.335,
+                "p90": 8.338,
+                "p95": 8.338,
+                "max": 8.367
+              }
+            },
+            "captureCadence": {
+              "fps": 129.67,
+              "intervalMs": {
+                "count": 871,
+                "p50": 8.122,
+                "p90": 9.054,
+                "p95": 9.438,
+                "max": 18.258
+              }
+            },
+            "requestCadence": {
+              "fps": 236.9,
+              "intervalMs": {
+                "count": 1602,
+                "p50": 5.117,
+                "p90": 7.627,
+                "p95": 7.839,
+                "max": 9.714
+              }
+            },
+            "snapshotRetiredDuringWindows": 0
+          },
+          "fling-start": {
+            "device": "samsung",
+            "run": "real-checklist-1-1791972082745222400",
+            "traceRows": 27634,
+            "scope": "fling-start",
+            "windows": 8,
+            "recordMs": {
+              "count": 104,
+              "p50": 0.075,
+              "p90": 0.198,
+              "p95": 0.262,
+              "max": 0.402
+            },
+            "syncMs": {
+              "count": 104,
+              "p50": 0.526,
+              "p90": 0.745,
+              "p95": 0.789,
+              "max": 0.93
+            },
+            "chain": {
+              "imageAvailableMs": {
+                "count": 104,
+                "p50": 3.232,
+                "p90": 4.138,
+                "p95": 4.339,
+                "max": 4.554
+              },
+              "fenceMs": {
+                "count": 104,
+                "p50": 2.949,
+                "p90": 3.229,
+                "p95": 3.402,
+                "max": 3.887
+              },
+              "mainDispatchMs": {
+                "count": 104,
+                "p50": 0.133,
+                "p90": 1.736,
+                "p95": 1.988,
+                "max": 2.416
+              },
+              "uploadMs": {
+                "count": 104,
+                "p50": 0.473,
+                "p90": 1.229,
+                "p95": 2.525,
+                "max": 3.644
+              },
+              "releaseGateMs": {
+                "count": 104,
+                "p50": 0.014,
+                "p90": 0.02,
+                "p95": 0.022,
+                "max": 0.058
+              },
+              "totalMs": {
+                "count": 104,
+                "p50": 7.626,
+                "p90": 9.043,
+                "p95": 9.459,
+                "max": 10.053
+              }
+            },
+            "requests": 185,
+            "requestsWhileBusy": 167,
+            "hardwareSyncStatuses": {
+              "0": 104
+            },
+            "recordOver8ms": 0,
+            "syncOver8ms": 0,
+            "compositeStartToDriverRenderCompleteMs": {
+              "count": 88,
+              "p50": 1.289,
+              "p90": 2.413,
+              "p95": 3.086,
+              "max": 3.751
+            },
+            "clockCallbackCadence": {
+              "fps": 247.06,
+              "intervalMs": {
+                "count": 183,
+                "p50": 1.252,
+                "p90": 7.62,
+                "p95": 7.714,
+                "max": 8.335
+              }
+            },
+            "outputBeatCadence": {
+              "fps": 119.98,
+              "intervalMs": {
+                "count": 88,
+                "p50": 8.335,
+                "p90": 8.338,
+                "p95": 8.339,
+                "max": 8.34
+              }
+            },
+            "captureCadence": {
+              "fps": 131.22,
+              "intervalMs": {
+                "count": 96,
+                "p50": 8.062,
+                "p90": 9.196,
+                "p95": 9.502,
+                "max": 10.061
+              }
+            },
+            "requestCadence": {
+              "fps": 233.9,
+              "intervalMs": {
+                "count": 177,
+                "p50": 5.056,
+                "p90": 7.982,
+                "p95": 8.258,
+                "max": 8.489
+              }
+            },
+            "snapshotRetiredDuringWindows": 0
+          },
+          "fling-later": {
+            "device": "samsung",
+            "run": "real-checklist-1-1791972082745222400",
+            "traceRows": 27634,
+            "scope": "fling-later",
+            "windows": 8,
+            "recordMs": {
+              "count": 775,
+              "p50": 0.075,
+              "p90": 0.1,
+              "p95": 0.124,
+              "max": 0.478
+            },
+            "syncMs": {
+              "count": 775,
+              "p50": 0.599,
+              "p90": 0.77,
+              "p95": 0.822,
+              "max": 4.329
+            },
+            "chain": {
+              "imageAvailableMs": {
+                "count": 775,
+                "p50": 3.422,
+                "p90": 4.231,
+                "p95": 4.489,
+                "max": 7.447
+              },
+              "fenceMs": {
+                "count": 775,
+                "p50": 2.941,
+                "p90": 3.2,
+                "p95": 3.347,
+                "max": 5.348
+              },
+              "mainDispatchMs": {
+                "count": 775,
+                "p50": 0.65,
+                "p90": 1.764,
+                "p95": 1.93,
+                "max": 3.456
+              },
+              "uploadMs": {
+                "count": 775,
+                "p50": 0.488,
+                "p90": 1.07,
+                "p95": 1.316,
+                "max": 10.171
+              },
+              "releaseGateMs": {
+                "count": 775,
+                "p50": 0.014,
+                "p90": 0.022,
+                "p95": 0.024,
+                "max": 1.333
+              },
+              "totalMs": {
+                "count": 775,
+                "p50": 8.087,
+                "p90": 9.025,
+                "p95": 9.348,
+                "max": 18.247
+              }
+            },
+            "requests": 1425,
+            "requestsWhileBusy": 1355,
+            "hardwareSyncStatuses": {
+              "0": 775
+            },
+            "recordOver8ms": 0,
+            "syncOver8ms": 0,
+            "compositeStartToDriverRenderCompleteMs": {
+              "count": 708,
+              "p50": 1.344,
+              "p90": 2.179,
+              "p95": 2.558,
+              "max": 4.42
+            },
+            "clockCallbackCadence": {
+              "fps": 240.93,
+              "intervalMs": {
+                "count": 1440,
+                "p50": 1.498,
+                "p90": 7.532,
+                "p95": 7.623,
+                "max": 7.916
+              }
+            },
+            "outputBeatCadence": {
+              "fps": 119.97,
+              "intervalMs": {
+                "count": 716,
+                "p50": 8.335,
+                "p90": 8.338,
+                "p95": 8.338,
+                "max": 8.367
+              }
+            },
+            "captureCadence": {
+              "fps": 129.55,
+              "intervalMs": {
+                "count": 767,
+                "p50": 8.122,
+                "p90": 9.053,
+                "p95": 9.409,
+                "max": 18.258
+              }
+            },
+            "requestCadence": {
+              "fps": 238.33,
+              "intervalMs": {
+                "count": 1417,
+                "p50": 4.753,
+                "p90": 7.601,
+                "p95": 7.779,
+                "max": 9.714
+              }
+            },
+            "snapshotRetiredDuringWindows": 0
+          }
+        }
+      }
+    ],
+    "meizu": [
+      {
+        "device": "meizu",
+        "run": "real-checklist-1-1791972082745222400",
+        "traceRows": 24365,
+        "scope": "all",
+        "windows": 2,
+        "recordMs": {
+          "count": 1373,
+          "p50": 0.185,
+          "p90": 0.359,
+          "p95": 0.415,
+          "max": 0.964
+        },
+        "syncMs": {
+          "count": 1373,
+          "p50": 0.516,
+          "p90": 0.797,
+          "p95": 0.935,
+          "max": 3.702
+        },
+        "chain": {
+          "imageAvailableMs": {
+            "count": 1373,
+            "p50": 2.701,
+            "p90": 3.616,
+            "p95": 4.358,
+            "max": 393.729
+          },
+          "fenceMs": {
+            "count": 1373,
+            "p50": 2.306,
+            "p90": 2.628,
+            "p95": 3.258,
+            "max": 96.797
+          },
+          "mainDispatchMs": {
+            "count": 1373,
+            "p50": 0.092,
+            "p90": 0.152,
+            "p95": 0.352,
+            "max": 40.819
+          },
+          "uploadMs": {
+            "count": 1373,
+            "p50": 0.475,
+            "p90": 1.125,
+            "p95": 1.638,
+            "max": 65.025
+          },
+          "releaseGateMs": {
+            "count": 1373,
+            "p50": 0.003,
+            "p90": 0.005,
+            "p95": 0.008,
+            "max": 1.0
+          },
+          "totalMs": {
+            "count": 1373,
+            "p50": 5.681,
+            "p90": 7.008,
+            "p95": 11.169,
+            "max": 400.0
+          }
+        },
+        "requests": 3417,
+        "requestsWhileBusy": 2221,
+        "hardwareSyncStatuses": {
+          "0": 1364,
+          "8": 9
+        },
+        "recordOver8ms": 0,
+        "syncOver8ms": 0,
+        "compositeStartToDriverRenderCompleteMs": {
+          "count": 1325,
+          "p50": 1.179,
+          "p90": 1.634,
+          "p95": 2.348,
+          "max": 14.74
+        },
+        "clockCallbackCadence": {
+          "fps": 110.67,
+          "intervalMs": {
+            "count": 2884,
+            "p50": 8.286,
+            "p90": 8.333,
+            "p95": 16.565,
+            "max": 24.915
+          }
+        },
+        "outputBeatCadence": {
+          "fps": 110.25,
+          "intervalMs": {
+            "count": 2873,
+            "p50": 8.286,
+            "p90": 8.333,
+            "p95": 16.565,
+            "max": 27.085
+          }
+        },
+        "captureCadence": {
+          "fps": 54.11,
+          "intervalMs": {
+            "count": 1371,
+            "p50": 8.287,
+            "p90": 15.863,
+            "p95": 25.796,
+            "max": 715.717
+          }
+        },
+        "requestCadence": {
+          "fps": 134.78,
+          "intervalMs": {
+            "count": 3415,
+            "p50": 3.701,
+            "p90": 8.402,
+            "p95": 8.834,
+            "max": 715.71
+          }
+        },
+        "snapshotRetiredDuringWindows": 8,
+        "flingPhases": {
+          "fling": {
+            "device": "meizu",
+            "run": "real-checklist-1-1791972082745222400",
+            "traceRows": 24365,
+            "scope": "fling",
+            "windows": 8,
+            "recordMs": {
+              "count": 426,
+              "p50": 0.088,
+              "p90": 0.225,
+              "p95": 0.292,
+              "max": 0.53
+            },
+            "syncMs": {
+              "count": 426,
+              "p50": 0.542,
+              "p90": 0.844,
+              "p95": 1.006,
+              "max": 2.481
+            },
+            "chain": {
+              "imageAvailableMs": {
+                "count": 426,
+                "p50": 2.761,
+                "p90": 4.26,
+                "p95": 5.409,
+                "max": 393.729
+              },
+              "fenceMs": {
+                "count": 426,
+                "p50": 2.389,
+                "p90": 44.77,
+                "p95": 87.516,
+                "max": 96.797
+              },
+              "mainDispatchMs": {
+                "count": 426,
+                "p50": 0.101,
+                "p90": 0.394,
+                "p95": 0.923,
+                "max": 40.819
+              },
+              "uploadMs": {
+                "count": 426,
+                "p50": 0.484,
+                "p90": 42.33,
+                "p95": 44.227,
+                "max": 65.025
+              },
+              "releaseGateMs": {
+                "count": 426,
+                "p50": 0.003,
+                "p90": 0.005,
+                "p95": 0.007,
+                "max": 0.02
+              },
+              "totalMs": {
+                "count": 426,
+                "p50": 5.903,
+                "p90": 98.525,
+                "p95": 138.748,
+                "max": 400.0
+              }
+            },
+            "requests": 2425,
+            "requestsWhileBusy": 2122,
+            "hardwareSyncStatuses": {
+              "0": 417,
+              "8": 9
+            },
+            "recordOver8ms": 0,
+            "syncOver8ms": 0,
+            "compositeStartToDriverRenderCompleteMs": {
+              "count": 395,
+              "p50": 1.211,
+              "p90": 1.873,
+              "p95": 2.524,
+              "max": 13.545
+            },
+            "clockCallbackCadence": {
+              "fps": 120.74,
+              "intervalMs": {
+                "count": 1185,
+                "p50": 8.284,
+                "p90": 8.288,
+                "p95": 8.29,
+                "max": 8.589
+              }
+            },
+            "outputBeatCadence": {
+              "fps": 120.74,
+              "intervalMs": {
+                "count": 1185,
+                "p50": 8.284,
+                "p90": 8.288,
+                "p95": 8.29,
+                "max": 8.589
+              }
+            },
+            "captureCadence": {
+              "fps": 46.39,
+              "intervalMs": {
+                "count": 418,
+                "p50": 8.257,
+                "p90": 89.585,
+                "p95": 138.05,
+                "max": 392.934
+              }
+            },
+            "requestCadence": {
+              "fps": 246.07,
+              "intervalMs": {
+                "count": 2417,
+                "p50": 3.084,
+                "p90": 8.223,
+                "p95": 8.343,
+                "max": 43.875
+              }
+            },
+            "snapshotRetiredDuringWindows": 0
+          },
+          "fling-start": {
+            "device": "meizu",
+            "run": "real-checklist-1-1791972082745222400",
+            "traceRows": 24365,
+            "scope": "fling-start",
+            "windows": 8,
+            "recordMs": {
+              "count": 103,
+              "p50": 0.07,
+              "p90": 0.258,
+              "p95": 0.317,
+              "max": 0.519
+            },
+            "syncMs": {
+              "count": 103,
+              "p50": 0.415,
+              "p90": 0.772,
+              "p95": 1.259,
+              "max": 2.481
+            },
+            "chain": {
+              "imageAvailableMs": {
+                "count": 103,
+                "p50": 2.38,
+                "p90": 3.374,
+                "p95": 4.257,
+                "max": 40.135
+              },
+              "fenceMs": {
+                "count": 103,
+                "p50": 2.347,
+                "p90": 2.601,
+                "p95": 2.832,
+                "max": 3.31
+              },
+              "mainDispatchMs": {
+                "count": 103,
+                "p50": 0.092,
+                "p90": 0.553,
+                "p95": 0.765,
+                "max": 7.134
+              },
+              "uploadMs": {
+                "count": 103,
+                "p50": 0.44,
+                "p90": 1.139,
+                "p95": 1.396,
+                "max": 3.305
+              },
+              "releaseGateMs": {
+                "count": 103,
+                "p50": 0.003,
+                "p90": 0.004,
+                "p95": 0.005,
+                "max": 0.019
+              },
+              "totalMs": {
+                "count": 103,
+                "p50": 5.521,
+                "p90": 7.124,
+                "p95": 9.386,
+                "max": 45.086
+              }
+            },
+            "requests": 142,
+            "requestsWhileBusy": 86,
+            "hardwareSyncStatuses": {
+              "0": 99,
+              "8": 4
+            },
+            "recordOver8ms": 0,
+            "syncOver8ms": 0,
+            "compositeStartToDriverRenderCompleteMs": {
+              "count": 83,
+              "p50": 1.175,
+              "p90": 1.517,
+              "p95": 1.936,
+              "max": 3.212
+            },
+            "clockCallbackCadence": {
+              "fps": 120.86,
+              "intervalMs": {
+                "count": 89,
+                "p50": 8.286,
+                "p90": 8.333,
+                "p95": 8.333,
+                "max": 8.351
+              }
+            },
+            "outputBeatCadence": {
+              "fps": 120.86,
+              "intervalMs": {
+                "count": 89,
+                "p50": 8.286,
+                "p90": 8.333,
+                "p95": 8.333,
+                "max": 8.351
+              }
+            },
+            "captureCadence": {
+              "fps": 132.55,
+              "intervalMs": {
+                "count": 95,
+                "p50": 7.92,
+                "p90": 8.447,
+                "p95": 8.953,
+                "max": 19.931
+              }
+            },
+            "requestCadence": {
+              "fps": 181.45,
+              "intervalMs": {
+                "count": 134,
+                "p50": 4.044,
+                "p90": 8.421,
+                "p95": 8.544,
+                "max": 11.626
+              }
+            },
+            "snapshotRetiredDuringWindows": 0
+          },
+          "fling-later": {
+            "device": "meizu",
+            "run": "real-checklist-1-1791972082745222400",
+            "traceRows": 24365,
+            "scope": "fling-later",
+            "windows": 8,
+            "recordMs": {
+              "count": 323,
+              "p50": 0.096,
+              "p90": 0.223,
+              "p95": 0.282,
+              "max": 0.53
+            },
+            "syncMs": {
+              "count": 323,
+              "p50": 0.581,
+              "p90": 0.856,
+              "p95": 0.983,
+              "max": 1.929
+            },
+            "chain": {
+              "imageAvailableMs": {
+                "count": 323,
+                "p50": 2.859,
+                "p90": 4.48,
+                "p95": 5.483,
+                "max": 393.729
+              },
+              "fenceMs": {
+                "count": 323,
+                "p50": 2.407,
+                "p90": 86.773,
+                "p95": 87.821,
+                "max": 96.797
+              },
+              "mainDispatchMs": {
+                "count": 323,
+                "p50": 0.102,
+                "p90": 0.271,
+                "p95": 1.041,
+                "max": 40.819
+              },
+              "uploadMs": {
+                "count": 323,
+                "p50": 0.496,
+                "p90": 43.253,
+                "p95": 44.593,
+                "max": 65.025
+              },
+              "releaseGateMs": {
+                "count": 323,
+                "p50": 0.003,
+                "p90": 0.005,
+                "p95": 0.007,
+                "max": 0.02
+              },
+              "totalMs": {
+                "count": 323,
+                "p50": 5.962,
+                "p90": 136.877,
+                "p95": 140.179,
+                "max": 400.0
+              }
+            },
+            "requests": 2283,
+            "requestsWhileBusy": 2036,
+            "hardwareSyncStatuses": {
+              "0": 318,
+              "8": 5
+            },
+            "recordOver8ms": 0,
+            "syncOver8ms": 0,
+            "compositeStartToDriverRenderCompleteMs": {
+              "count": 312,
+              "p50": 1.22,
+              "p90": 1.918,
+              "p95": 2.704,
+              "max": 13.545
+            },
+            "clockCallbackCadence": {
+              "fps": 120.73,
+              "intervalMs": {
+                "count": 1088,
+                "p50": 8.284,
+                "p90": 8.288,
+                "p95": 8.29,
+                "max": 8.589
+              }
+            },
+            "outputBeatCadence": {
+              "fps": 120.73,
+              "intervalMs": {
+                "count": 1088,
+                "p50": 8.284,
+                "p90": 8.288,
+                "p95": 8.29,
+                "max": 8.589
+              }
+            },
+            "captureCadence": {
+              "fps": 38.45,
+              "intervalMs": {
+                "count": 315,
+                "p50": 8.287,
+                "p90": 136.059,
+                "p95": 139.088,
+                "max": 392.934
+              }
+            },
+            "requestCadence": {
+              "fps": 252.15,
+              "intervalMs": {
+                "count": 2275,
+                "p50": 3.061,
+                "p90": 8.165,
+                "p95": 8.318,
+                "max": 43.875
+              }
+            },
+            "snapshotRetiredDuringWindows": 0
+          }
+        }
+      }
+    ]
+  }
+}

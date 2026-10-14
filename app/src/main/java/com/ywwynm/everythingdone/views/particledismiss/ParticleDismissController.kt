@@ -110,7 +110,7 @@ internal object ParticleDismissController {
                 val pixels = IntArray(256 * 256) { -1 }
                 ParticleMicroflakeModel.build(240f, 320f, pixels, 256, 256, 65f, 0L, rules)
                 val material = ParticleMicroflakeModel.build(240f, 320f, pixels, 256, 256, 65f, 1L, rules)
-                ParticleMicroflakeGpuWarmup.run(context.applicationContext.assets, material)
+                ParticleGl.warmFlowPrograms(context.applicationContext.assets, material)
             }.onFailure { Log.w("ParticleMicroflake", "材料预热未完成，关闭时正常构建", it) }
         }, "ParticleModelWarmup").start()
     }

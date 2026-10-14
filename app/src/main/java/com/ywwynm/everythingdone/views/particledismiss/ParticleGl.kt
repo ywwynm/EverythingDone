@@ -95,6 +95,30 @@ internal object ParticleGl {
         return presentation ?: ParticleGlBitmapRenderer(assets).also { presentation = it }
     }
 
+    /** 预热仍在独立线程和表面中运行；程序与正式上下文共享，避免第一次拖动再次编译。 */
+    fun warmFlowPrograms(assets: AssetManager, materials: ParticleMicroflakeModel.Materials) {
+        post {
+            if (!ensureContext()) return@post
+            val share = context
+            Thread({
+                Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
+                runCatching { ParticleMicroflakeGpuWarmup.run(assets, materials, share) }
+                    .onFailure { Log.w(ParticleMicroflakeRenderer.TAG, "流体程序预热未完成，使用时正常建立", it) }
+            }, "ParticleProgramWarmup").start()
+        }
+    }
+
+    /** 只接收已完成 GPU 工作的程序；并发首用已建立的同配方程序继续保留。 */
+    fun acceptWarmPrograms(assets: AssetManager, programs: Map<String, Int>) {
+        post {
+            val target = shared ?: ParticleMicroflakeRenderer.Shared(assets).also { shared = it }
+            for ((key, program) in programs) {
+                if (key in target.compiled) GLES30.glDeleteProgram(program)
+                else { target.compiled[key] = program; target.programs += program }
+            }
+        }
+    }
+
     @Volatile private var clockAttached = false
 
     /**

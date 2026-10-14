@@ -1,0 +1,36 @@
+{
+  "debugUpdateCode": "202610141600",
+  "apkUrl": "http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202610141600.apk",
+  "sha256": "addbceb0fa678f27a1c4576b1507cd16aa2888fb527e29a9667e8f3a5339127d",
+  "size": 30586205,
+  "candidateZipChangedEntries": [
+    "resources.arsc"
+  ],
+  "resourceDiff": [
+    "--- candidate\n",
+    "+++ published\n",
+    "@@ -24826,7 +24826,7 @@\n",
+    "       (zh-rCN) \"正在检查更新\"",
+    "       (zh-rTW) \"正在檢查更新\"",
+    "     resource 0x7f1101b2 string/debug_update_code",
+    "-      () \"0\"",
+    "+      () \"202610141600\"",
+    "     resource 0x7f1101b3 string/debug_update_download_canceled",
+    "       () \"Download canceled.\"",
+    "       (ja) \"ダウンロードをキャンセルしました。\""
+  ],
+  "installed": {
+    "samsung": {
+      "install": "Success",
+      "installedSha256": "addbceb0fa678f27a1c4576b1507cd16aa2888fb527e29a9667e8f3a5339127d"
+    },
+    "oppo": {
+      "install": "Success",
+      "installedSha256": "addbceb0fa678f27a1c4576b1507cd16aa2888fb527e29a9667e8f3a5339127d"
+    },
+    "meizu": {
+      "install": "Success",
+      "installedSha256": "addbceb0fa678f27a1c4576b1507cd16aa2888fb527e29a9667e8f3a5339127d"
+    }
+  }
+}

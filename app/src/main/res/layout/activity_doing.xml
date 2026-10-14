@@ -67,7 +67,7 @@
                 android:layout_marginTop="@dimen/doing_thing_card_vertical_margin"
                 android:orientation="vertical">
 
-                <com.ywwynm.everythingdone.views.StablerRecyclerView
+                <com.ywwynm.everythingdone.views.DoingRecyclerView
                     android:id="@+id/rv_thing_doing"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

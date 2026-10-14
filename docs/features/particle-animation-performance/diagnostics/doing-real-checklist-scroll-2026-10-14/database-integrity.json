@@ -1,0 +1,48 @@
+{
+  "samsung": {
+    "before": {
+      "things": {
+        "count": 374,
+        "sha256": "71d8a151d3b9313c8939346d11423f85947dfe6389f2ff5ea767a9600918cc5f"
+      },
+      "doing_records": {
+        "count": 2,
+        "sha256": "51a1b42e6468d0add2a7bb1cd46efc08b3373a87a811d7e31c210b121e74a3a8"
+      }
+    },
+    "after": {
+      "things": {
+        "count": 374,
+        "sha256": "71d8a151d3b9313c8939346d11423f85947dfe6389f2ff5ea767a9600918cc5f"
+      },
+      "doing_records": {
+        "count": 2,
+        "sha256": "51a1b42e6468d0add2a7bb1cd46efc08b3373a87a811d7e31c210b121e74a3a8"
+      }
+    },
+    "unchanged": true
+  },
+  "meizu": {
+    "before": {
+      "things": {
+        "count": 181,
+        "sha256": "5c649e213228a4a0f100f2e48ccd6215d894dcd6e0f2a1ef00c9360261ffbbef"
+      },
+      "doing_records": {
+        "count": 2,
+        "sha256": "7e3fb872ba5153196581e6b1c648d0f1fdec073e0de4c90219527f75fb69725f"
+      }
+    },
+    "after": {
+      "things": {
+        "count": 181,
+        "sha256": "5c649e213228a4a0f100f2e48ccd6215d894dcd6e0f2a1ef00c9360261ffbbef"
+      },
+      "doing_records": {
+        "count": 2,
+        "sha256": "7e3fb872ba5153196581e6b1c648d0f1fdec073e0de4c90219527f75fb69725f"
+      }
+    },
+    "unchanged": true
+  }
+}

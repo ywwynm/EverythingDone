@@ -1,0 +1,7 @@
+{
+  "sha256": "96c0913c31e667ba1d611a23ddfbfd2a083c5c9e642dea7ac7ff968221224b36",
+  "build": "local assembleDebug, debug update code 0",
+  "matrixRuns": 24,
+  "pairedRuns": 8,
+  "note": "发布包只更改调试更新编号；三机安装与公开包校验另记。"
+}

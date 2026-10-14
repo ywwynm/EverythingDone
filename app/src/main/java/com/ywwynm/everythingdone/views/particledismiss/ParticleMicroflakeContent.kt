@@ -6,7 +6,16 @@ import kotlin.math.*
 internal object ParticleMicroflakeContent {
     data class Panel(val color: FloatArray, val weight: Float, val fraction: Float)
 
-    fun panel(pixels: IntArray, width: Int, height: Int, rules: ParticleMicroflakeRules): Panel {
+    fun panel(pixels: IntArray, width: Int, height: Int, rules: ParticleMicroflakeRules,
+              classified: LongArray? = null): Panel {
+        if (classified != null) {
+            if (classified[0] == 0L) return Panel(FloatArray(3), 0f, 0f)
+            val fraction = classified[1].toFloat() / classified[0]
+            val confidence = smooth((fraction - rules.number("panel_min_fraction")) /
+                (rules.number("panel_full_fraction") - rules.number("panel_min_fraction")))
+            return Panel(FloatArray(3) { (classified[it + 2].toDouble() / classified[1] / 255.0).toFloat() },
+                confidence, fraction)
+        }
         val stride = ceil(sqrt(pixels.size / 65536.0)).toInt().coerceAtLeast(1)
         val counts = IntArray(4096)
         val first = IntArray(4096) { Int.MAX_VALUE }

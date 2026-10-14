@@ -32,6 +32,10 @@
     <instrumentation android:name=".views.particledismiss.ParticlePresentationRegressionProbe"
         android:targetPackage="com.ywwynm.everythingdone" android:label="粒子显示虚构场景回归" />
 
+    <instrumentation android:name=".views.particledismiss.ParticleFlowTimingProbe"
+        android:targetPackage="com.ywwynm.everythingdone" />
+    <instrumentation android:name=".views.particledismiss.ParticleFlowProgramsProbe"
+        android:targetPackage="com.ywwynm.everythingdone" />
     <instrumentation android:name=".views.particledismiss.ParticleContentSamplesProbe"
         android:targetPackage="com.ywwynm.everythingdone" android:label="粒子内容原始像素逐位对照" />
 

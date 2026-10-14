@@ -14,19 +14,23 @@ internal class ParticleReversePlan(values: FloatArray, val samples: Int = sample
     init {
         require(values.size % 12 == 0)
         require(samples in 1..MAX_SAMPLES)
-        var states = 0
-        for (i in 0 until count) {
-            val birth = values[i * 12 + 2]
-            val death = birth + values[i * 12 + 6]
-            // 向两侧各留一个采样，包含边界浮点舍入及刚解除的材料。
-            val first = (floor(birth * samples).toInt() - 1).coerceIn(0, samples)
-            val last = (ceil(death * samples).toInt() + 1).coerceIn(first, samples)
-            ranges[i * 4] = first
-            ranges[i * 4 + 1] = last
-            ranges[i * 4 + 2] = states
-            states += last - first + 1
+        if (ParticleMaterialNative.enabled) {
+            bytes = ParticleMaterialNative.reverseRanges(values, samples, ranges)
+        } else {
+            var states = 0
+            for (i in 0 until count) {
+                val birth = values[i * 12 + 2]
+                val death = birth + values[i * 12 + 6]
+                // 向两侧各留一个采样，包含边界浮点舍入及刚解除的材料。
+                val first = (floor(birth * samples).toInt() - 1).coerceIn(0, samples)
+                val last = (ceil(death * samples).toInt() + 1).coerceIn(first, samples)
+                ranges[i * 4] = first
+                ranges[i * 4 + 1] = last
+                ranges[i * 4 + 2] = states
+                states += last - first + 1
+            }
+            bytes = Math.multiplyExact(states, STATE_BYTES)
         }
-        bytes = Math.multiplyExact(states, STATE_BYTES)
     }
 
     fun time(frame: Int): Float = frame.coerceIn(0, samples) / samples.toFloat()

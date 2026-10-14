@@ -185,6 +185,24 @@ internal class ParticleGlBitmapRenderer(assets: AssetManager) {
         check(GLES30.glGetError() == GLES30.GL_NO_ERROR) { "GL 前景纹理上传失败" }
     }
 
+    /** 持续页面直接交接 ImageReader 缓冲，不创建会参与 HWUI 同步的中间 Bitmap。 */
+    @androidx.annotation.RequiresApi(31)
+    fun upload(layer: ParticleGlBitmapLayer, buffer: android.hardware.HardwareBuffer) {
+        clearErrors()
+        release(layer)
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
+        val imported = checkNotNull(layer.hardwareImages).acquire(buffer)
+        if (imported != null) {
+            layer.imported = imported
+            layer.texture = imported.texture; layer.eglImage = imported.eglImage
+            layer.width = buffer.width; layer.height = buffer.height
+        } else {
+            // 不支持直接导入的驱动继续使用原有 Bitmap／像素回退。
+            val bitmap = checkNotNull(Bitmap.wrapHardwareBuffer(buffer, null))
+            try { upload(layer, bitmap) } finally { bitmap.recycle() }
+        }
+    }
+
     private fun copyHardwareIntoOwned(layer: ParticleGlBitmapLayer, bitmap: Bitmap) {
         val imported = IntArray(1).also { GLES30.glGenTextures(1, it, 0) }[0]
         val framebuffer = IntArray(1).also { GLES30.glGenFramebuffers(1, it, 0) }[0]

@@ -1,0 +1,746 @@
+[
+  {
+    "device": "meizu",
+    "style": "DRIFT",
+    "fixture": "image",
+    "run": "refresh-image-drift-1791968450188013200",
+    "build": "0",
+    "displayBeforeGestures": {
+      "mActiveModeId": "2",
+      "mActiveSfDisplayMode": "DisplayMode{id=1, width=1368, height=3192, xDpi=510.988, yDpi=513.144, peakRefreshRate=60.000004, vsyncRate=60.000004, appVsyncOffsetNanos=1000000, presentationDeadlineNanos=16666666, supportedHdrTypes=[4, 2, 3], group=0}",
+      "mActiveRenderFrameRate": "60.000004",
+      "mFrameRateOverrides": "[]",
+      "preferredDisplayMode": "1"
+    },
+    "presentationBasisCounts": {
+      "driver_timestamp": 1363,
+      "later_frame_presented": 29
+    },
+    "droppedFrameEvents": 0,
+    "droppedLifecycleEvents": 0,
+    "horizontal": [
+      {
+        "startMs": 7719.725,
+        "endMs": 9000.282,
+        "submittedFrames": 154,
+        "driverVerifiedFrames": 142,
+        "uniquePresentedFrames": 142,
+        "fps": 111.22,
+        "intervalMs": {
+          "count": 141,
+          "p50": 8.291,
+          "p90": 8.296,
+          "p95": 16.577,
+          "max": 16.591
+        },
+        "intervalOver12_5msPct": 8.51,
+        "compositeWallMs": {
+          "count": 154,
+          "p50": 1.188,
+          "p90": 1.946,
+          "p95": 2.356,
+          "max": 4.214
+        },
+        "sampledCaptureToCallbackMs": {
+          "count": 2,
+          "p50": 8.788,
+          "p90": 10.388,
+          "p95": 10.588,
+          "max": 10.787
+        },
+        "captureRateBetweenSparseCounters": 117.47,
+        "firstVisibleLatencyMs": 258.077
+      },
+      {
+        "startMs": 10688.442,
+        "endMs": 12082.713,
+        "submittedFrames": 167,
+        "driverVerifiedFrames": 162,
+        "uniquePresentedFrames": 162,
+        "fps": 116.34,
+        "intervalMs": {
+          "count": 161,
+          "p50": 8.291,
+          "p90": 8.294,
+          "p95": 8.317,
+          "max": 16.585
+        },
+        "intervalOver12_5msPct": 3.73,
+        "compositeWallMs": {
+          "count": 167,
+          "p50": 0.724,
+          "p90": 1.881,
+          "p95": 2.992,
+          "max": 4.203
+        },
+        "sampledCaptureToCallbackMs": {
+          "count": 2,
+          "p50": 7.696,
+          "p90": 9.477,
+          "p95": 9.7,
+          "max": 9.922
+        },
+        "captureRateBetweenSparseCounters": 119.63,
+        "firstVisibleLatencyMs": 154.129
+      },
+      {
+        "startMs": 13768.473,
+        "endMs": 15248.352,
+        "submittedFrames": 177,
+        "driverVerifiedFrames": 174,
+        "uniquePresentedFrames": 174,
+        "fps": 117.94,
+        "intervalMs": {
+          "count": 173,
+          "p50": 8.292,
+          "p90": 8.294,
+          "p95": 8.295,
+          "max": 16.584
+        },
+        "intervalOver12_5msPct": 2.31,
+        "compositeWallMs": {
+          "count": 177,
+          "p50": 0.774,
+          "p90": 2.345,
+          "p95": 2.981,
+          "max": 4.278
+        },
+        "sampledCaptureToCallbackMs": {
+          "count": 3,
+          "p50": 7.035,
+          "p90": 15.332,
+          "p95": 16.369,
+          "max": 17.406
+        },
+        "captureRateBetweenSparseCounters": 119.14,
+        "firstVisibleLatencyMs": 77.298
+      }
+    ],
+    "vertical": [
+      {
+        "startMs": 16806.358,
+        "endMs": 18402.356,
+        "submittedFrames": 179,
+        "driverVerifiedFrames": 179,
+        "uniquePresentedFrames": 179,
+        "fps": 113.05,
+        "intervalMs": {
+          "count": 178,
+          "p50": 8.291,
+          "p90": 8.294,
+          "p95": 16.563,
+          "max": 16.586
+        },
+        "intervalOver12_5msPct": 6.74,
+        "compositeWallMs": {
+          "count": 179,
+          "p50": 0.69,
+          "p90": 1.208,
+          "p95": 1.424,
+          "max": 2.517
+        },
+        "sampledCaptureToCallbackMs": {
+          "count": 3,
+          "p50": 5.684,
+          "p90": 5.749,
+          "p95": 5.757,
+          "max": 5.765
+        },
+        "captureRateBetweenSparseCounters": 119.68,
+        "offsetStart": 0,
+        "offsetEnd": 889
+      },
+      {
+        "startMs": 19192.585,
+        "endMs": 20784.713,
+        "submittedFrames": 182,
+        "driverVerifiedFrames": 182,
+        "uniquePresentedFrames": 182,
+        "fps": 114.42,
+        "intervalMs": {
+          "count": 181,
+          "p50": 8.292,
+          "p90": 8.295,
+          "p95": 16.534,
+          "max": 16.592
+        },
+        "intervalOver12_5msPct": 5.52,
+        "compositeWallMs": {
+          "count": 182,
+          "p50": 0.719,
+          "p90": 1.037,
+          "p95": 1.411,
+          "max": 2.662
+        },
+        "sampledCaptureToCallbackMs": {
+          "count": 3,
+          "p50": 5.773,
+          "p90": 5.815,
+          "p95": 5.82,
+          "max": 5.826
+        },
+        "captureRateBetweenSparseCounters": 120.67,
+        "offsetStart": 921,
+        "offsetEnd": 32
+      }
+    ]
+  },
+  {
+    "device": "meizu",
+    "style": "FLOW",
+    "fixture": "image",
+    "run": "refresh-image-flow-1791968473676438300",
+    "build": "0",
+    "displayBeforeGestures": {
+      "mActiveModeId": "2",
+      "mActiveSfDisplayMode": "DisplayMode{id=1, width=1368, height=3192, xDpi=510.988, yDpi=513.144, peakRefreshRate=60.000004, vsyncRate=60.000004, appVsyncOffsetNanos=1000000, presentationDeadlineNanos=16666666, supportedHdrTypes=[4, 2, 3], group=0}",
+      "mActiveRenderFrameRate": "60.000004",
+      "mFrameRateOverrides": "[]",
+      "preferredDisplayMode": "1"
+    },
+    "presentationBasisCounts": {
+      "driver_timestamp": 1324,
+      "later_frame_presented": 73
+    },
+    "droppedFrameEvents": 0,
+    "droppedLifecycleEvents": 0,
+    "horizontal": [
+      {
+        "startMs": 7395.076,
+        "endMs": 8766.796,
+        "submittedFrames": 155,
+        "driverVerifiedFrames": 127,
+        "uniquePresentedFrames": 127,
+        "fps": 92.69,
+        "intervalMs": {
+          "count": 126,
+          "p50": 8.291,
+          "p90": 16.581,
+          "p95": 16.582,
+          "max": 24.869
+        },
+        "intervalOver12_5msPct": 29.37,
+        "compositeWallMs": {
+          "count": 155,
+          "p50": 1.98,
+          "p90": 2.699,
+          "p95": 3.352,
+          "max": 5.256
+        },
+        "sampledCaptureToCallbackMs": {
+          "count": 2,
+          "p50": 8.679,
+          "p90": 9.175,
+          "p95": 9.237,
+          "max": 9.3
+        },
+        "captureRateBetweenSparseCounters": 109.41,
+        "firstVisibleLatencyMs": 154.647
+      },
+      {
+        "startMs": 10519.726,
+        "endMs": 11957.059,
+        "submittedFrames": 167,
+        "driverVerifiedFrames": 152,
+        "uniquePresentedFrames": 152,
+        "fps": 105.92,
+        "intervalMs": {
+          "count": 151,
+          "p50": 8.29,
+          "p90": 16.576,
+          "p95": 16.58,
+          "max": 16.586
+        },
+        "intervalOver12_5msPct": 13.91,
+        "compositeWallMs": {
+          "count": 167,
+          "p50": 1.495,
+          "p90": 3.459,
+          "p95": 3.722,
+          "max": 5.327
+        },
+        "sampledCaptureToCallbackMs": {
+          "count": 2,
+          "p50": 5.798,
+          "p90": 6.428,
+          "p95": 6.507,
+          "max": 6.586
+        },
+        "captureRateBetweenSparseCounters": 121.09,
+        "firstVisibleLatencyMs": 119.769
+      },
+      {
+        "startMs": 13585.409,
+        "endMs": 15039.897,
+        "submittedFrames": 166,
+        "driverVerifiedFrames": 154,
+        "uniquePresentedFrames": 154,
+        "fps": 106.08,
+        "intervalMs": {
+          "count": 153,
+          "p50": 8.291,
+          "p90": 16.579,
+          "p95": 16.582,
+          "max": 16.589
+        },
+        "intervalOver12_5msPct": 13.73,
+        "compositeWallMs": {
+          "count": 166,
+          "p50": 1.281,
+          "p90": 3.534,
+          "p95": 3.839,
+          "max": 4.67
+        },
+        "sampledCaptureToCallbackMs": {
+          "count": 3,
+          "p50": 6.998,
+          "p90": 14.612,
+          "p95": 15.564,
+          "max": 16.516
+        },
+        "captureRateBetweenSparseCounters": 118.25,
+        "firstVisibleLatencyMs": 94.667
+      }
+    ],
+    "vertical": [
+      {
+        "startMs": 16582.615,
+        "endMs": 18175.223,
+        "submittedFrames": 183,
+        "driverVerifiedFrames": 183,
+        "uniquePresentedFrames": 183,
+        "fps": 115.0,
+        "intervalMs": {
+          "count": 182,
+          "p50": 8.291,
+          "p90": 8.294,
+          "p95": 8.477,
+          "max": 16.773
+        },
+        "intervalOver12_5msPct": 4.95,
+        "compositeWallMs": {
+          "count": 183,
+          "p50": 0.719,
+          "p90": 1.086,
+          "p95": 1.31,
+          "max": 2.244
+        },
+        "sampledCaptureToCallbackMs": {
+          "count": 3,
+          "p50": 5.972,
+          "p90": 9.968,
+          "p95": 10.467,
+          "max": 10.967
+        },
+        "captureRateBetweenSparseCounters": 120.02,
+        "offsetStart": 0,
+        "offsetEnd": 887
+      },
+      {
+        "startMs": 19042.898,
+        "endMs": 20635.906,
+        "submittedFrames": 183,
+        "driverVerifiedFrames": 183,
+        "uniquePresentedFrames": 183,
+        "fps": 114.97,
+        "intervalMs": {
+          "count": 182,
+          "p50": 8.29,
+          "p90": 8.292,
+          "p95": 8.295,
+          "max": 16.581
+        },
+        "intervalOver12_5msPct": 4.95,
+        "compositeWallMs": {
+          "count": 183,
+          "p50": 0.681,
+          "p90": 1.068,
+          "p95": 1.348,
+          "max": 2.665
+        },
+        "sampledCaptureToCallbackMs": {
+          "count": 3,
+          "p50": 5.005,
+          "p90": 6.959,
+          "p95": 7.203,
+          "max": 7.447
+        },
+        "captureRateBetweenSparseCounters": 120.36,
+        "offsetStart": 919,
+        "offsetEnd": 30
+      }
+    ]
+  },
+  {
+    "device": "meizu",
+    "style": "DRIFT",
+    "fixture": "video",
+    "run": "refresh-video-drift-1791968400042868200",
+    "build": "0",
+    "displayBeforeGestures": {
+      "mActiveModeId": "2",
+      "mActiveSfDisplayMode": "DisplayMode{id=1, width=1368, height=3192, xDpi=510.988, yDpi=513.144, peakRefreshRate=60.000004, vsyncRate=60.000004, appVsyncOffsetNanos=1000000, presentationDeadlineNanos=16666666, supportedHdrTypes=[4, 2, 3], group=0}",
+      "mActiveRenderFrameRate": "60.000004",
+      "mFrameRateOverrides": "[]",
+      "preferredDisplayMode": "1"
+    },
+    "presentationBasisCounts": {
+      "driver_timestamp": 1346,
+      "later_frame_presented": 27
+    },
+    "droppedFrameEvents": 0,
+    "droppedLifecycleEvents": 0,
+    "horizontal": [
+      {
+        "startMs": 8365.748,
+        "endMs": 9461.495,
+        "submittedFrames": 130,
+        "driverVerifiedFrames": 121,
+        "uniquePresentedFrames": 121,
+        "fps": 111.39,
+        "intervalMs": {
+          "count": 120,
+          "p50": 8.292,
+          "p90": 8.294,
+          "p95": 16.582,
+          "max": 33.159
+        },
+        "intervalOver12_5msPct": 6.67,
+        "compositeWallMs": {
+          "count": 130,
+          "p50": 1.356,
+          "p90": 2.196,
+          "p95": 3.62,
+          "max": 10.201
+        },
+        "sampledCaptureToCallbackMs": {
+          "count": 2,
+          "p50": 11.257,
+          "p90": 15.493,
+          "p95": 16.022,
+          "max": 16.552
+        },
+        "captureRateBetweenSparseCounters": 102.78,
+        "firstVisibleLatencyMs": 459.225
+      },
+      {
+        "startMs": 11122.125,
+        "endMs": 12542.415,
+        "submittedFrames": 170,
+        "driverVerifiedFrames": 168,
+        "uniquePresentedFrames": 168,
+        "fps": 118.63,
+        "intervalMs": {
+          "count": 167,
+          "p50": 8.29,
+          "p90": 8.294,
+          "p95": 8.296,
+          "max": 16.588
+        },
+        "intervalOver12_5msPct": 1.8,
+        "compositeWallMs": {
+          "count": 170,
+          "p50": 0.96,
+          "p90": 1.532,
+          "p95": 1.976,
+          "max": 3.533
+        },
+        "sampledCaptureToCallbackMs": {
+          "count": 3,
+          "p50": 11.806,
+          "p90": 12.696,
+          "p95": 12.807,
+          "max": 12.918
+        },
+        "captureRateBetweenSparseCounters": 120.92,
+        "firstVisibleLatencyMs": 127.092
+      },
+      {
+        "startMs": 14154.602,
+        "endMs": 15632.932,
+        "submittedFrames": 175,
+        "driverVerifiedFrames": 172,
+        "uniquePresentedFrames": 172,
+        "fps": 116.59,
+        "intervalMs": {
+          "count": 171,
+          "p50": 8.291,
+          "p90": 8.295,
+          "p95": 8.296,
+          "max": 16.588
+        },
+        "intervalOver12_5msPct": 3.51,
+        "compositeWallMs": {
+          "count": 175,
+          "p50": 0.898,
+          "p90": 1.662,
+          "p95": 2.761,
+          "max": 3.74
+        },
+        "sampledCaptureToCallbackMs": {
+          "count": 3,
+          "p50": 4.731,
+          "p90": 9.334,
+          "p95": 9.909,
+          "max": 10.485
+        },
+        "captureRateBetweenSparseCounters": 118.7,
+        "firstVisibleLatencyMs": 78.386
+      }
+    ],
+    "vertical": [
+      {
+        "startMs": 17084.914,
+        "endMs": 18678.107,
+        "submittedFrames": 183,
+        "driverVerifiedFrames": 183,
+        "uniquePresentedFrames": 183,
+        "fps": 114.99,
+        "intervalMs": {
+          "count": 182,
+          "p50": 8.29,
+          "p90": 8.292,
+          "p95": 8.295,
+          "max": 16.583
+        },
+        "intervalOver12_5msPct": 4.95,
+        "compositeWallMs": {
+          "count": 183,
+          "p50": 0.651,
+          "p90": 1.121,
+          "p95": 1.396,
+          "max": 2.551
+        },
+        "sampledCaptureToCallbackMs": {
+          "count": 4,
+          "p50": 5.451,
+          "p90": 5.751,
+          "p95": 5.798,
+          "max": 5.846
+        },
+        "captureRateBetweenSparseCounters": 119.32,
+        "offsetStart": 0,
+        "offsetEnd": 889
+      },
+      {
+        "startMs": 19487.215,
+        "endMs": 21080.403,
+        "submittedFrames": 185,
+        "driverVerifiedFrames": 185,
+        "uniquePresentedFrames": 185,
+        "fps": 116.23,
+        "intervalMs": {
+          "count": 184,
+          "p50": 8.291,
+          "p90": 8.293,
+          "p95": 8.416,
+          "max": 16.582
+        },
+        "intervalOver12_5msPct": 3.8,
+        "compositeWallMs": {
+          "count": 185,
+          "p50": 0.699,
+          "p90": 1.081,
+          "p95": 1.173,
+          "max": 3.266
+        },
+        "sampledCaptureToCallbackMs": {
+          "count": 4,
+          "p50": 5.492,
+          "p90": 5.87,
+          "p95": 5.899,
+          "max": 5.928
+        },
+        "captureRateBetweenSparseCounters": 120.6,
+        "offsetStart": 921,
+        "offsetEnd": 32
+      }
+    ]
+  },
+  {
+    "device": "meizu",
+    "style": "FLOW",
+    "fixture": "video",
+    "run": "refresh-video-flow-1791968423579312500",
+    "build": "0",
+    "displayBeforeGestures": {
+      "mActiveModeId": "2",
+      "mActiveSfDisplayMode": "DisplayMode{id=1, width=1368, height=3192, xDpi=510.988, yDpi=513.144, peakRefreshRate=60.000004, vsyncRate=60.000004, appVsyncOffsetNanos=1000000, presentationDeadlineNanos=16666666, supportedHdrTypes=[4, 2, 3], group=0}",
+      "mActiveRenderFrameRate": "60.000004",
+      "mFrameRateOverrides": "[]",
+      "preferredDisplayMode": "1"
+    },
+    "presentationBasisCounts": {
+      "driver_timestamp": 1309,
+      "later_frame_presented": 68
+    },
+    "droppedFrameEvents": 0,
+    "droppedLifecycleEvents": 0,
+    "horizontal": [
+      {
+        "startMs": 8930.282,
+        "endMs": 10131.587,
+        "submittedFrames": 121,
+        "driverVerifiedFrames": 104,
+        "uniquePresentedFrames": 104,
+        "fps": 86.31,
+        "intervalMs": {
+          "count": 103,
+          "p50": 8.291,
+          "p90": 16.581,
+          "p95": 16.583,
+          "max": 33.159
+        },
+        "intervalOver12_5msPct": 37.86,
+        "compositeWallMs": {
+          "count": 121,
+          "p50": 2.745,
+          "p90": 4.423,
+          "p95": 5.193,
+          "max": 7.516
+        },
+        "sampledCaptureToCallbackMs": {
+          "count": 2,
+          "p50": 15.888,
+          "p90": 16.679,
+          "p95": 16.778,
+          "max": 16.877
+        },
+        "captureRateBetweenSparseCounters": 90.11,
+        "firstVisibleLatencyMs": 352.541
+      },
+      {
+        "startMs": 11742.941,
+        "endMs": 13197.155,
+        "submittedFrames": 170,
+        "driverVerifiedFrames": 149,
+        "uniquePresentedFrames": 149,
+        "fps": 103.25,
+        "intervalMs": {
+          "count": 148,
+          "p50": 8.289,
+          "p90": 16.577,
+          "p95": 16.58,
+          "max": 16.582
+        },
+        "intervalOver12_5msPct": 16.89,
+        "compositeWallMs": {
+          "count": 170,
+          "p50": 1.72,
+          "p90": 3.411,
+          "p95": 3.644,
+          "max": 4.973
+        },
+        "sampledCaptureToCallbackMs": {
+          "count": 3,
+          "p50": 5.618,
+          "p90": 6.653,
+          "p95": 6.783,
+          "max": 6.912
+        },
+        "captureRateBetweenSparseCounters": 119.38,
+        "firstVisibleLatencyMs": 102.478
+      },
+      {
+        "startMs": 14800.781,
+        "endMs": 16279.598,
+        "submittedFrames": 169,
+        "driverVerifiedFrames": 150,
+        "uniquePresentedFrames": 150,
+        "fps": 102.15,
+        "intervalMs": {
+          "count": 149,
+          "p50": 8.291,
+          "p90": 16.578,
+          "p95": 16.581,
+          "max": 24.86
+        },
+        "intervalOver12_5msPct": 17.45,
+        "compositeWallMs": {
+          "count": 169,
+          "p50": 1.695,
+          "p90": 3.315,
+          "p95": 3.443,
+          "max": 6.845
+        },
+        "sampledCaptureToCallbackMs": {
+          "count": 3,
+          "p50": 8.768,
+          "p90": 9.322,
+          "p95": 9.391,
+          "max": 9.46
+        },
+        "captureRateBetweenSparseCounters": 116.66,
+        "firstVisibleLatencyMs": 78.148
+      }
+    ],
+    "vertical": [
+      {
+        "startMs": 17847.659,
+        "endMs": 19431.764,
+        "submittedFrames": 185,
+        "driverVerifiedFrames": 185,
+        "uniquePresentedFrames": 185,
+        "fps": 116.86,
+        "intervalMs": {
+          "count": 184,
+          "p50": 8.288,
+          "p90": 8.291,
+          "p95": 8.292,
+          "max": 16.577
+        },
+        "intervalOver12_5msPct": 3.26,
+        "compositeWallMs": {
+          "count": 185,
+          "p50": 0.688,
+          "p90": 1.054,
+          "p95": 1.369,
+          "max": 2.045
+        },
+        "sampledCaptureToCallbackMs": {
+          "count": 3,
+          "p50": 6.02,
+          "p90": 6.057,
+          "p95": 6.062,
+          "max": 6.066
+        },
+        "captureRateBetweenSparseCounters": 119.7,
+        "offsetStart": 0,
+        "offsetEnd": 887
+      },
+      {
+        "startMs": 20267.138,
+        "endMs": 21860.673,
+        "submittedFrames": 187,
+        "driverVerifiedFrames": 187,
+        "uniquePresentedFrames": 187,
+        "fps": 117.52,
+        "intervalMs": {
+          "count": 186,
+          "p50": 8.291,
+          "p90": 8.294,
+          "p95": 8.296,
+          "max": 16.892
+        },
+        "intervalOver12_5msPct": 2.69,
+        "compositeWallMs": {
+          "count": 187,
+          "p50": 0.648,
+          "p90": 1.052,
+          "p95": 1.213,
+          "max": 2.924
+        },
+        "sampledCaptureToCallbackMs": {
+          "count": 3,
+          "p50": 5.005,
+          "p90": 5.703,
+          "p95": 5.79,
+          "max": 5.877
+        },
+        "captureRateBetweenSparseCounters": 120.59,
+        "offsetStart": 919,
+        "offsetEnd": 29
+      }
+    ]
+  }
+]

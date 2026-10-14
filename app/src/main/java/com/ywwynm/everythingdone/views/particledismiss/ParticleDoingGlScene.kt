@@ -17,9 +17,12 @@ import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.view.KeyEvent
 import android.view.MotionEvent
+import android.view.Choreographer
 import android.widget.FrameLayout
 import androidx.annotation.RequiresApi
 import com.ywwynm.everythingdone.views.InterceptTouchCardView
+import com.ywwynm.everythingdone.views.DoingRecyclerView
+import com.ywwynm.everythingdone.R
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -55,6 +58,9 @@ internal class ParticleDoingGlScene(private val activity: Activity, private val 
     private val window: ParticleWindowSurface, private val report: ParticlePresentationDiagnostics.Run?,
     private val failed: () -> Unit) : AutoCloseable {
     private val main = Handler(Looper.getMainLooper())
+    // 图像已完成后的交接不依赖原窗口遍历，不能被下一次遍历的同步屏障多挡一拍。
+    private val frameCallbacks = Handler.createAsync(Looper.getMainLooper())
+    private val scrollingContent = content.findViewById<DoingRecyclerView>(R.id.rv_thing_doing)
     private val worker = Handler(HandlerThread("ParticleDoingSceneCopy").apply { start() }.looper)
     private val node = RenderNode("particleDoingScene")
     private val cache = ParticleViewCaptureTree.Cache()
@@ -74,6 +80,19 @@ internal class ParticleDoingGlScene(private val activity: Activity, private val 
     private var closed = false
     @Volatile private var exiting = false
     private var captureRequested = true
+    private var captureAfterTraversal = false
+    private var captureAfterAnimation = false
+    private var animationFrameView: View? = null
+    private val animationFrameDispatch = Runnable {
+        val source = animationFrameView
+        animationFrameView = null
+        if (source != null && source.isAttachedToWindow && !closed && !exiting && windowVisible) {
+            source.invalidate()
+            // 尺寸或层级变化仍先完成原生布局；边缘动画只更新已经布局的内容。
+            if (content.isLayoutRequested) content.postInvalidateOnAnimation() else requestCapture()
+        }
+    }
+    private val animationFrame = Choreographer.FrameCallback { frameCallbacks.post(animationFrameDispatch) }
     private var inputFeedbackPending = true
     private var captureStart = 0L
     private var frames = 0
@@ -127,33 +146,42 @@ internal class ParticleDoingGlScene(private val activity: Activity, private val 
 
     private fun attachReader() {
         reader.setOnImageAvailableListener({ images ->
+            val availableAt = if (ParticleBeatTrace.enabled) System.nanoTime() else 0L
             capturePhase = "image_available"
             val image = runCatching { images.acquireLatestImage() }.onFailure { error ->
                 main.post { if (!closed && !exiting) fail("image_acquire_${error.javaClass.simpleName}") }
             }.getOrNull()
             // acquireLatest 会合并通知；后续通知没有新图像是正常情况。
             if (image == null) return@setOnImageAvailableListener
+            val acquiredAt = if (ParticleBeatTrace.enabled) System.nanoTime() else 0L
             if (exiting || !imageInFlight.compareAndSet(false, true)) {
                 skippedProducerFrames++
                 if (!exiting) producerNeedsRefresh.set(true)
                 image.close(); return@setOnImageAvailableListener
             }
-            val bitmap = runCatching {
+            var fenceCompletedAt = 0L
+            val buffer = runCatching {
                 capturePhase = "image_fence"
                 image.fence.use { check(!it.isValid || it.await(Duration.ofMillis(700))) }
-                image.hardwareBuffer?.use { Bitmap.wrapHardwareBuffer(it, null) }
+                if (ParticleBeatTrace.enabled) fenceCompletedAt = System.nanoTime()
+                image.hardwareBuffer
             }.getOrNull()
-            main.post {
+            val fencedAt = if (ParticleBeatTrace.enabled) System.nanoTime() else 0L
+            if (ParticleBeatTrace.enabled) ParticleBeatTrace.record(ParticleBeatTrace.PAGE_IMAGE_ACQUIRE,
+                availableAt, acquiredAt, fenceCompletedAt, fencedAt)
+            frameCallbacks.post {
+                val receivedAt = if (ParticleBeatTrace.enabled) System.nanoTime() else 0L
                 capturePhase = "upload_queued"
-                if (bitmap == null || closed || exiting || !busy) {
-                    bitmap?.recycle(); image.close()
+                if (buffer == null || closed || exiting || !busy) {
+                    buffer?.close(); image.close()
                     imageInFlight.set(false)
-                    if (bitmap == null && !closed && !exiting) fail("image_fence_or_bitmap")
+                    if (buffer == null && !closed && !exiting) fail("image_fence_or_buffer")
                     else if (!closed && !exiting && windowVisible && !busy) {
                         // 原生 Ripple 的 RenderThread 动画可能没有 UI invalidate。
                         // 自动续帧只通知刷新，不把它当作卡片交接所需的新布局帧。
                         // 先归还 Image，再在下一次遍历受控捕获；退出仍保持有界消费。
                         captureRequested = true
+                        captureAfterTraversal = false
                         nativeFeedbackRefreshes++
                         feedbackDrainFrames = 2
                         ParticleTouchFeedback.invalidateNativeRipples(content)
@@ -177,9 +205,9 @@ internal class ParticleDoingGlScene(private val activity: Activity, private val 
                 // 普通动态更新在上传任务内一起换层，避免 GL→主线程→GL 再排一轮。
                 // 首帧及卡片交接仍使用与该帧绑定的提交确认。
                 val live = !first && switching == null
-                window.uploadGlImage(layers[back], bitmap, where[0].toFloat(), where[1].toFloat(), 1f, {
+                window.uploadGlHardwareBuffer(layers[back], buffer, where[0].toFloat(), where[1].toFloat(), 1f, {
                     image.close()
-                    main.post {
+                    frameCallbacks.post {
                         val leases = checkNotNull(readerLeases[images]) - 1
                         if (leases == 0) {
                             readerLeases.remove(images)
@@ -192,11 +220,14 @@ internal class ParticleDoingGlScene(private val activity: Activity, private val 
                         finishReaderClose()
                     }
                 }, onUploaded = if (live) change else null) { ready ->
+                    val uploadedAt = if (ParticleBeatTrace.enabled) System.nanoTime() else 0L
                     capturePhase = "upload_ready"
-                    if (closed || exiting) return@uploadGlImage
-                    if (!ready) { fail("upload_failed"); return@uploadGlImage }
+                    if (closed || exiting) return@uploadGlHardwareBuffer
+                    if (!ready) { fail("upload_failed"); return@uploadGlHardwareBuffer }
                     val done: (Boolean) -> Unit = {
                         frameGate.submitted {
+                            if (ParticleBeatTrace.enabled) ParticleBeatTrace.record(ParticleBeatTrace.PAGE_IMAGE,
+                                captureStart, availableAt, fencedAt, receivedAt, uploadedAt, System.nanoTime())
                             if (!closed && !exiting) {
                                 imageInFlight.set(false)
                                 main.removeCallbacks(timeout)
@@ -205,6 +236,7 @@ internal class ParticleDoingGlScene(private val activity: Activity, private val 
                                 // 归还多余图像后保留一次刷新请求，不能让淡出停在倒数帧。
                                 if (producerNeedsRefresh.getAndSet(false)) {
                                     captureRequested = true
+                                    captureAfterTraversal = false
                                     nativeFeedbackRefreshes++
                                     feedbackDrainFrames = 2
                                     ParticleTouchFeedback.invalidateNativeRipples(content)
@@ -215,6 +247,7 @@ internal class ParticleDoingGlScene(private val activity: Activity, private val 
                                     // 由真实续帧触发且有界，不使用时长猜测或常驻轮询。
                                     feedbackDrainFrames--
                                     captureRequested = true
+                                    captureAfterTraversal = false
                                     ParticleTouchFeedback.invalidateNativeRipples(content)
                                     if (feedbackDrainFrames == 0 && !feedbackCommitPending) {
                                         feedbackCommitPending = true
@@ -226,6 +259,7 @@ internal class ParticleDoingGlScene(private val activity: Activity, private val 
                                                 report?.event("doing_scene_native_feedback_commit")
                                                 ParticleTouchFeedback.invalidateNativeRipples(content)
                                                 captureRequested = true
+                                                captureAfterTraversal = false
                                                 content.postInvalidateOnAnimation()
                                             }
                                         }
@@ -242,9 +276,9 @@ internal class ParticleDoingGlScene(private val activity: Activity, private val 
                                     "meaning" to "single_gl_buffer_not_final_screen"))
                                 if (first) { first = false; report?.event("doing_scene_ready") }
                                 switching?.done?.invoke(it)
-                                // 普通刷新与 View 的输入／动画／布局共用下一次 preDraw，
-                                // 避免 GL 回调在两次遍历之间额外重录同一批控件。
-                                if (switches.isNotEmpty()) capture()
+                                // 忙碌期间的 preDraw 已完成输入／动画／布局。现在消费该请求，
+                                // 不再等一次遍历；否则捕获稍超一拍就会固定丢掉下一拍。
+                                if (switches.isNotEmpty() || (captureRequested && captureAfterTraversal)) capture()
                                 else if (captureRequested) content.postInvalidateOnAnimation()
                             }
                         }
@@ -267,8 +301,24 @@ internal class ParticleDoingGlScene(private val activity: Activity, private val 
 
     private fun requestCapture() {
         if (exiting) return
+        if (ParticleBeatTrace.enabled) ParticleBeatTrace.record(ParticleBeatTrace.PAGE_REQUEST,
+            System.nanoTime(), if (busy) 1L else 0L)
         captureRequested = true
+        captureAfterTraversal = true
         if (!busy) capture()
+    }
+
+    /** 仅接续控件已经请求的动画帧；没有下一次请求时立即停止，不常驻捕获。 */
+    fun requestAnimationFrame(source: View) {
+        if (closed || exiting || !windowVisible || animationFrameView != null) return
+        animationFrameView = source
+        ParticleClock.postFrameCallback(animationFrame)
+    }
+
+    private fun cancelAnimationFrame() {
+        animationFrameView = null
+        ParticleClock.removeFrameCallback(animationFrame)
+        frameCallbacks.removeCallbacks(animationFrameDispatch)
     }
 
     /** 背景明暗判定读取实际承载页面的 Surface，避免取到已停止绘制的空窗口。 */
@@ -288,6 +338,24 @@ internal class ParticleDoingGlScene(private val activity: Activity, private val 
 
     private fun capture() {
         if (closed || exiting || busy || !windowVisible) return
+        // 预测遍历不仅影响 RenderRequest，也会让 EdgeEffect.draw 读取未来时间。
+        // 在同一 UI 队列中等动画阶段结束后再记录，保留已经完成的布局和属性更新。
+        if (scrollingContent?.hasActiveEdgeEffect == true &&
+            android.view.animation.AnimationUtils.currentAnimationTimeMillis() -
+            android.os.SystemClock.uptimeMillis() > 1L) {
+            if (!captureAfterAnimation) {
+                captureAfterAnimation = true
+                frameCallbacks.post {
+                    captureAfterAnimation = false
+                    if (!closed && !exiting) {
+                        // 预测窗口可能已经缓存了子 View；让边缘效果在实际时间重新记录。
+                        scrollingContent?.invalidate()
+                        capture()
+                    }
+                }
+            }
+            return
+        }
         if (!content.isAttachedToWindow) return
         if (content.width <= 0 || content.height <= 0) return
         if (content.width != reader.width || content.height != reader.height) {
@@ -302,6 +370,7 @@ internal class ParticleDoingGlScene(private val activity: Activity, private val 
         }
         if (!captureRequested && switches.isEmpty() && !first) return
         busy = true; captureRequested = false
+        captureAfterTraversal = false
         capturePhase = "surface_capture"
         activeSwitch = switches.removeFirstOrNull()
         captureStart = System.nanoTime()
@@ -336,7 +405,15 @@ internal class ParticleDoingGlScene(private val activity: Activity, private val 
                 fun submit() {
                     try {
                         if (closed || exiting) return
-                        val status = renderer.createRenderRequest().setWaitForPresent(false).syncAndDraw()
+                        // 部分系统在 fling 中把 AnimationUtils 时钟预测到未来；默认请求会继承它，
+                        // 让 HWUI 把后续真实帧连续判作 AlreadyDrawn。离屏提交使用同一 MONOTONIC
+                        // 时基的实际时间，控件与粒子的动画进度仍由各自原有动画器决定。
+                        val frameTime = System.nanoTime()
+                        if (ParticleBeatTrace.enabled) ParticleBeatTrace.record(ParticleBeatTrace.PAGE_FRAME_TIME,
+                            captureStart, android.view.animation.AnimationUtils.currentAnimationTimeMillis() * 1_000_000L,
+                            frameTime)
+                        val status = renderer.createRenderRequest().setVsyncTime(frameTime)
+                            .setWaitForPresent(false).syncAndDraw()
                         if (ParticleBeatTrace.enabled) ParticleBeatTrace.record(ParticleBeatTrace.PAGE_CAPTURE, captureStart,
                             recordingStarted, recordingFinished, System.nanoTime(), status.toLong())
                         capturePhase = "hardware_submitted_$status"
@@ -447,7 +524,10 @@ internal class ParticleDoingGlScene(private val activity: Activity, private val 
     fun setWindowVisible(visible: Boolean) {
         windowVisible = visible
         window.pageContentActive = visible && !closed && !exiting
-        if (!visible) main.removeCallbacks(timeout)
+        if (!visible) {
+            main.removeCallbacks(timeout)
+            cancelAnimationFrame()
+        }
         else if (!closed && !exiting) {
             captureRequested = true
             if (busy) main.postDelayed(timeout, 2000) else capture()
@@ -459,6 +539,7 @@ internal class ParticleDoingGlScene(private val activity: Activity, private val 
     fun beginExit() {
         if (closed || exiting) return
         exiting = true
+        cancelAnimationFrame()
         window.pageContentActive = false
         main.removeCallbacks(timeout)
         if (content.viewTreeObserver.isAlive) content.viewTreeObserver.removeOnPreDrawListener(preDraw)

@@ -1,0 +1,4570 @@
+[
+  {
+    "ts": 2506160255250291,
+    "dur": 43542,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": -0.199,
+    "ms": 0.044
+  },
+  {
+    "ts": 2506160255268208,
+    "dur": 11614,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": -0.181,
+    "ms": 0.012
+  },
+  {
+    "ts": 2506160255271489,
+    "dur": 4896,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": -0.177,
+    "ms": 0.005
+  },
+  {
+    "ts": 2506160255278156,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": -0.171,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160255818364,
+    "dur": 500573,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 0.369,
+    "ms": 0.501
+  },
+  {
+    "ts": 2506160255858728,
+    "dur": 413073,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 0.41,
+    "ms": 0.413
+  },
+  {
+    "ts": 2506160255914874,
+    "dur": 350000,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 0.466,
+    "ms": 0.35
+  },
+  {
+    "ts": 2506160256268989,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 0.82,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160258465760,
+    "dur": 236562,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 3.017,
+    "ms": 0.237
+  },
+  {
+    "ts": 2506160258492531,
+    "dur": 171197,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 3.044,
+    "ms": 0.171
+  },
+  {
+    "ts": 2506160258647635,
+    "dur": 10781,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 3.199,
+    "ms": 0.011
+  },
+  {
+    "ts": 2506160258661072,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 3.212,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160261554874,
+    "dur": 72604,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 6.106,
+    "ms": 0.073
+  },
+  {
+    "ts": 2506160261573520,
+    "dur": 22917,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 6.125,
+    "ms": 0.023
+  },
+  {
+    "ts": 2506160261580708,
+    "dur": 11093,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 6.132,
+    "ms": 0.011
+  },
+  {
+    "ts": 2506160261594353,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 6.145,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160264543103,
+    "dur": 79323,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 9.094,
+    "ms": 0.079
+  },
+  {
+    "ts": 2506160264560239,
+    "dur": 21094,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 9.111,
+    "ms": 0.021
+  },
+  {
+    "ts": 2506160264566958,
+    "dur": 10312,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 9.118,
+    "ms": 0.01
+  },
+  {
+    "ts": 2506160264579718,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 9.131,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160267814353,
+    "dur": 70053,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 12.365,
+    "ms": 0.07
+  },
+  {
+    "ts": 2506160267831385,
+    "dur": 18229,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 12.382,
+    "ms": 0.018
+  },
+  {
+    "ts": 2506160267837999,
+    "dur": 7500,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 12.389,
+    "ms": 0.007
+  },
+  {
+    "ts": 2506160267847895,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 12.399,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160270992218,
+    "dur": 46302,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 15.543,
+    "ms": 0.046
+  },
+  {
+    "ts": 2506160271006645,
+    "dur": 13542,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 15.558,
+    "ms": 0.014
+  },
+  {
+    "ts": 2506160271010760,
+    "dur": 5781,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 15.562,
+    "ms": 0.006
+  },
+  {
+    "ts": 2506160271018833,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 15.57,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160274188885,
+    "dur": 64166,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 18.74,
+    "ms": 0.064
+  },
+  {
+    "ts": 2506160274205395,
+    "dur": 18177,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 18.756,
+    "ms": 0.018
+  },
+  {
+    "ts": 2506160274211541,
+    "dur": 7500,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 18.763,
+    "ms": 0.007
+  },
+  {
+    "ts": 2506160274221333,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 18.772,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160277370864,
+    "dur": 46927,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 21.922,
+    "ms": 0.047
+  },
+  {
+    "ts": 2506160277384666,
+    "dur": 13958,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 21.936,
+    "ms": 0.014
+  },
+  {
+    "ts": 2506160277389562,
+    "dur": 5312,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 21.941,
+    "ms": 0.005
+  },
+  {
+    "ts": 2506160277397114,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 21.948,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160280639978,
+    "dur": 87969,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 25.191,
+    "ms": 0.088
+  },
+  {
+    "ts": 2506160280660135,
+    "dur": 23646,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 25.211,
+    "ms": 0.024
+  },
+  {
+    "ts": 2506160280668885,
+    "dur": 10625,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 25.22,
+    "ms": 0.011
+  },
+  {
+    "ts": 2506160280681801,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 25.233,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160283881749,
+    "dur": 80834,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 28.433,
+    "ms": 0.081
+  },
+  {
+    "ts": 2506160283903103,
+    "dur": 21719,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 28.454,
+    "ms": 0.022
+  },
+  {
+    "ts": 2506160283911801,
+    "dur": 8907,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 28.463,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160283922999,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 28.474,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160287137635,
+    "dur": 77239,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 31.689,
+    "ms": 0.077
+  },
+  {
+    "ts": 2506160287154926,
+    "dur": 20313,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 31.706,
+    "ms": 0.02
+  },
+  {
+    "ts": 2506160287161228,
+    "dur": 10053,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 31.712,
+    "ms": 0.01
+  },
+  {
+    "ts": 2506160287173728,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 31.725,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160289334093,
+    "dur": 54010,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 33.885,
+    "ms": 0.054
+  },
+  {
+    "ts": 2506160289349718,
+    "dur": 16458,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 33.901,
+    "ms": 0.016
+  },
+  {
+    "ts": 2506160289355187,
+    "dur": 6562,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 33.906,
+    "ms": 0.007
+  },
+  {
+    "ts": 2506160289364510,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 33.916,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160292578051,
+    "dur": 36146,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 37.129,
+    "ms": 0.036
+  },
+  {
+    "ts": 2506160292590031,
+    "dur": 9947,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 37.141,
+    "ms": 0.01
+  },
+  {
+    "ts": 2506160292593156,
+    "dur": 3750,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 37.144,
+    "ms": 0.004
+  },
+  {
+    "ts": 2506160292598572,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 37.15,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160296140864,
+    "dur": 37344,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 40.692,
+    "ms": 0.037
+  },
+  {
+    "ts": 2506160296155968,
+    "dur": 10260,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 40.707,
+    "ms": 0.01
+  },
+  {
+    "ts": 2506160296158624,
+    "dur": 4584,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 40.71,
+    "ms": 0.005
+  },
+  {
+    "ts": 2506160296164926,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 40.716,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160298506749,
+    "dur": 54011,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 43.058,
+    "ms": 0.054
+  },
+  {
+    "ts": 2506160298518937,
+    "dur": 14531,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 43.07,
+    "ms": 0.015
+  },
+  {
+    "ts": 2506160298523728,
+    "dur": 6615,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 43.075,
+    "ms": 0.007
+  },
+  {
+    "ts": 2506160298532218,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 43.083,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160301361333,
+    "dur": 28281,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 45.912,
+    "ms": 0.028
+  },
+  {
+    "ts": 2506160301369978,
+    "dur": 7344,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 45.921,
+    "ms": 0.007
+  },
+  {
+    "ts": 2506160301372114,
+    "dur": 3021,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 45.923,
+    "ms": 0.003
+  },
+  {
+    "ts": 2506160301376333,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 45.927,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160304430187,
+    "dur": 63489,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 48.981,
+    "ms": 0.063
+  },
+  {
+    "ts": 2506160304446645,
+    "dur": 17292,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 48.998,
+    "ms": 0.017
+  },
+  {
+    "ts": 2506160304451749,
+    "dur": 8594,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 49.003,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160304462322,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 49.013,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160307706541,
+    "dur": 68333,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 52.258,
+    "ms": 0.068
+  },
+  {
+    "ts": 2506160307722739,
+    "dur": 16979,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 52.274,
+    "ms": 0.017
+  },
+  {
+    "ts": 2506160307728781,
+    "dur": 7552,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 52.28,
+    "ms": 0.008
+  },
+  {
+    "ts": 2506160307738208,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 52.289,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160311040083,
+    "dur": 66510,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 55.591,
+    "ms": 0.067
+  },
+  {
+    "ts": 2506160311056853,
+    "dur": 17032,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 55.608,
+    "ms": 0.017
+  },
+  {
+    "ts": 2506160311062583,
+    "dur": 7708,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 55.614,
+    "ms": 0.008
+  },
+  {
+    "ts": 2506160311072218,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 55.623,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160314182739,
+    "dur": 128750,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 58.734,
+    "ms": 0.129
+  },
+  {
+    "ts": 2506160314214093,
+    "dur": 27448,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 58.765,
+    "ms": 0.027
+  },
+  {
+    "ts": 2506160314222895,
+    "dur": 13021,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 58.774,
+    "ms": 0.013
+  },
+  {
+    "ts": 2506160314239145,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 58.79,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160317374301,
+    "dur": 76250,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 61.925,
+    "ms": 0.076
+  },
+  {
+    "ts": 2506160317392843,
+    "dur": 19063,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 61.944,
+    "ms": 0.019
+  },
+  {
+    "ts": 2506160317399718,
+    "dur": 8385,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 61.951,
+    "ms": 0.008
+  },
+  {
+    "ts": 2506160317410187,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 61.961,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160320602635,
+    "dur": 76354,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 65.154,
+    "ms": 0.076
+  },
+  {
+    "ts": 2506160320621176,
+    "dur": 21250,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 65.172,
+    "ms": 0.021
+  },
+  {
+    "ts": 2506160320628624,
+    "dur": 10261,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 65.18,
+    "ms": 0.01
+  },
+  {
+    "ts": 2506160320640864,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 65.192,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160323798312,
+    "dur": 85625,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 68.349,
+    "ms": 0.086
+  },
+  {
+    "ts": 2506160323826697,
+    "dur": 22031,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 68.378,
+    "ms": 0.022
+  },
+  {
+    "ts": 2506160323834770,
+    "dur": 9167,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 68.386,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160323846437,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 68.397,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160327000551,
+    "dur": 83959,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 71.552,
+    "ms": 0.084
+  },
+  {
+    "ts": 2506160327026333,
+    "dur": 21927,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 71.577,
+    "ms": 0.022
+  },
+  {
+    "ts": 2506160327034301,
+    "dur": 8698,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 71.585,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160327045551,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 71.597,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160330184093,
+    "dur": 127708,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 74.735,
+    "ms": 0.128
+  },
+  {
+    "ts": 2506160330212791,
+    "dur": 25000,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 74.764,
+    "ms": 0.025
+  },
+  {
+    "ts": 2506160330220603,
+    "dur": 11667,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 74.772,
+    "ms": 0.012
+  },
+  {
+    "ts": 2506160330235656,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 74.787,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160333344406,
+    "dur": 83541,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 77.895,
+    "ms": 0.084
+  },
+  {
+    "ts": 2506160333372062,
+    "dur": 21927,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 77.923,
+    "ms": 0.022
+  },
+  {
+    "ts": 2506160333380187,
+    "dur": 9062,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 77.931,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160333391697,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 77.943,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160336599614,
+    "dur": 81823,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 81.151,
+    "ms": 0.082
+  },
+  {
+    "ts": 2506160336620395,
+    "dur": 22240,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 81.171,
+    "ms": 0.022
+  },
+  {
+    "ts": 2506160336627843,
+    "dur": 10104,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 81.179,
+    "ms": 0.01
+  },
+  {
+    "ts": 2506160336640551,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 81.192,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160339715447,
+    "dur": 71354,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 84.266,
+    "ms": 0.071
+  },
+  {
+    "ts": 2506160339737062,
+    "dur": 20104,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 84.288,
+    "ms": 0.02
+  },
+  {
+    "ts": 2506160339744041,
+    "dur": 8594,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 84.295,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160339755135,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 84.306,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160342852166,
+    "dur": 92708,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 87.403,
+    "ms": 0.093
+  },
+  {
+    "ts": 2506160342887114,
+    "dur": 22604,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 87.438,
+    "ms": 0.023
+  },
+  {
+    "ts": 2506160342894926,
+    "dur": 9219,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 87.446,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160342906906,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 87.458,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160346496541,
+    "dur": 63021,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 91.048,
+    "ms": 0.063
+  },
+  {
+    "ts": 2506160346516593,
+    "dur": 19792,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 91.068,
+    "ms": 0.02
+  },
+  {
+    "ts": 2506160346523103,
+    "dur": 8021,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 91.074,
+    "ms": 0.008
+  },
+  {
+    "ts": 2506160346533676,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 91.085,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160348734666,
+    "dur": 67708,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 93.286,
+    "ms": 0.068
+  },
+  {
+    "ts": 2506160348751437,
+    "dur": 18333,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 93.302,
+    "ms": 0.018
+  },
+  {
+    "ts": 2506160348757531,
+    "dur": 8281,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 93.309,
+    "ms": 0.008
+  },
+  {
+    "ts": 2506160348767999,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 93.319,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160351867895,
+    "dur": 46406,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 96.419,
+    "ms": 0.046
+  },
+  {
+    "ts": 2506160351882114,
+    "dur": 11979,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 96.433,
+    "ms": 0.012
+  },
+  {
+    "ts": 2506160351886385,
+    "dur": 4427,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 96.437,
+    "ms": 0.004
+  },
+  {
+    "ts": 2506160351892583,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 96.444,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160355019874,
+    "dur": 34948,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 99.571,
+    "ms": 0.035
+  },
+  {
+    "ts": 2506160355032062,
+    "dur": 9531,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 99.583,
+    "ms": 0.01
+  },
+  {
+    "ts": 2506160355035083,
+    "dur": 3489,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 99.586,
+    "ms": 0.003
+  },
+  {
+    "ts": 2506160355040239,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 99.591,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160358149406,
+    "dur": 43333,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 102.7,
+    "ms": 0.043
+  },
+  {
+    "ts": 2506160358163572,
+    "dur": 11615,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 102.715,
+    "ms": 0.012
+  },
+  {
+    "ts": 2506160358167270,
+    "dur": 4583,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 102.718,
+    "ms": 0.005
+  },
+  {
+    "ts": 2506160358173781,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 102.725,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160361275239,
+    "dur": 66562,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 105.826,
+    "ms": 0.067
+  },
+  {
+    "ts": 2506160361292947,
+    "dur": 16250,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 105.844,
+    "ms": 0.016
+  },
+  {
+    "ts": 2506160361299145,
+    "dur": 6042,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 105.85,
+    "ms": 0.006
+  },
+  {
+    "ts": 2506160361307374,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 105.858,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160364276124,
+    "dur": 69688,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 108.827,
+    "ms": 0.07
+  },
+  {
+    "ts": 2506160364295864,
+    "dur": 20781,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 108.847,
+    "ms": 0.021
+  },
+  {
+    "ts": 2506160364302635,
+    "dur": 8698,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 108.854,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160364314301,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 108.865,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160367241645,
+    "dur": 51094,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 111.793,
+    "ms": 0.051
+  },
+  {
+    "ts": 2506160367260864,
+    "dur": 12812,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 111.812,
+    "ms": 0.013
+  },
+  {
+    "ts": 2506160367265968,
+    "dur": 4010,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 111.817,
+    "ms": 0.004
+  },
+  {
+    "ts": 2506160367271906,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 111.823,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160370357583,
+    "dur": 56614,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 114.909,
+    "ms": 0.057
+  },
+  {
+    "ts": 2506160370376958,
+    "dur": 13906,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 114.928,
+    "ms": 0.014
+  },
+  {
+    "ts": 2506160370381072,
+    "dur": 4636,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 114.932,
+    "ms": 0.005
+  },
+  {
+    "ts": 2506160370388572,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 114.94,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160373496176,
+    "dur": 75782,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 118.047,
+    "ms": 0.076
+  },
+  {
+    "ts": 2506160373518208,
+    "dur": 21198,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 118.069,
+    "ms": 0.021
+  },
+  {
+    "ts": 2506160373524978,
+    "dur": 8855,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 118.076,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160373536645,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 118.088,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160376519406,
+    "dur": 59635,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 121.07,
+    "ms": 0.06
+  },
+  {
+    "ts": 2506160376539666,
+    "dur": 17656,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 121.091,
+    "ms": 0.018
+  },
+  {
+    "ts": 2506160376545291,
+    "dur": 6875,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 121.096,
+    "ms": 0.007
+  },
+  {
+    "ts": 2506160376555135,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 121.106,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160379478103,
+    "dur": 62813,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 124.029,
+    "ms": 0.063
+  },
+  {
+    "ts": 2506160379503103,
+    "dur": 16407,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 124.054,
+    "ms": 0.016
+  },
+  {
+    "ts": 2506160379508260,
+    "dur": 4687,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 124.059,
+    "ms": 0.005
+  },
+  {
+    "ts": 2506160379517218,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 124.068,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160382564874,
+    "dur": 73854,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 127.116,
+    "ms": 0.074
+  },
+  {
+    "ts": 2506160382590083,
+    "dur": 18385,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 127.141,
+    "ms": 0.018
+  },
+  {
+    "ts": 2506160382596801,
+    "dur": 6823,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 127.148,
+    "ms": 0.007
+  },
+  {
+    "ts": 2506160382606489,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 127.158,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160385576749,
+    "dur": 68490,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 130.128,
+    "ms": 0.068
+  },
+  {
+    "ts": 2506160385596958,
+    "dur": 16770,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 130.148,
+    "ms": 0.017
+  },
+  {
+    "ts": 2506160385602999,
+    "dur": 6563,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 130.154,
+    "ms": 0.007
+  },
+  {
+    "ts": 2506160385611906,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 130.163,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160388525447,
+    "dur": 67969,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 133.076,
+    "ms": 0.068
+  },
+  {
+    "ts": 2506160388545083,
+    "dur": 18645,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 133.096,
+    "ms": 0.019
+  },
+  {
+    "ts": 2506160388550864,
+    "dur": 8646,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 133.102,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160388561853,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 133.113,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160391549510,
+    "dur": 74479,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 136.101,
+    "ms": 0.074
+  },
+  {
+    "ts": 2506160391569822,
+    "dur": 22344,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 136.121,
+    "ms": 0.022
+  },
+  {
+    "ts": 2506160391576749,
+    "dur": 10052,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 136.128,
+    "ms": 0.01
+  },
+  {
+    "ts": 2506160391589353,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 136.14,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160394605968,
+    "dur": 59896,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 139.157,
+    "ms": 0.06
+  },
+  {
+    "ts": 2506160394624197,
+    "dur": 19740,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 139.175,
+    "ms": 0.02
+  },
+  {
+    "ts": 2506160394629666,
+    "dur": 7500,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 139.181,
+    "ms": 0.007
+  },
+  {
+    "ts": 2506160394640603,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 139.192,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160398161958,
+    "dur": 83645,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 142.713,
+    "ms": 0.084
+  },
+  {
+    "ts": 2506160398190864,
+    "dur": 20625,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 142.742,
+    "ms": 0.021
+  },
+  {
+    "ts": 2506160398197999,
+    "dur": 8386,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 142.749,
+    "ms": 0.008
+  },
+  {
+    "ts": 2506160398209510,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 142.761,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160401624926,
+    "dur": 78490,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 146.176,
+    "ms": 0.078
+  },
+  {
+    "ts": 2506160401652635,
+    "dur": 20885,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 146.204,
+    "ms": 0.021
+  },
+  {
+    "ts": 2506160401660291,
+    "dur": 8385,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 146.211,
+    "ms": 0.008
+  },
+  {
+    "ts": 2506160401671228,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 146.222,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160404761489,
+    "dur": 75469,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 149.313,
+    "ms": 0.075
+  },
+  {
+    "ts": 2506160404781437,
+    "dur": 20260,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 149.332,
+    "ms": 0.02
+  },
+  {
+    "ts": 2506160404790395,
+    "dur": 6979,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 149.341,
+    "ms": 0.007
+  },
+  {
+    "ts": 2506160404799770,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 149.351,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160408056541,
+    "dur": 67083,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 152.608,
+    "ms": 0.067
+  },
+  {
+    "ts": 2506160408074353,
+    "dur": 16042,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 152.625,
+    "ms": 0.016
+  },
+  {
+    "ts": 2506160408080551,
+    "dur": 6250,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 152.632,
+    "ms": 0.006
+  },
+  {
+    "ts": 2506160408088833,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 152.64,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160411220343,
+    "dur": 59010,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 155.771,
+    "ms": 0.059
+  },
+  {
+    "ts": 2506160411235343,
+    "dur": 14635,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 155.786,
+    "ms": 0.015
+  },
+  {
+    "ts": 2506160411240343,
+    "dur": 5729,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 155.791,
+    "ms": 0.006
+  },
+  {
+    "ts": 2506160411248260,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 155.799,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160414361020,
+    "dur": 75469,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 158.912,
+    "ms": 0.075
+  },
+  {
+    "ts": 2506160414380447,
+    "dur": 20729,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 158.931,
+    "ms": 0.021
+  },
+  {
+    "ts": 2506160414387635,
+    "dur": 9114,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 158.939,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160414398989,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 158.95,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160417468833,
+    "dur": 68073,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 162.02,
+    "ms": 0.068
+  },
+  {
+    "ts": 2506160417486906,
+    "dur": 19635,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 162.038,
+    "ms": 0.02
+  },
+  {
+    "ts": 2506160417493624,
+    "dur": 8542,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 162.045,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160417504510,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 162.056,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160420523937,
+    "dur": 78958,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 165.075,
+    "ms": 0.079
+  },
+  {
+    "ts": 2506160420549145,
+    "dur": 20573,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 165.1,
+    "ms": 0.021
+  },
+  {
+    "ts": 2506160420556801,
+    "dur": 8855,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 165.108,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160420567947,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 165.119,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160424073156,
+    "dur": 93697,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 168.624,
+    "ms": 0.094
+  },
+  {
+    "ts": 2506160424102270,
+    "dur": 21927,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 168.653,
+    "ms": 0.022
+  },
+  {
+    "ts": 2506160424110551,
+    "dur": 8490,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 168.662,
+    "ms": 0.008
+  },
+  {
+    "ts": 2506160424121958,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 168.673,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160426629614,
+    "dur": 57812,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 171.181,
+    "ms": 0.058
+  },
+  {
+    "ts": 2506160426647531,
+    "dur": 15468,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 171.199,
+    "ms": 0.015
+  },
+  {
+    "ts": 2506160426652531,
+    "dur": 5833,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 171.204,
+    "ms": 0.006
+  },
+  {
+    "ts": 2506160426660968,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 171.212,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160430190760,
+    "dur": 121771,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 174.742,
+    "ms": 0.122
+  },
+  {
+    "ts": 2506160430215916,
+    "dur": 23437,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 174.767,
+    "ms": 0.023
+  },
+  {
+    "ts": 2506160430225760,
+    "dur": 8333,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 174.777,
+    "ms": 0.008
+  },
+  {
+    "ts": 2506160430236697,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 174.788,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160432762010,
+    "dur": 91510,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 177.313,
+    "ms": 0.092
+  },
+  {
+    "ts": 2506160432784822,
+    "dur": 24063,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 177.336,
+    "ms": 0.024
+  },
+  {
+    "ts": 2506160432792791,
+    "dur": 11094,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 177.344,
+    "ms": 0.011
+  },
+  {
+    "ts": 2506160432806593,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 177.358,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160436251437,
+    "dur": 57916,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 180.802,
+    "ms": 0.058
+  },
+  {
+    "ts": 2506160436273103,
+    "dur": 14480,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 180.824,
+    "ms": 0.014
+  },
+  {
+    "ts": 2506160436277635,
+    "dur": 5468,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 180.829,
+    "ms": 0.005
+  },
+  {
+    "ts": 2506160436285551,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 180.837,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160438787530,
+    "dur": 98907,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 183.339,
+    "ms": 0.099
+  },
+  {
+    "ts": 2506160438811697,
+    "dur": 27031,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 183.363,
+    "ms": 0.027
+  },
+  {
+    "ts": 2506160438820812,
+    "dur": 12187,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 183.372,
+    "ms": 0.012
+  },
+  {
+    "ts": 2506160438836072,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 183.387,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160442410916,
+    "dur": 82187,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 186.962,
+    "ms": 0.082
+  },
+  {
+    "ts": 2506160442433468,
+    "dur": 22969,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 186.985,
+    "ms": 0.023
+  },
+  {
+    "ts": 2506160442441124,
+    "dur": 10469,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 186.992,
+    "ms": 0.01
+  },
+  {
+    "ts": 2506160442454249,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 187.005,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160444924405,
+    "dur": 53230,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 189.475,
+    "ms": 0.053
+  },
+  {
+    "ts": 2506160444942114,
+    "dur": 15521,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 189.493,
+    "ms": 0.016
+  },
+  {
+    "ts": 2506160444947426,
+    "dur": 5313,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 189.498,
+    "ms": 0.005
+  },
+  {
+    "ts": 2506160444955708,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 189.507,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160448801228,
+    "dur": 145365,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 193.352,
+    "ms": 0.145
+  },
+  {
+    "ts": 2506160448843624,
+    "dur": 38386,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 193.395,
+    "ms": 0.038
+  },
+  {
+    "ts": 2506160448858833,
+    "dur": 14375,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 193.41,
+    "ms": 0.014
+  },
+  {
+    "ts": 2506160448877999,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 193.429,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160453135239,
+    "dur": 93437,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 197.686,
+    "ms": 0.093
+  },
+  {
+    "ts": 2506160453166645,
+    "dur": 26302,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 197.718,
+    "ms": 0.026
+  },
+  {
+    "ts": 2506160453175968,
+    "dur": 9479,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 197.727,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160453189614,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 197.741,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160456598468,
+    "dur": 144896,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 201.15,
+    "ms": 0.145
+  },
+  {
+    "ts": 2506160456638885,
+    "dur": 36406,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 201.19,
+    "ms": 0.036
+  },
+  {
+    "ts": 2506160456653312,
+    "dur": 13177,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 201.204,
+    "ms": 0.013
+  },
+  {
+    "ts": 2506160456671228,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 201.222,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160459873468,
+    "dur": 90833,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 204.425,
+    "ms": 0.091
+  },
+  {
+    "ts": 2506160459903989,
+    "dur": 24219,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 204.455,
+    "ms": 0.024
+  },
+  {
+    "ts": 2506160459912062,
+    "dur": 9062,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 204.463,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160459925030,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 204.476,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160463469353,
+    "dur": 79896,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 208.02,
+    "ms": 0.08
+  },
+  {
+    "ts": 2506160463491645,
+    "dur": 22240,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 208.043,
+    "ms": 0.022
+  },
+  {
+    "ts": 2506160463500187,
+    "dur": 8281,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 208.051,
+    "ms": 0.008
+  },
+  {
+    "ts": 2506160463511645,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 208.063,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160466868937,
+    "dur": 135573,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 211.42,
+    "ms": 0.136
+  },
+  {
+    "ts": 2506160466905239,
+    "dur": 33541,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 211.456,
+    "ms": 0.034
+  },
+  {
+    "ts": 2506160466917062,
+    "dur": 13489,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 211.468,
+    "ms": 0.013
+  },
+  {
+    "ts": 2506160466934926,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 211.486,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160469082739,
+    "dur": 89791,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 213.634,
+    "ms": 0.09
+  },
+  {
+    "ts": 2506160469112791,
+    "dur": 25469,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 213.664,
+    "ms": 0.025
+  },
+  {
+    "ts": 2506160469120968,
+    "dur": 9635,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 213.672,
+    "ms": 0.01
+  },
+  {
+    "ts": 2506160469134926,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 213.686,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160472516385,
+    "dur": 152187,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 217.067,
+    "ms": 0.152
+  },
+  {
+    "ts": 2506160472563572,
+    "dur": 37865,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 217.115,
+    "ms": 0.038
+  },
+  {
+    "ts": 2506160472578833,
+    "dur": 13385,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 217.13,
+    "ms": 0.013
+  },
+  {
+    "ts": 2506160472596853,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 217.148,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160476024718,
+    "dur": 102865,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 220.576,
+    "ms": 0.103
+  },
+  {
+    "ts": 2506160476056489,
+    "dur": 26510,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 220.608,
+    "ms": 0.027
+  },
+  {
+    "ts": 2506160476065812,
+    "dur": 9479,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 220.617,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160476079770,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 220.631,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160478237322,
+    "dur": 153750,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 222.788,
+    "ms": 0.154
+  },
+  {
+    "ts": 2506160478311385,
+    "dur": 34791,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 222.862,
+    "ms": 0.035
+  },
+  {
+    "ts": 2506160478324874,
+    "dur": 12500,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 222.876,
+    "ms": 0.013
+  },
+  {
+    "ts": 2506160478341853,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 222.893,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160481684405,
+    "dur": 138490,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 226.235,
+    "ms": 0.138
+  },
+  {
+    "ts": 2506160481722583,
+    "dur": 35885,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 226.274,
+    "ms": 0.036
+  },
+  {
+    "ts": 2506160481736593,
+    "dur": 13229,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 226.288,
+    "ms": 0.013
+  },
+  {
+    "ts": 2506160481754405,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 226.305,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160485124458,
+    "dur": 132760,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 229.675,
+    "ms": 0.133
+  },
+  {
+    "ts": 2506160485163312,
+    "dur": 34583,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 229.714,
+    "ms": 0.035
+  },
+  {
+    "ts": 2506160485175499,
+    "dur": 13334,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 229.727,
+    "ms": 0.013
+  },
+  {
+    "ts": 2506160485193364,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 229.744,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160488475551,
+    "dur": 154740,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 233.027,
+    "ms": 0.155
+  },
+  {
+    "ts": 2506160488519874,
+    "dur": 37604,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 233.071,
+    "ms": 0.038
+  },
+  {
+    "ts": 2506160488534145,
+    "dur": 14479,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 233.085,
+    "ms": 0.014
+  },
+  {
+    "ts": 2506160488553208,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 233.104,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160491688937,
+    "dur": 137239,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 236.24,
+    "ms": 0.137
+  },
+  {
+    "ts": 2506160491727166,
+    "dur": 34948,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 236.278,
+    "ms": 0.035
+  },
+  {
+    "ts": 2506160491741228,
+    "dur": 12709,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 236.292,
+    "ms": 0.013
+  },
+  {
+    "ts": 2506160491758416,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 236.309,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160494898885,
+    "dur": 99583,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 239.45,
+    "ms": 0.1
+  },
+  {
+    "ts": 2506160494931437,
+    "dur": 27760,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 239.482,
+    "ms": 0.028
+  },
+  {
+    "ts": 2506160494941489,
+    "dur": 9635,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 239.493,
+    "ms": 0.01
+  },
+  {
+    "ts": 2506160494955708,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 239.507,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160498401749,
+    "dur": 141719,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 242.953,
+    "ms": 0.142
+  },
+  {
+    "ts": 2506160498441958,
+    "dur": 35468,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 242.993,
+    "ms": 0.035
+  },
+  {
+    "ts": 2506160498454978,
+    "dur": 13750,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 243.006,
+    "ms": 0.014
+  },
+  {
+    "ts": 2506160498473780,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 243.025,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160501271072,
+    "dur": 145261,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 245.822,
+    "ms": 0.145
+  },
+  {
+    "ts": 2506160501312895,
+    "dur": 39323,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 245.864,
+    "ms": 0.039
+  },
+  {
+    "ts": 2506160501328833,
+    "dur": 13854,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 245.88,
+    "ms": 0.014
+  },
+  {
+    "ts": 2506160501347426,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 245.898,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160505227635,
+    "dur": 150468,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 249.779,
+    "ms": 0.15
+  },
+  {
+    "ts": 2506160505270447,
+    "dur": 41094,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 249.821,
+    "ms": 0.041
+  },
+  {
+    "ts": 2506160505284718,
+    "dur": 17812,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 249.836,
+    "ms": 0.018
+  },
+  {
+    "ts": 2506160505307218,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 249.858,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160508508208,
+    "dur": 92395,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 253.059,
+    "ms": 0.092
+  },
+  {
+    "ts": 2506160508539145,
+    "dur": 26927,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 253.09,
+    "ms": 0.027
+  },
+  {
+    "ts": 2506160508548364,
+    "dur": 9635,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 253.099,
+    "ms": 0.01
+  },
+  {
+    "ts": 2506160508562114,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 253.113,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160511891801,
+    "dur": 88698,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 256.443,
+    "ms": 0.089
+  },
+  {
+    "ts": 2506160511921020,
+    "dur": 24271,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 256.472,
+    "ms": 0.024
+  },
+  {
+    "ts": 2506160511929666,
+    "dur": 8177,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 256.481,
+    "ms": 0.008
+  },
+  {
+    "ts": 2506160511942010,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 256.493,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160514416072,
+    "dur": 137344,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 258.967,
+    "ms": 0.137
+  },
+  {
+    "ts": 2506160514453728,
+    "dur": 35730,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 259.005,
+    "ms": 0.036
+  },
+  {
+    "ts": 2506160514467374,
+    "dur": 13750,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 259.018,
+    "ms": 0.014
+  },
+  {
+    "ts": 2506160514485603,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 259.037,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160517744458,
+    "dur": 88854,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 262.295,
+    "ms": 0.089
+  },
+  {
+    "ts": 2506160517775030,
+    "dur": 25209,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 262.326,
+    "ms": 0.025
+  },
+  {
+    "ts": 2506160517783260,
+    "dur": 8958,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 262.334,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160517797010,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 262.348,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160520498260,
+    "dur": 99843,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 265.049,
+    "ms": 0.1
+  },
+  {
+    "ts": 2506160520525655,
+    "dur": 25365,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 265.077,
+    "ms": 0.025
+  },
+  {
+    "ts": 2506160520533364,
+    "dur": 11771,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 265.084,
+    "ms": 0.012
+  },
+  {
+    "ts": 2506160520548624,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 265.1,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160524012843,
+    "dur": 128437,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 268.564,
+    "ms": 0.128
+  },
+  {
+    "ts": 2506160524083676,
+    "dur": 23282,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 268.635,
+    "ms": 0.023
+  },
+  {
+    "ts": 2506160524092947,
+    "dur": 8646,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 268.644,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160524104562,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 268.656,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160526531176,
+    "dur": 56146,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 271.082,
+    "ms": 0.056
+  },
+  {
+    "ts": 2506160526550708,
+    "dur": 14375,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 271.102,
+    "ms": 0.014
+  },
+  {
+    "ts": 2506160526555083,
+    "dur": 5468,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 271.106,
+    "ms": 0.005
+  },
+  {
+    "ts": 2506160526562999,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 271.114,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160530654510,
+    "dur": 86406,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 275.206,
+    "ms": 0.086
+  },
+  {
+    "ts": 2506160530679145,
+    "dur": 21771,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 275.23,
+    "ms": 0.022
+  },
+  {
+    "ts": 2506160530687062,
+    "dur": 8541,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 275.238,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160530698572,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 275.25,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160533091228,
+    "dur": 62865,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 277.642,
+    "ms": 0.063
+  },
+  {
+    "ts": 2506160533112270,
+    "dur": 16875,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 277.663,
+    "ms": 0.017
+  },
+  {
+    "ts": 2506160533117478,
+    "dur": 5834,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 277.669,
+    "ms": 0.006
+  },
+  {
+    "ts": 2506160533126489,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 277.678,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160535544926,
+    "dur": 51667,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 280.096,
+    "ms": 0.052
+  },
+  {
+    "ts": 2506160535563885,
+    "dur": 14948,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 280.115,
+    "ms": 0.015
+  },
+  {
+    "ts": 2506160535568728,
+    "dur": 5209,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 280.12,
+    "ms": 0.005
+  },
+  {
+    "ts": 2506160535576333,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 280.127,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160539042530,
+    "dur": 90990,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 283.594,
+    "ms": 0.091
+  },
+  {
+    "ts": 2506160539069458,
+    "dur": 21770,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 283.62,
+    "ms": 0.022
+  },
+  {
+    "ts": 2506160539077166,
+    "dur": 8073,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 283.628,
+    "ms": 0.008
+  },
+  {
+    "ts": 2506160539088989,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 283.64,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160541335968,
+    "dur": 63542,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 285.887,
+    "ms": 0.064
+  },
+  {
+    "ts": 2506160541357218,
+    "dur": 16198,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 285.908,
+    "ms": 0.016
+  },
+  {
+    "ts": 2506160541362166,
+    "dur": 6250,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 285.913,
+    "ms": 0.006
+  },
+  {
+    "ts": 2506160541370708,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 285.922,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160545249301,
+    "dur": 87813,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 289.8,
+    "ms": 0.088
+  },
+  {
+    "ts": 2506160545280812,
+    "dur": 23646,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 289.832,
+    "ms": 0.024
+  },
+  {
+    "ts": 2506160545288312,
+    "dur": 8385,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 289.839,
+    "ms": 0.008
+  },
+  {
+    "ts": 2506160545300812,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 289.852,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160549254926,
+    "dur": 142396,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 293.806,
+    "ms": 0.142
+  },
+  {
+    "ts": 2506160549295812,
+    "dur": 40937,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 293.847,
+    "ms": 0.041
+  },
+  {
+    "ts": 2506160549309510,
+    "dur": 17916,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 293.861,
+    "ms": 0.018
+  },
+  {
+    "ts": 2506160549332270,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 293.883,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160551404041,
+    "dur": 110989,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 295.955,
+    "ms": 0.111
+  },
+  {
+    "ts": 2506160551437947,
+    "dur": 32500,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 295.989,
+    "ms": 0.033
+  },
+  {
+    "ts": 2506160551448989,
+    "dur": 12864,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 296.0,
+    "ms": 0.013
+  },
+  {
+    "ts": 2506160551466489,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 296.018,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160553624510,
+    "dur": 37239,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 298.176,
+    "ms": 0.037
+  },
+  {
+    "ts": 2506160553636697,
+    "dur": 10052,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 298.188,
+    "ms": 0.01
+  },
+  {
+    "ts": 2506160553639926,
+    "dur": 3802,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 298.191,
+    "ms": 0.004
+  },
+  {
+    "ts": 2506160553645447,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 298.196,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160556953676,
+    "dur": 77188,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 301.505,
+    "ms": 0.077
+  },
+  {
+    "ts": 2506160556974718,
+    "dur": 20729,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 301.526,
+    "ms": 0.021
+  },
+  {
+    "ts": 2506160556981958,
+    "dur": 8125,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 301.533,
+    "ms": 0.008
+  },
+  {
+    "ts": 2506160556993051,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 301.544,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160560392530,
+    "dur": 54428,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 304.944,
+    "ms": 0.054
+  },
+  {
+    "ts": 2506160560410291,
+    "dur": 15052,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 304.961,
+    "ms": 0.015
+  },
+  {
+    "ts": 2506160560414926,
+    "dur": 5729,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 304.966,
+    "ms": 0.006
+  },
+  {
+    "ts": 2506160560423364,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 304.974,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160563859197,
+    "dur": 90781,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 308.41,
+    "ms": 0.091
+  },
+  {
+    "ts": 2506160563881801,
+    "dur": 24011,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 308.433,
+    "ms": 0.024
+  },
+  {
+    "ts": 2506160563889510,
+    "dur": 11093,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 308.441,
+    "ms": 0.011
+  },
+  {
+    "ts": 2506160563903624,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 308.455,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160567564197,
+    "dur": 187552,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 312.115,
+    "ms": 0.188
+  },
+  {
+    "ts": 2506160567603208,
+    "dur": 34947,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 312.154,
+    "ms": 0.035
+  },
+  {
+    "ts": 2506160567615812,
+    "dur": 13906,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 312.167,
+    "ms": 0.014
+  },
+  {
+    "ts": 2506160567634249,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 312.185,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160571314353,
+    "dur": 157917,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 315.865,
+    "ms": 0.158
+  },
+  {
+    "ts": 2506160571353676,
+    "dur": 41459,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 315.905,
+    "ms": 0.041
+  },
+  {
+    "ts": 2506160571368208,
+    "dur": 17395,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 315.919,
+    "ms": 0.017
+  },
+  {
+    "ts": 2506160571391228,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 315.942,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160572777895,
+    "dur": 88438,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 317.329,
+    "ms": 0.088
+  },
+  {
+    "ts": 2506160572809926,
+    "dur": 24375,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 317.361,
+    "ms": 0.024
+  },
+  {
+    "ts": 2506160572818208,
+    "dur": 9583,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 317.369,
+    "ms": 0.01
+  },
+  {
+    "ts": 2506160572831645,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 317.383,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160576118520,
+    "dur": 73958,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 320.67,
+    "ms": 0.074
+  },
+  {
+    "ts": 2506160576143051,
+    "dur": 21927,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 320.694,
+    "ms": 0.022
+  },
+  {
+    "ts": 2506160576150864,
+    "dur": 7604,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 320.702,
+    "ms": 0.008
+  },
+  {
+    "ts": 2506160576161853,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 320.713,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160578607843,
+    "dur": 97344,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 323.159,
+    "ms": 0.097
+  },
+  {
+    "ts": 2506160578632218,
+    "dur": 23646,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 323.183,
+    "ms": 0.024
+  },
+  {
+    "ts": 2506160578641333,
+    "dur": 8854,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 323.192,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160578653208,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 323.204,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160582384978,
+    "dur": 95469,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 326.936,
+    "ms": 0.095
+  },
+  {
+    "ts": 2506160582407895,
+    "dur": 23594,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 326.959,
+    "ms": 0.024
+  },
+  {
+    "ts": 2506160582417218,
+    "dur": 9167,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 326.968,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160582429353,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 326.98,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160584919770,
+    "dur": 55104,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 329.471,
+    "ms": 0.055
+  },
+  {
+    "ts": 2506160584937999,
+    "dur": 15156,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 329.489,
+    "ms": 0.015
+  },
+  {
+    "ts": 2506160584942895,
+    "dur": 5833,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 329.494,
+    "ms": 0.006
+  },
+  {
+    "ts": 2506160584951280,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 329.502,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160588324978,
+    "dur": 91927,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 332.876,
+    "ms": 0.092
+  },
+  {
+    "ts": 2506160588353520,
+    "dur": 21927,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 332.905,
+    "ms": 0.022
+  },
+  {
+    "ts": 2506160588361697,
+    "dur": 8542,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 332.913,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160588373051,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 332.924,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160591725708,
+    "dur": 61822,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 336.277,
+    "ms": 0.062
+  },
+  {
+    "ts": 2506160591745395,
+    "dur": 15990,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 336.296,
+    "ms": 0.016
+  },
+  {
+    "ts": 2506160591750499,
+    "dur": 6302,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 336.302,
+    "ms": 0.006
+  },
+  {
+    "ts": 2506160591759353,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 336.31,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160595200864,
+    "dur": 83281,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 339.752,
+    "ms": 0.083
+  },
+  {
+    "ts": 2506160595223780,
+    "dur": 21250,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 339.775,
+    "ms": 0.021
+  },
+  {
+    "ts": 2506160595231801,
+    "dur": 7969,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 339.783,
+    "ms": 0.008
+  },
+  {
+    "ts": 2506160595242583,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 339.794,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160598525030,
+    "dur": 138073,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 343.076,
+    "ms": 0.138
+  },
+  {
+    "ts": 2506160598562166,
+    "dur": 36719,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 343.113,
+    "ms": 0.037
+  },
+  {
+    "ts": 2506160598576905,
+    "dur": 13803,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 343.128,
+    "ms": 0.014
+  },
+  {
+    "ts": 2506160598595030,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 343.146,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160601870760,
+    "dur": 93229,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 346.422,
+    "ms": 0.093
+  },
+  {
+    "ts": 2506160601901958,
+    "dur": 25989,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 346.453,
+    "ms": 0.026
+  },
+  {
+    "ts": 2506160601910291,
+    "dur": 9062,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 346.461,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160601924041,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 346.475,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160604597530,
+    "dur": 145417,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 349.149,
+    "ms": 0.145
+  },
+  {
+    "ts": 2506160604641072,
+    "dur": 40261,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 349.192,
+    "ms": 0.04
+  },
+  {
+    "ts": 2506160604654770,
+    "dur": 17760,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 349.206,
+    "ms": 0.018
+  },
+  {
+    "ts": 2506160604677322,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 349.228,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160607492270,
+    "dur": 140729,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 352.043,
+    "ms": 0.141
+  },
+  {
+    "ts": 2506160607530291,
+    "dur": 38437,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 352.081,
+    "ms": 0.038
+  },
+  {
+    "ts": 2506160607542739,
+    "dur": 16875,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 352.094,
+    "ms": 0.017
+  },
+  {
+    "ts": 2506160607564874,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 352.116,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160609635030,
+    "dur": 40053,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 354.186,
+    "ms": 0.04
+  },
+  {
+    "ts": 2506160609648103,
+    "dur": 10938,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 354.199,
+    "ms": 0.011
+  },
+  {
+    "ts": 2506160609651645,
+    "dur": 4115,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 354.203,
+    "ms": 0.004
+  },
+  {
+    "ts": 2506160609657687,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 354.209,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160612536697,
+    "dur": 57917,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 357.088,
+    "ms": 0.058
+  },
+  {
+    "ts": 2506160612552478,
+    "dur": 14427,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 357.104,
+    "ms": 0.014
+  },
+  {
+    "ts": 2506160612558103,
+    "dur": 5417,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 357.109,
+    "ms": 0.005
+  },
+  {
+    "ts": 2506160612565499,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 357.117,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160615482530,
+    "dur": 67188,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 360.034,
+    "ms": 0.067
+  },
+  {
+    "ts": 2506160615498260,
+    "dur": 17708,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 360.049,
+    "ms": 0.018
+  },
+  {
+    "ts": 2506160615504301,
+    "dur": 8073,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 360.055,
+    "ms": 0.008
+  },
+  {
+    "ts": 2506160615514353,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 360.065,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160619088312,
+    "dur": 82812,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 363.639,
+    "ms": 0.083
+  },
+  {
+    "ts": 2506160619110968,
+    "dur": 22135,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 363.662,
+    "ms": 0.022
+  },
+  {
+    "ts": 2506160619118572,
+    "dur": 9011,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 363.67,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160619130499,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 363.682,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160621503676,
+    "dur": 91198,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 366.055,
+    "ms": 0.091
+  },
+  {
+    "ts": 2506160621526593,
+    "dur": 24792,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 366.078,
+    "ms": 0.025
+  },
+  {
+    "ts": 2506160621535291,
+    "dur": 10833,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 366.086,
+    "ms": 0.011
+  },
+  {
+    "ts": 2506160621549145,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 366.1,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160624930708,
+    "dur": 123489,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 369.482,
+    "ms": 0.123
+  },
+  {
+    "ts": 2506160624973364,
+    "dur": 33437,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 369.524,
+    "ms": 0.033
+  },
+  {
+    "ts": 2506160624984614,
+    "dur": 15156,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 369.536,
+    "ms": 0.015
+  },
+  {
+    "ts": 2506160625003780,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 369.555,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160628423520,
+    "dur": 142552,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 372.975,
+    "ms": 0.143
+  },
+  {
+    "ts": 2506160628459301,
+    "dur": 57188,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 373.01,
+    "ms": 0.057
+  },
+  {
+    "ts": 2506160628469718,
+    "dur": 39479,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 373.021,
+    "ms": 0.039
+  },
+  {
+    "ts": 2506160628512895,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 373.064,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160631979197,
+    "dur": 89167,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 376.53,
+    "ms": 0.089
+  },
+  {
+    "ts": 2506160632004562,
+    "dur": 27083,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 376.556,
+    "ms": 0.027
+  },
+  {
+    "ts": 2506160632013520,
+    "dur": 12292,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 376.565,
+    "ms": 0.012
+  },
+  {
+    "ts": 2506160632028989,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 376.58,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160635384874,
+    "dur": 73177,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 379.936,
+    "ms": 0.073
+  },
+  {
+    "ts": 2506160635409405,
+    "dur": 20678,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 379.96,
+    "ms": 0.021
+  },
+  {
+    "ts": 2506160635415812,
+    "dur": 9375,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 379.967,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160635427791,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 379.979,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160638920343,
+    "dur": 120729,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 383.471,
+    "ms": 0.121
+  },
+  {
+    "ts": 2506160638964405,
+    "dur": 31042,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 383.515,
+    "ms": 0.031
+  },
+  {
+    "ts": 2506160638976333,
+    "dur": 12187,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 383.527,
+    "ms": 0.012
+  },
+  {
+    "ts": 2506160638992426,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 383.543,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160642542166,
+    "dur": 177969,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 387.093,
+    "ms": 0.178
+  },
+  {
+    "ts": 2506160642590135,
+    "dur": 31250,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 387.141,
+    "ms": 0.031
+  },
+  {
+    "ts": 2506160642602791,
+    "dur": 11927,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 387.154,
+    "ms": 0.012
+  },
+  {
+    "ts": 2506160642618312,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 387.169,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160646418833,
+    "dur": 79843,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 390.97,
+    "ms": 0.08
+  },
+  {
+    "ts": 2506160646438676,
+    "dur": 19532,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 390.99,
+    "ms": 0.02
+  },
+  {
+    "ts": 2506160646445603,
+    "dur": 8594,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 390.997,
+    "ms": 0.009
+  },
+  {
+    "ts": 2506160646456176,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 391.007,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160648577218,
+    "dur": 68698,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 393.128,
+    "ms": 0.069
+  },
+  {
+    "ts": 2506160648593676,
+    "dur": 17969,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 393.145,
+    "ms": 0.018
+  },
+  {
+    "ts": 2506160648600030,
+    "dur": 8073,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 393.151,
+    "ms": 0.008
+  },
+  {
+    "ts": 2506160648610083,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 393.161,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160651674457,
+    "dur": 60990,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 396.225,
+    "ms": 0.061
+  },
+  {
+    "ts": 2506160651690030,
+    "dur": 16407,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 396.241,
+    "ms": 0.016
+  },
+  {
+    "ts": 2506160651696020,
+    "dur": 6719,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 396.247,
+    "ms": 0.007
+  },
+  {
+    "ts": 2506160651704822,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 396.256,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160654738520,
+    "dur": 82552,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 399.29,
+    "ms": 0.083
+  },
+  {
+    "ts": 2506160654753312,
+    "dur": 15260,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 399.304,
+    "ms": 0.015
+  },
+  {
+    "ts": 2506160654758937,
+    "dur": 5885,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 399.31,
+    "ms": 0.006
+  },
+  {
+    "ts": 2506160654766853,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 399.318,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160658057843,
+    "dur": 67031,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 402.609,
+    "ms": 0.067
+  },
+  {
+    "ts": 2506160658074614,
+    "dur": 18021,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 402.626,
+    "ms": 0.018
+  },
+  {
+    "ts": 2506160658080655,
+    "dur": 8230,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 402.632,
+    "ms": 0.008
+  },
+  {
+    "ts": 2506160658090968,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 402.642,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160662600968,
+    "dur": 67864,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 407.152,
+    "ms": 0.068
+  },
+  {
+    "ts": 2506160662619301,
+    "dur": 16406,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 407.17,
+    "ms": 0.016
+  },
+  {
+    "ts": 2506160662624666,
+    "dur": 7500,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 407.176,
+    "ms": 0.007
+  },
+  {
+    "ts": 2506160662634145,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 407.185,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160665610187,
+    "dur": 39531,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 410.161,
+    "ms": 0.04
+  },
+  {
+    "ts": 2506160665623207,
+    "dur": 11615,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 410.174,
+    "ms": 0.012
+  },
+  {
+    "ts": 2506160665626593,
+    "dur": 4948,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 410.178,
+    "ms": 0.005
+  },
+  {
+    "ts": 2506160665633312,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 410.184,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160668570707,
+    "dur": 34532,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 413.122,
+    "ms": 0.035
+  },
+  {
+    "ts": 2506160668583364,
+    "dur": 10052,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 413.134,
+    "ms": 0.01
+  },
+  {
+    "ts": 2506160668586280,
+    "dur": 3855,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 413.137,
+    "ms": 0.004
+  },
+  {
+    "ts": 2506160668591905,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 413.143,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160671607426,
+    "dur": 56250,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 416.158,
+    "ms": 0.056
+  },
+  {
+    "ts": 2506160671622374,
+    "dur": 14896,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 416.173,
+    "ms": 0.015
+  },
+  {
+    "ts": 2506160671628051,
+    "dur": 5729,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 416.179,
+    "ms": 0.006
+  },
+  {
+    "ts": 2506160671635760,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 416.187,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160674760447,
+    "dur": 37865,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 419.311,
+    "ms": 0.038
+  },
+  {
+    "ts": 2506160674772270,
+    "dur": 10052,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 419.323,
+    "ms": 0.01
+  },
+  {
+    "ts": 2506160674775551,
+    "dur": 3750,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 419.327,
+    "ms": 0.004
+  },
+  {
+    "ts": 2506160674780916,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 419.332,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160677711957,
+    "dur": 34844,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 422.263,
+    "ms": 0.035
+  },
+  {
+    "ts": 2506160677723780,
+    "dur": 9688,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 422.275,
+    "ms": 0.01
+  },
+  {
+    "ts": 2506160677726489,
+    "dur": 3854,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 422.278,
+    "ms": 0.004
+  },
+  {
+    "ts": 2506160677731957,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 422.283,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160680739353,
+    "dur": 66094,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 425.29,
+    "ms": 0.066
+  },
+  {
+    "ts": 2506160680757010,
+    "dur": 17760,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 425.308,
+    "ms": 0.018
+  },
+  {
+    "ts": 2506160680764926,
+    "dur": 5886,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 425.316,
+    "ms": 0.006
+  },
+  {
+    "ts": 2506160680772739,
+    "dur": 0,
+    "name": "Frame skipped: AlreadyDrawn",
+    "thread_name": "RenderThread",
+    "rel": 425.324,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160683737999,
+    "dur": 2087813,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 428.289,
+    "ms": 2.088
+  },
+  {
+    "ts": 2506160683753572,
+    "dur": 14323,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 428.305,
+    "ms": 0.014
+  },
+  {
+    "ts": 2506160683759093,
+    "dur": 7448,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 428.31,
+    "ms": 0.007
+  },
+  {
+    "ts": 2506160683918780,
+    "dur": 1905313,
+    "name": "Drawing  0.00  0.00 1368.00 3192.00",
+    "thread_name": "RenderThread",
+    "rel": 428.47,
+    "ms": 1.905
+  },
+  {
+    "ts": 2506160684031176,
+    "dur": 2188,
+    "name": "auto skgpu::ganesh::OpsTask::onPrepare(GrOpFlushState *)::(anonymous class)::operator()() const",
+    "thread_name": "RenderThread",
+    "rel": 428.582,
+    "ms": 0.002
+  },
+  {
+    "ts": 2506160684374353,
+    "dur": 1345000,
+    "name": "eglSwapBuffersWithDamageKHR",
+    "thread_name": "RenderThread",
+    "rel": 428.925,
+    "ms": 1.345
+  },
+  {
+    "ts": 2506160686821541,
+    "dur": 82864,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 431.373,
+    "ms": 0.083
+  },
+  {
+    "ts": 2506160686840812,
+    "dur": 15625,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 431.392,
+    "ms": 0.016
+  },
+  {
+    "ts": 2506160686847218,
+    "dur": 7708,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 431.398,
+    "ms": 0.008
+  },
+  {
+    "ts": 2506160686891176,
+    "dur": 0,
+    "name": "Frame skipped: NothingToDraw",
+    "thread_name": "RenderThread",
+    "rel": 431.442,
+    "ms": 0.0
+  },
+  {
+    "ts": 2506160689784249,
+    "dur": 4054375,
+    "name": "dispatchFrameCallbacks",
+    "thread_name": "RenderThread",
+    "rel": 434.335,
+    "ms": 4.054
+  },
+  {
+    "ts": 2506160689852582,
+    "dur": 3984115,
+    "name": "prepareAndDraw 162694876",
+    "thread_name": "RenderThread",
+    "rel": 434.404,
+    "ms": 3.984
+  },
+  {
+    "ts": 2506160689876645,
+    "dur": 328490,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 434.428,
+    "ms": 0.328
+  },
+  {
+    "ts": 2506160690587635,
+    "dur": 3247552,
+    "name": "Drawing  0.00  0.00 1368.00 3192.00",
+    "thread_name": "RenderThread",
+    "rel": 435.139,
+    "ms": 3.248
+  },
+  {
+    "ts": 2506160691022166,
+    "dur": 52187,
+    "name": "auto skgpu::ganesh::OpsTask::onPrepare(GrOpFlushState *)::(anonymous class)::operator()() const",
+    "thread_name": "RenderThread",
+    "rel": 435.573,
+    "ms": 0.052
+  },
+  {
+    "ts": 2506160692417062,
+    "dur": 103750,
+    "name": "auto skgpu::ganesh::OpsTask::onPrepare(GrOpFlushState *)::(anonymous class)::operator()() const",
+    "thread_name": "RenderThread",
+    "rel": 436.968,
+    "ms": 0.104
+  },
+  {
+    "ts": 2506160692522635,
+    "dur": 18489,
+    "name": "auto skgpu::ganesh::OpsTask::onPrepare(GrOpFlushState *)::(anonymous class)::operator()() const",
+    "thread_name": "RenderThread",
+    "rel": 437.074,
+    "ms": 0.018
+  },
+  {
+    "ts": 2506160692542582,
+    "dur": 13021,
+    "name": "auto skgpu::ganesh::OpsTask::onPrepare(GrOpFlushState *)::(anonymous class)::operator()() const",
+    "thread_name": "RenderThread",
+    "rel": 437.094,
+    "ms": 0.013
+  },
+  {
+    "ts": 2506160692556957,
+    "dur": 32500,
+    "name": "auto skgpu::ganesh::OpsTask::onPrepare(GrOpFlushState *)::(anonymous class)::operator()() const",
+    "thread_name": "RenderThread",
+    "rel": 437.108,
+    "ms": 0.033
+  },
+  {
+    "ts": 2506160693851645,
+    "dur": 996875,
+    "name": "DrawFrames -1",
+    "thread_name": "RenderThread",
+    "rel": 438.403,
+    "ms": 0.997
+  },
+  {
+    "ts": 2506160693867114,
+    "dur": 35104,
+    "name": "syncFrameState",
+    "thread_name": "RenderThread",
+    "rel": 438.418,
+    "ms": 0.035
+  },
+  {
+    "ts": 2506160693892530,
+    "dur": 7709,
+    "name": "prepareTree",
+    "thread_name": "RenderThread",
+    "rel": 438.444,
+    "ms": 0.008
+  },
+  {
+    "ts": 2506160694075603,
+    "dur": 1875,
+    "name": "auto skgpu::ganesh::OpsTask::onPrepare(GrOpFlushState *)::(anonymous class)::operator()() const",
+    "thread_name": "RenderThread",
+    "rel": 438.627,
+    "ms": 0.002
+  }
+]

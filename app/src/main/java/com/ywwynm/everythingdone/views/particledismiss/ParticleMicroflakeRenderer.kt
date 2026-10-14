@@ -70,12 +70,15 @@ internal class ParticleMicroflakeRenderer(
         /** 吸入终点在材料坐标里的几何（与微片出生位置同一坐标系）；非吸入模式为 null。 */
         val sink: ParticleSink.Geometry? = null,
         /** 光尘接手的逐片终点与接手颜色（`SINK_TARGETS`）；不接手时为 null。 */
-        val handoff: ParticleHandoff? = null
+        val handoff: ParticleHandoff? = null,
+        /** 由建材线程使用原公式计算，避免首次大卡片在出帧线程遍历全部材料。 */
+        val bodyGoneProgress: Float? = null,
+        val gestureHistory: ParticleReversePlan? = null
     )
 
     /**
      * 一个 EGL 上下文内可以复用的全部资源。常驻上下文用一份进程级实例；离屏对照与预热
-     * 各自建临时实例（程序对象不跨上下文有效）。
+     * 各自建临时实例；处于同一 EGL 共享组的预热程序可以在完成后移交给正式实例。
      */
     internal class Shared(private val assets: AssetManager) : Closeable {
         val programs = ArrayList<Int>()
@@ -183,6 +186,7 @@ internal class ParticleMicroflakeRenderer(
             if (mergedTexture != 0) return mergedTexture
             val shape = fieldShape ?: return 0
             val (guide, confidence) = fieldSource ?: return 0
+            val packingStarted = if (ParticleBeatTrace.enabled) System.nanoTime() else 0L
             val texels = shape[0] * shape[1] * shape[2]
             val bytes = ByteBuffer.allocateDirect(texels * 8).order(ByteOrder.LITTLE_ENDIAN)
             for (i in 0 until texels) {
@@ -191,9 +195,14 @@ internal class ParticleMicroflakeRenderer(
                 bytes.putShort(0)
             }
             bytes.flip()
+            val packingFinished = if (ParticleBeatTrace.enabled) System.nanoTime() else 0L
             mergedTexture = newTexture(GLES30.GL_TEXTURE_3D, textures)
             GLES30.glTexImage3D(GLES30.GL_TEXTURE_3D, 0, GLES30.GL_RGBA16F, shape[0], shape[1], shape[2],
                 0, GLES30.GL_RGBA, GLES30.GL_HALF_FLOAT, bytes)
+            if (ParticleBeatTrace.enabled) {
+                ParticleBeatTrace.record(ParticleBeatTrace.FLOW_INITIALIZE, 1L, packingStarted, packingFinished)
+                ParticleBeatTrace.record(ParticleBeatTrace.FLOW_INITIALIZE, 2L, packingFinished, System.nanoTime())
+            }
             return mergedTexture
         }
 
@@ -1342,7 +1351,8 @@ internal class ParticleMicroflakeRenderer(
         check(step == 0 && reverseHistory == null)
         prepareOptimizedIntegration()
         return ParticleReverseHistory(program("particle-playback/history.comp", defines = groupDefines()),
-            ParticleReversePlan(input.materials.values, samples), shared.history,
+            input.gestureHistory?.takeIf { it.samples == samples }
+                ?: ParticleReversePlan(input.materials.values, samples), shared.history,
             shared.uniforms, linearGroup).also { reverseHistory = it }
     }
 
@@ -1843,6 +1853,7 @@ internal class ParticleMicroflakeRenderer(
         val key = paths.joinToString(";") + (if (reverseIntegration) ":reverse" else "") +
             (if (reverseHistory) ":history" else "") + defines
         shared.compiled[key]?.let { return it }
+        val programStarted = if (ParticleBeatTrace.enabled) System.nanoTime() else 0L
         val p = GLES30.glCreateProgram()
         shared.programs.add(p)
         val shaders = ArrayList<Int>()
@@ -1855,10 +1866,13 @@ internal class ParticleMicroflakeRenderer(
                 }
                 val shader = GLES30.glCreateShader(type)
                 shaders.add(shader)
+                val sourceStarted = if (ParticleBeatTrace.enabled) System.nanoTime() else 0L
                 val raw = assets.open(if ('/' in path) path else "particle-dismiss/$path").bufferedReader().use { it.readText() }
                 val transformed = if (reverseIntegration) ParticleReverseShader.integration(raw, reverseHistory,
                     batchSteps = "#define INTEGRATION_BATCH 1" in defines) else raw
                 GLES30.glShaderSource(shader, ParticleReverseShader.withDefines(transformed, defines))
+                if (ParticleBeatTrace.enabled) ParticleBeatTrace.record(ParticleBeatTrace.FLOW_INITIALIZE,
+                    3L, sourceStarted, System.nanoTime())
                 GLES30.glCompileShader(shader)
                 val status = IntArray(1)
                 GLES30.glGetShaderiv(shader, GLES30.GL_COMPILE_STATUS, status, 0)
@@ -1873,6 +1887,8 @@ internal class ParticleMicroflakeRenderer(
             return p
         } finally {
             for (shader in shaders) GLES30.glDeleteShader(shader)
+            if (ParticleBeatTrace.enabled) ParticleBeatTrace.record(ParticleBeatTrace.FLOW_INITIALIZE,
+                0L, programStarted, System.nanoTime())
         }
     }
 
