@@ -76,6 +76,7 @@ import com.ywwynm.everythingdone.utils.DateTimeUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.views.HabitRecordPresenter
 import com.ywwynm.everythingdone.views.InterceptTouchCardView
+import com.ywwynm.everythingdone.views.CoverGenerationBinding
 import com.ywwynm.everythingdone.views.ThingCardChecklistView
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
@@ -654,6 +655,7 @@ abstract class BaseThingsAdapter(context: Context?) :
     }
 
     override fun onViewRecycled(holder: BaseThingViewHolder) {
+        clearCoverGeneration(holder)
         super.onViewRecycled(holder)
         // 回收池中的卡片已不再绑定当前条目，必须结束请求，不能只依赖 Drawable 的可见性。
         // 暂时离屏但仍在 RecyclerView cache 中的 holder 不走这里，保留其重现时的画面。
@@ -682,6 +684,7 @@ abstract class BaseThingsAdapter(context: Context?) :
     }
 
     private fun setContentViewAppearance(holder: BaseThingViewHolder, thing: Thing) {
+        clearCoverGeneration(holder)
         applyCardContentGeometry(holder, thing)
 
         updateCardForStickyOrOngoingNotification(holder, thing)
@@ -722,6 +725,63 @@ abstract class BaseThingsAdapter(context: Context?) :
         }
 
         updateCardForDoing(holder, thing)
+        bindCoverGeneration(holder, thing)
+    }
+
+    protected fun clearCoverGeneration(holder: BaseThingViewHolder) {
+        holder.coverGeneration?.close()
+        holder.coverGeneration = null
+    }
+
+    private fun bindCoverGeneration(holder: BaseThingViewHolder, thing: Thing) {
+        if (!isCoverAutoplayEnabled() || (isThingEffectivelyPrivate(thing) && !mShouldShowPrivateContent)) return
+        val source = ThingCardMediaHelper.resolveEffectiveMediaSource(thing) ?: return
+        val video = AttachmentHelper.isVideoCandidate(source.pathName)
+        if (!video && !AttachmentHelper.isMotionPhotoCandidate(source.pathName)) return
+        val frame = getThingCardVideoFrameMs(thing, source)
+        val context = holder.itemView.context
+        val ready = if (video) VideoCoverPreviewManager.getReadyPreview(context, source.pathName, frame)
+            else MotionPhotoCoverHelper.getReadyGif(context, source.pathName)
+        if (ready != null) return
+        val background = thing.thingCardAppearance.mediaBackgroundEnabled
+        val text = if (background) holder.tvInlineMediaCount!! else holder.tvImageCount!!
+        val count = AttachmentHelper.getImageAttachmentCountStr(thing.attachment, context) ?: return
+        var binding: CoverGenerationBinding? = null
+        binding = CoverGenerationBinding(holder.cv!!, text,
+            if (background) holder.ivInlineMediaCount else null, count,
+            observe = { retry, onState, onReady ->
+                if (video) VideoCoverPreviewManager.observePreview(context, source.pathName, frame,
+                    retry, onState) { onReady() }
+                else MotionPhotoCoverHelper.observeGeneration(context, source.pathName,
+                    retry, onState) { onReady() }
+            },
+            canRetry = {
+                getCurrentMode() == ModeManager.NORMAL && holder.flDoing?.isVisible != true &&
+                    holder.cv.getTag(R.id.tag_thing_folder_thumbnail_surface) != true &&
+                    holder.cv.getTag(R.id.tag_thing_card_drag_active) != true
+            },
+            onReady = {
+                if (holder.coverGeneration === binding && isCoverAutoplayEnabled() &&
+                    ThingCardMediaHelper.resolveEffectiveMediaSource(thing) == source &&
+                    getThingCardVideoFrameMs(thing, source) == frame) {
+                    // 完成只刷新当前媒体，不能通知整张卡片重绑而重播列表／选择动画。
+                    // 新 GIF 首次解码还没有动图占位缓存。先保留同一绑定已经显示的静态封面，
+                    // 防止下面的 Glide clear 在下一次绘制时露出空白；缓存仍共用原有容量上限。
+                    val preview = if (video) VideoCoverPreviewManager.getReadyPreview(context, source.pathName, frame)
+                        else MotionPhotoCoverHelper.getReadyGif(context, source.pathName)
+                    if (preview != null) {
+                        preserveGeneratedCoverPoster(holder.ivImageAttachment,
+                            R.id.tag_thing_card_image_load_key, preview.absolutePath)
+                        preserveGeneratedCoverPoster(holder.ivMediaBackground,
+                            R.id.tag_thing_card_media_background_load_key, preview.absolutePath)
+                    }
+                    holder.ivImageAttachment?.setTag(R.id.tag_thing_card_image_load_key, null)
+                    holder.ivMediaBackground?.setTag(R.id.tag_thing_card_media_background_load_key, null)
+                    updateCardForImageAttachment(holder, thing)
+                    binding?.refreshAppearance()
+                }
+            })
+        holder.coverGeneration = binding
     }
 
     private fun updateCardForStickyOrOngoingNotification(holder: BaseThingViewHolder, thing: Thing) {
@@ -1247,25 +1307,6 @@ abstract class BaseThingsAdapter(context: Context?) :
                     )
                     return
                 }
-                VideoCoverPreviewManager.requestPreview(
-                    previewContext, pathName, videoFrameMs
-                ) { previewFile ->
-                    val currentKey = imageView.getTag(R.id.tag_thing_card_image_load_key)
-                    val accepted = currentKey == loadKey
-                    logThingCardMediaDebug(
-                        debugInfo,
-                        "video-preview ready-callback surface=thumbnail accepted=$accepted " +
-                                "currentKey=$currentKey loadKey=$loadKey " +
-                                "gif=${previewFile.name} gifBytes=${previewFile.length()} " +
-                                "iv=${debugViewSize(imageView)} frame=${debugViewSize(holder.flImageAttachment)}"
-                    )
-                    if (accepted) {
-                        loadAnimatedThingCardThumbnail(
-                            holder, imageView, previewFile.absolutePath, imageW, imageH, crop, loadKey,
-                            fallbackVideoPath = pathName, fallbackVideoFrameMs = videoFrameMs
-                        )
-                    }
-                }
                 logThingCardMediaDebug(
                     debugInfo,
                     "video-preview fallback-static surface=thumbnail reason=gif-not-ready " +
@@ -1285,14 +1326,6 @@ abstract class BaseThingsAdapter(context: Context?) :
                     fallbackVideoPath = pathName, fallbackVideoFrameMs = null
                 )
                 return
-            }
-            MotionPhotoCoverHelper.requestGif(previewContext, pathName) { gifFile ->
-                if (imageView.getTag(R.id.tag_thing_card_image_load_key) == loadKey) {
-                    loadAnimatedThingCardThumbnail(
-                        holder, imageView, gifFile.absolutePath, imageW, imageH, crop, loadKey,
-                        fallbackVideoPath = pathName, fallbackVideoFrameMs = null
-                    )
-                }
             }
         }
         if (applyCachedThingCardMediaBitmap(
@@ -1361,8 +1394,11 @@ abstract class BaseThingsAdapter(context: Context?) :
                         ) == loadKey
                     ) {
                         holder.pbLoading!!.visibility = View.GONE
-                        holder.flImageAttachment!!.visibility = View.GONE
-                        holder.tvImageCount!!.visibility = View.GONE
+                        // 源媒体无法取静态帧时，仍保留生成状态和失败重试入口。
+                        if (holder.coverGeneration == null) {
+                            holder.flImageAttachment!!.visibility = View.GONE
+                            holder.tvImageCount!!.visibility = View.GONE
+                        }
                         holder.vImageCover!!.visibility = View.GONE
                         holder.vPaddingBottom!!.visibility = View.VISIBLE
                         imageView.setTag(
@@ -1449,8 +1485,11 @@ abstract class BaseThingsAdapter(context: Context?) :
         // Animated Image (GIF / animated WebP) thumbnail: load as a Drawable and
         // crop each frame with MediaCropTransformation so it animates while keeping
         // the user's crop. The bounded bitmap cache only supplies a temporary first frame.
+        // 首次 GIF 尚无首帧时复用同身份的静态缓存；重开自动播放只去除 :anim，仍核对来源、帧和几何。
         val posterKey = animatedThingCardPosterKey(loadKey, pathName)
         val poster = getAnimatedThingCardPoster(imageView, posterKey)
+            ?: getAnimatedThingCardPoster(imageView, loadKey)
+            ?: getAnimatedThingCardPoster(imageView, loadKey.removeSuffix(":anim"))
         mImageRequestManager!!.clear(imageView)
         imageView.setTag(R.id.tag_thing_card_image_load_key, loadKey)
         holder.pbLoading!!.visibility = View.GONE
@@ -1631,17 +1670,6 @@ abstract class BaseThingsAdapter(context: Context?) :
                     )
                     return
                 }
-                VideoCoverPreviewManager.requestPreview(
-                    previewContext, pathName, videoFrameMs
-                ) { previewFile ->
-                    if (imageView.getTag(R.id.tag_thing_card_media_background_load_key) == loadKey) {
-                        loadAnimatedThingCardMediaBackground(
-                            holder, imageView, thing, previewFile.absolutePath, imageW, imageH,
-                            crop, sourceAspectRatio, loadKey,
-                            fallbackVideoPath = pathName, fallbackVideoFrameMs = videoFrameMs
-                        )
-                    }
-                }
             }
         }
         // Motion Photo 封面（媒体背景）：与缩略图同策略，命中走动图、未就绪后台生成 + 静态回退 + 就绪换装。
@@ -1655,15 +1683,6 @@ abstract class BaseThingsAdapter(context: Context?) :
                     fallbackVideoPath = pathName, fallbackVideoFrameMs = null
                 )
                 return
-            }
-            MotionPhotoCoverHelper.requestGif(previewContext, pathName) { gifFile ->
-                if (imageView.getTag(R.id.tag_thing_card_media_background_load_key) == loadKey) {
-                    loadAnimatedThingCardMediaBackground(
-                        holder, imageView, thing, gifFile.absolutePath, imageW, imageH,
-                        crop, sourceAspectRatio, loadKey,
-                        fallbackVideoPath = pathName, fallbackVideoFrameMs = null
-                    )
-                }
             }
         }
         if (applyCachedThingCardMediaBitmap(
@@ -1780,6 +1799,8 @@ abstract class BaseThingsAdapter(context: Context?) :
         // media), so animation does not affect them.
         val posterKey = animatedThingCardPosterKey(loadKey, pathName)
         val poster = getAnimatedThingCardPoster(imageView, posterKey)
+            ?: getAnimatedThingCardPoster(imageView, loadKey)
+            ?: getAnimatedThingCardPoster(imageView, loadKey.removeSuffix(":anim"))
         mImageRequestManager!!.clear(imageView)
         imageView.setTag(R.id.tag_thing_card_media_background_load_key, loadKey)
         imageView.scaleType = ImageView.ScaleType.CENTER_CROP
@@ -1882,6 +1903,12 @@ abstract class BaseThingsAdapter(context: Context?) :
         cacheThingCardMediaBitmap(key, bitmap)
     }
 
+    private fun preserveGeneratedCoverPoster(imageView: ImageView?, keyTag: Int, previewPath: String) {
+        val key = imageView?.getTag(keyTag) as? String ?: return
+        val drawable = imageView.drawable ?: return
+        cacheAnimatedThingCardPoster(animatedThingCardPosterKey(key, previewPath), drawable)
+    }
+
     private fun isSameThingCardMediaBackgroundSource(
         loadKey: String?,
         pathName: String,
@@ -1937,6 +1964,7 @@ abstract class BaseThingsAdapter(context: Context?) :
                 R.drawable.card_audio_attachment
             }
         )
+        holder.coverGeneration?.refreshAppearance()
     }
 
     private fun applyThingCardImageCountColors(
@@ -2080,7 +2108,9 @@ abstract class BaseThingsAdapter(context: Context?) :
         loadKeyTagId: Int
     ): Boolean {
         val cache = getThingCardMediaBitmapCache()
-        val bitmap = cache.get(loadKey) ?: return false
+        // 生成途中切换自动播放只改变播放标记，已解码的静态帧仍可复用。
+        val alternatePlaybackKey = if (loadKey.endsWith(":anim")) loadKey.removeSuffix(":anim") else "$loadKey:anim"
+        val bitmap = cache.get(loadKey) ?: cache.get(alternatePlaybackKey) ?: return false
         if (bitmap.isRecycled) {
             cache.remove(loadKey)
             return false
@@ -3621,6 +3651,8 @@ abstract class BaseThingsAdapter(context: Context?) :
     }
 
     open class BaseThingViewHolder(item: View?) : BaseViewHolder(item) {
+
+        internal var coverGeneration: CoverGenerationBinding? = null
 
         @JvmField val cv: InterceptTouchCardView? = f(R.id.cv_thing)
         @JvmField val ivMediaBackground: ImageView? = f(R.id.iv_thing_media_background)

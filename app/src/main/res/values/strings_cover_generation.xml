@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cover_generation_waiting">Waiting to generate animated cover</string>
+    <string name="cover_generation_preparing">Preparing animated cover</string>
+    <string name="cover_generation_running">Generating animated cover</string>
+    <string name="cover_generation_failed">Animated cover generation failed</string>
+    <string name="cover_generation_retry">Retry generating animated cover</string>
+</resources>

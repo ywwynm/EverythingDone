@@ -4,6 +4,10 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <instrumentation android:name=".covergeneration.CoverGenerationInteractionProbe"
+        android:targetPackage="${applicationId}" />
+    <instrumentation android:name=".covergeneration.CoverGenerationProbe"
+        android:targetPackage="${applicationId}" android:label="动态封面生成与单行布局回归" />
     <instrumentation android:name=".detail.DetailToolbarContrastProbe"
         android:targetPackage="${applicationId}" android:label="详情顶栏滚动配色回归" />
     <instrumentation android:name=".listvalidation.ListIdentityProbe"
@@ -75,6 +79,8 @@
         android:usesCleartextTraffic="true"
         tools:replace="android:networkSecurityConfig">
 
+        <activity android:name=".covergeneration.CoverGenerationProbeActivity"
+            android:exported="false" android:theme="@style/EverythingDoneTheme.Settings" />
         <activity android:name=".listvalidation.GifLifecycleActivity"
             android:exported="false" android:excludeFromRecents="true"
             android:theme="@style/EverythingDoneTheme.Settings" />

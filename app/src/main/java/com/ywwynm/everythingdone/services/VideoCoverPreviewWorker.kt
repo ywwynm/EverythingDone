@@ -1,11 +1,14 @@
 package com.ywwynm.everythingdone.services
 
 import android.content.Context
+import android.os.SystemClock
+import androidx.work.Data
 
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 
 import com.ywwynm.everythingdone.helpers.VideoCoverPreviewManager
+import com.ywwynm.everythingdone.helpers.CoverGenerationState
 
 import java.io.File
 
@@ -41,9 +44,22 @@ class VideoCoverPreviewWorker(
             return Result.failure()
         }
 
-        val file = VideoCoverPreviewManager.generateBlocking(applicationContext, videoPath, videoFrameMs)
+        var lastUpdate = 0L
+        var lastPhase: CoverGenerationState.Phase? = null
+        val file = VideoCoverPreviewManager.generateBlocking(applicationContext, videoPath, videoFrameMs) { state ->
+            val now = SystemClock.elapsedRealtime()
+            if (state.phase != lastPhase || now - lastUpdate >= 200L || state.percent == 99) {
+                lastUpdate = now
+                lastPhase = state.phase
+                setProgressAsync(Data.Builder()
+                    .putBoolean(VideoCoverPreviewManager.KEY_GENERATING,
+                        state.phase == CoverGenerationState.Phase.GENERATING)
+                    .putInt(VideoCoverPreviewManager.KEY_PERCENT, state.percent)
+                    .build())
+            }
+        }
         if (file != null) {
-            VideoCoverPreviewManager.notifyGenerated(outputName ?: file.name, file)
+            VideoCoverPreviewManager.notifyGenerated(applicationContext, outputName ?: file.name, file)
             return Result.success()
         }
 
@@ -59,7 +75,7 @@ class VideoCoverPreviewWorker(
     }
 
     private fun notifyFailed(outputName: String?) {
-        if (outputName != null) VideoCoverPreviewManager.notifyGenerationFailed(outputName)
+        if (outputName != null) VideoCoverPreviewManager.notifyGenerationFailed(applicationContext, outputName)
     }
 
     companion object {

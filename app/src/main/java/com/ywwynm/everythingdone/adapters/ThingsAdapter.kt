@@ -560,6 +560,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     }
 
     private fun resetFolderCardHolder(holder: BaseThingViewHolder) {
+        clearCoverGeneration(holder)
         removeFolderDynamicViews(holder)
         holder.cv!!.animate().cancel()
         holder.cv.scaleX = 1.0f

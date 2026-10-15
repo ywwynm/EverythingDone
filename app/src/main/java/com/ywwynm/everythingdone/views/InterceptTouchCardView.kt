@@ -4,12 +4,14 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.Rect
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import androidx.cardview.widget.CardView
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import com.ywwynm.everythingdone.R
 
 /**
@@ -30,6 +32,57 @@ open class InterceptTouchCardView : CardView {
     constructor(context: Context, attrs: AttributeSet?, defStyleAttr: Int) : super(context, attrs, defStyleAttr)
 
     private var mShouldInterceptTouchEvent: Boolean = true
+
+    private var coverRetryTarget: View? = null
+    private var coverRetryAction: (() -> Boolean)? = null
+    private val coverRetryBounds = Rect()
+    private var coverRetryCandidate = false
+    private var coverRetryClick = false
+    private var coverDownX = 0f
+    private var coverDownY = 0f
+
+    internal fun setCoverGenerationRetryTarget(target: View?, action: (() -> Boolean)?) {
+        coverRetryTarget = target
+        coverRetryAction = action
+    }
+
+    private fun hitsCoverRetry(x: Float, y: Float): Boolean {
+        val target = coverRetryTarget ?: return false
+        if (!target.isShown) return false
+        target.getDrawingRect(coverRetryBounds)
+        offsetDescendantRectToMyCoords(target, coverRetryBounds)
+        return coverRetryBounds.contains(x.toInt(), y.toInt())
+    }
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                coverRetryClick = false
+                coverDownX = event.x
+                coverDownY = event.y
+                coverRetryCandidate = hitsCoverRetry(event.x, event.y)
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val slop = ViewConfiguration.get(context).scaledTouchSlop
+                if (kotlin.math.abs(event.x - coverDownX) > slop ||
+                    kotlin.math.abs(event.y - coverDownY) > slop) coverRetryCandidate = false
+            }
+            MotionEvent.ACTION_UP -> coverRetryClick = coverRetryCandidate && hitsCoverRetry(event.x, event.y)
+            MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_POINTER_DOWN -> {
+                coverRetryClick = false; coverRetryCandidate = false
+            }
+        }
+        val handled = super.dispatchTouchEvent(event)
+        if (event.actionMasked == MotionEvent.ACTION_UP) post { coverRetryClick = false }
+        return handled
+    }
+
+    override fun performClick(): Boolean {
+        val retry = coverRetryClick
+        coverRetryClick = false
+        if (retry && coverRetryAction?.invoke() == true) return true
+        return super.performClick()
+    }
 
     internal var particleAnimationRunning = false
     private var particleAlphaLock: Float? = null

@@ -1,7 +1,8 @@
 package com.ywwynm.everythingdone.helpers
 
 import android.content.Context
-import android.util.Log
+import android.content.SharedPreferences
+import java.io.Closeable
 import java.io.File
 import java.util.concurrent.Executors
 
@@ -66,33 +67,96 @@ object MotionPhotoCoverHelper {
     fun requestGif(context: Context, imagePath: String, onReady: (File) -> Unit) {
         val appContext = context.applicationContext
         ioExecutor.submit {
-            val info = MotionPhotoDetector.detect(imagePath)
-            if (!info.isMotionPhoto) return@submit
-            val extracted = extractedFileFor(appContext, imagePath, info)
-            if (!extracted.exists() || extracted.length() <= 0L) {
-                enforceLruCap(dir(appContext))
-                val tmp = File(extracted.absolutePath + ".tmp")
-                if (tmp.exists()) tmp.delete()
-                val ok = MotionPhotoDetector.extractEmbeddedVideo(
-                    imagePath, info.videoOffset, info.videoLength, tmp
-                )
-                if (ok) {
-                    // mtime 对齐源图,稳定派生 GIF 的缓存 key。
-                    tmp.setLastModified(File(imagePath).lastModified())
-                    if (extracted.exists()) extracted.delete()
-                    if (!tmp.renameTo(extracted)) {
-                        tmp.delete()
-                        return@submit
+            val extracted = prepareVideo(appContext, imagePath, false) {} ?: return@submit
+            VideoCoverPreviewManager.requestPreview(appContext, extracted.absolutePath, null, onReady)
+        }
+    }
+
+    /** 普通图片检测期间保持数量；确认动态照片后才显示准备状态。 */
+    fun observeGeneration(
+        context: Context,
+        imagePath: String,
+        retry: Boolean,
+        onState: (CoverGenerationState) -> Unit,
+        onReady: (File) -> Unit
+    ): Closeable {
+        val app = context.applicationContext
+        val subscription = CoverGenerationSubscription()
+        val failures = app.getSharedPreferences("motion_cover_preparation_failures", Context.MODE_PRIVATE)
+        val source = File(imagePath)
+        val failurePrefix = Integer.toHexString(imagePath.hashCode()) +
+            "_" + source.length() + "_" + source.lastModified() + "_"
+        var preparationFailed = false
+        var generation: Closeable? = null
+        if (MotionPhotoDetector.peekCached(imagePath)?.isMotionPhoto == true) {
+            onState(CoverGenerationState.WAITING)
+        }
+        fun prepare(requestRetry: Boolean) {
+            ioExecutor.execute {
+                val video = prepareVideo(app, imagePath, requestRetry) { state ->
+                    subscription.dispatch {
+                        preparationFailed = state.phase == CoverGenerationState.Phase.FAILED
+                        onState(state)
                     }
-                } else {
-                    tmp.delete()
-                    return@submit
+                } ?: return@execute
+                // 卡片离屏或切换来源也不取消已开始的准备／生成。
+                VideoCoverPreviewManager.ensurePreview(app, video.absolutePath, requestRetry)
+                subscription.dispatch {
+                    preparationFailed = false
+                    generation?.close()
+                    generation = VideoCoverPreviewManager.observePreview(
+                        app, video.absolutePath, null, requestRetry, onState, onReady)
                 }
             }
-            if (extracted.exists() && extracted.length() > 0L) {
-                VideoCoverPreviewManager.requestPreview(appContext, extracted.absolutePath, null, onReady)
+        }
+        // 一个来源可同时出现在多张卡片；其它卡片发起重试后，准备失败的卡片也要跟进新任务。
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
+            if (preparationFailed && key?.startsWith(failurePrefix) == true && !prefs.getBoolean(key, false)) {
+                preparationFailed = false
+                prepare(false)
             }
         }
+        failures.registerOnSharedPreferenceChangeListener(listener)
+        subscription.onClose {
+            failures.unregisterOnSharedPreferenceChangeListener(listener)
+            generation?.close()
+        }
+        prepare(retry)
+        return subscription
+    }
+
+    private fun prepareVideo(
+        context: Context, imagePath: String, retry: Boolean,
+        onState: (CoverGenerationState) -> Unit
+    ): File? {
+        val info = MotionPhotoDetector.detect(imagePath)
+        if (!info.isMotionPhoto) {
+            onState(CoverGenerationState.IDLE)
+            return null
+        }
+        val extracted = extractedFileFor(context, imagePath, info)
+        val failures = context.getSharedPreferences("motion_cover_preparation_failures", Context.MODE_PRIVATE)
+        if (retry) failures.edit().remove(extracted.name).apply()
+        if (extracted.exists() && extracted.length() > 0L) return extracted
+        if (failures.getBoolean(extracted.name, false)) {
+            onState(CoverGenerationState.FAILED)
+            return null
+        }
+        onState(CoverGenerationState.PREPARING)
+        enforceLruCap(dir(context))
+        val tmp = File(extracted.absolutePath + ".tmp")
+        if (tmp.exists()) tmp.delete()
+        val ok = MotionPhotoDetector.extractEmbeddedVideo(
+            imagePath, info.videoOffset, info.videoLength, tmp)
+        if (ok) {
+            tmp.setLastModified(File(imagePath).lastModified())
+            if (extracted.exists()) extracted.delete()
+            if (tmp.renameTo(extracted)) return extracted
+        }
+        tmp.delete()
+        failures.edit().putBoolean(extracted.name, true).apply()
+        onState(CoverGenerationState.FAILED)
+        return null
     }
 
     private fun enforceLruCap(dir: File) {
