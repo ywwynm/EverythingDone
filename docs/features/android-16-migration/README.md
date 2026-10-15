@@ -1,5 +1,7 @@
 # Android 16 Migration
 
+2026-10-15 补充：当前 APK 已包含原生库，OPPO PLZ110 的系统提示报告 16 KB 对齐问题；旧计划中“没有原生 .so”的判断已不适用。此项尚未修复，详见 [后续事项](followups.md)。
+
 Status: implemented with some deferred adaptive-layout and release-policy
 follow-ups.
 
