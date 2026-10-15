@@ -1,0 +1,34 @@
+[
+  {
+    "device": "3B1629006YC00000",
+    "orientation": "portrait",
+    "checks": 40,
+    "failures": 0,
+    "existing": 4,
+    "removed": 8
+  },
+  {
+    "device": "3B1629006YC00000",
+    "orientation": "landscape",
+    "checks": 30,
+    "failures": 0,
+    "existing": 0,
+    "removed": 8
+  },
+  {
+    "device": "R5CW20BLNKL",
+    "orientation": "portrait",
+    "checks": 40,
+    "failures": 0,
+    "existing": 4,
+    "removed": 8
+  },
+  {
+    "device": "R5CW20BLNKL",
+    "orientation": "landscape",
+    "checks": 30,
+    "failures": 0,
+    "existing": 0,
+    "removed": 8
+  }
+]

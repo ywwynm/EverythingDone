@@ -121,4 +121,22 @@ class MediaOverlayContrastTest {
         assertTrue(MediaOverlayContrast.chooseEqualGroups(listOf(white, white, black)).withHysteresis(false))
         assertFalse(MediaOverlayContrast.chooseEqualGroups(listOf(white, black, black)).withHysteresis(true))
     }
+
+    @Test fun `文字与图标共同评分时保留各自参考对比度`() {
+        val result = MediaOverlayContrast.chooseGroups(listOf(
+            MediaOverlayContrast.Group(listOf(MediaOverlayContrast.Sample(gray(128))), 4.5),
+            MediaOverlayContrast.Group(listOf(MediaOverlayContrast.Sample(gray(255))), 3.0)))
+        assertEquals(.5, result.blackCoverage, 1e-12)
+        assertEquals(0.0, result.whiteCoverage, 1e-12)
+        assertTrue(result.dark)
+    }
+
+    @Test fun `镂空标记等权参与统一配色且不被大图标覆盖`() {
+        val badge = MediaOverlayContrast.Group(listOf(MediaOverlayContrast.Sample(gray(255), gray(128), 216)), 4.5)
+        val icon = MediaOverlayContrast.Group(List(128) { MediaOverlayContrast.Sample(gray(0)) })
+        val result = MediaOverlayContrast.chooseGroups(listOf(badge, badge, icon))
+        assertTrue(result.dark)
+        assertEquals(2.0 / 3, result.blackCoverage, 1e-12)
+        assertEquals(1.0 / 3, result.whiteCoverage, 1e-12)
+    }
 }

@@ -10,6 +10,8 @@ import android.media.MediaMetadataRetriever
 import android.os.Bundle
 import android.os.SystemClock
 import android.view.View
+import android.view.ViewTreeObserver
+import com.bumptech.glide.load.resource.gif.GifDrawable
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.appcompat.widget.Toolbar
 import com.ywwynm.everythingdone.App
@@ -20,6 +22,8 @@ import com.ywwynm.everythingdone.adapters.ImageAttachmentAdapter
 import com.ywwynm.everythingdone.database.DBHelper
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.helpers.DetailContentLayout
+import com.ywwynm.everythingdone.helpers.DetailAttachmentPlaybackController
+import com.ywwynm.everythingdone.model.DetailAutoplayMode
 import com.ywwynm.everythingdone.model.DetailAttachmentMediaAppearance as Appearance
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.views.KnockoutTextBadge
@@ -34,6 +38,7 @@ class DetailMediaOverlayProbe : Instrumentation() {
     private lateinit var output: File
     private var activity: DetailActivity? = null
     private val created = mutableListOf<Long>()
+    private val fixtureTime = System.currentTimeMillis()
     private val samples = JSONArray()
     private var failures = 0
     private val existingBefore = linkedMapOf<Long, String>()
@@ -54,7 +59,7 @@ class DetailMediaOverlayProbe : Instrumentation() {
         val result = JSONObject()
         try {
             // 探针创建临时数据前选取已有记事；不输出标题、正文或附件路径。
-            val existing = existingIds()
+            val existing = if (args.getString("existing", "true") == "true") existingIds().take(4) else emptyList()
             existing.forEach { existingBefore[it] = fingerprint(it) }
             fixtures()
             if (args.getString("existing", "true") == "true") {
@@ -86,7 +91,7 @@ class DetailMediaOverlayProbe : Instrumentation() {
             val db = DBHelper(targetContext).writableDatabase
             var removed = 0
             created.forEach { id -> removed += db.delete(Def.Database.TABLE_THINGS,
-                "id=? AND create_time=?", arrayOf(id.toString(), FIXTURE_TIME.toString())) }
+                "id=? AND create_time=?", arrayOf(id.toString(), fixtureTime.toString())) }
             result.put("failures", failures).put("samples", samples)
                 .put("existing_notes", existingBefore.size).put("fixture_rows_removed", removed)
                 .put("orientation", targetContext.resources.configuration.orientation)
@@ -102,13 +107,14 @@ class DetailMediaOverlayProbe : Instrumentation() {
         val black = image("black") { _, _ -> Color.BLACK }
         val transparent = image("transparent") { _, _ -> Color.TRANSPARENT }
         val split = image("split") { x, _ -> if (x < 700) Color.WHITE else Color.BLACK }
+        val inverse = image("split-inverse") { x, _ -> if (x < 700) Color.BLACK else Color.WHITE }
         val checker = image("checker") { x, y -> if ((x / 20 + y / 20) % 2 == 0) Color.BLACK else Color.WHITE }
         for ((name, path, dark) in listOf(Triple("white", white, true), Triple("black", black, false),
             Triple("transparent", transparent, false))) {
             val id = fixture(listOf(path))
             open(id)
             val holder = show(0)
-            forceBadges(holder)
+            if (name == "white") verifyNewBadges(holder) else forceBadges(holder)
             record("$name-colors", snapshot(holder), colors(holder).values.all { it == dark })
             screenshot("$name")
             val applies = holder.overlayColors.applyCount
@@ -126,8 +132,7 @@ class DetailMediaOverlayProbe : Instrumentation() {
         var holder = show(0)
         forceBadges(holder)
         val splitColors = colors(holder)
-        record("split-independent", snapshot(holder), splitColors[R.id.tv_badge_hdr] == true &&
-            splitColors[R.id.iv_delete_image_attachment] == false)
+        record("split-unified-black", snapshot(holder), splitColors.values.all { it })
         screenshot("split")
         for ((center, expected) in listOf(.25 to true, .75 to false, .25 to true)) {
             val previous = holder.overlayColors.appliedKey
@@ -156,6 +161,13 @@ class DetailMediaOverlayProbe : Instrumentation() {
         }
         close()
 
+        open(fixture(listOf(inverse)))
+        holder = show(0)
+        forceBadges(holder)
+        record("split-inverse-unified-white", snapshot(holder), colors(holder).values.all { !it })
+        screenshot("split-inverse")
+        close()
+
         // 多媒体滚动及复用：不同内容必须恢复自己的颜色。
         val multi = fixture(listOf(white, black, checker, white, black, split, white, black))
         open(multi)
@@ -179,11 +191,27 @@ class DetailMediaOverlayProbe : Instrumentation() {
             targetContext.assets.open("detail-regression/$name").use { input -> media.outputStream().use(input::copyTo) }
             val id = fixture(listOf(type + media.absolutePath))
             open(id)
+            main {
+                val source = Appearance.SourceAppearance(fullSpanEnabled = true).withPresentation("fullSpan",
+                    Appearance.MediaPresentationAppearance(targetAspectRatio = 3.0))
+                DetailActivity::class.java.getDeclaredMethod("applyDetailAttachmentMediaAppearance", Appearance::class.java)
+                    .apply { isAccessible = true }.invoke(activity, Appearance.default().withSource(type + media.absolutePath, source))
+                val playback = field<DetailAttachmentPlaybackController>("mAttachmentPlaybackController")
+                DetailAttachmentPlaybackController::class.java.getDeclaredField("mode").apply { isAccessible = true }
+                    .setInt(playback, DetailAutoplayMode.ALL_LOOP)
+                playback.onItemsChanged()
+            }
             holder = show(0)
-            // 让异步标记和派生动画完成初次布局，随后检查播放期没有持续配色。
-            SystemClock.sleep(1200)
+            await { (holder.ivImage!!.drawable as? GifDrawable)?.isRunning == true }
+            waitForIdleSync()
+            await { !holder.overlayColors.pending }
             val before = main { colors(holder) to holder.overlayColors.applyCount }
-            SystemClock.sleep(1200)
+            val frames = mutableSetOf<Int>()
+            repeat(36) {
+                SystemClock.sleep(24)
+                main { (holder.ivImage!!.drawable as? GifDrawable)?.let { frames += it.frameIndex } }
+            }
+            record("$name-frames-advance", snapshot(holder), frames.size > 1)
             record("$name-playback-stable", snapshot(holder), main {
                 colors(holder) == before.first && holder.overlayColors.applyCount == before.second })
             if (type == "1") {
@@ -259,7 +287,7 @@ class DetailMediaOverlayProbe : Instrumentation() {
             put("color", Color.rgb(45, 112, 136)); put("title", "附件配色验证 · 临时记事")
             put("content", "本条用于配色与速度验证，测试结束自动清理。")
             put("attachment", AttachmentHelper.toAttachmentStr(media, emptyList()))
-            put("location", id); put("create_time", FIXTURE_TIME); put("update_time", FIXTURE_TIME); put("finish_time", 0L)
+            put("location", id); put("create_time", fixtureTime); put("update_time", fixtureTime); put("finish_time", 0L)
         })
         created += id
         return id
@@ -268,6 +296,7 @@ class DetailMediaOverlayProbe : Instrumentation() {
     private fun open(id: Long) {
         activity = startActivitySync(DetailActivity.getOpenIntentForUpdate(targetContext,
             "detail-overlay-probe", id, -1).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) as DetailActivity
+        main { DetailActivity::class.java.getDeclaredField("dontSaveAfterOnPause").apply { isAccessible = true }.setBoolean(activity, true) }
         waitForIdleSync()
     }
 
@@ -304,6 +333,19 @@ class DetailMediaOverlayProbe : Instrumentation() {
         await { !holder.overlayColors.pending }
     }
 
+    private fun verifyNewBadges(holder: ImageAttachmentAdapter.ImageViewHolder) {
+        var frames = 0
+        var uniform = true
+        val observer = main { holder.itemView.viewTreeObserver }
+        val listener = ViewTreeObserver.OnDrawListener {
+            frames++
+            uniform = uniform && colors(holder).values.toSet().size == 1
+        }
+        main { observer.addOnDrawListener(listener) }
+        try { forceBadges(holder) } finally { main { if (observer.isAlive) observer.removeOnDrawListener(listener) } }
+        record("new-badges-remain-unified", snapshot(holder), frames > 0 && uniform)
+    }
+
     private fun colors(holder: ImageAttachmentAdapter.ImageViewHolder): Map<Int, Boolean> = main { ids.asSequence().mapNotNull { id ->
         val view = holder.itemView.findViewById<View>(id)
         if (view.visibility != View.VISIBLE) null else {
@@ -330,8 +372,11 @@ class DetailMediaOverlayProbe : Instrumentation() {
     }
 
     private fun record(name: String, data: JSONObject, passed: Boolean) {
-        samples.put(data.put("name", name).put("passed", passed))
-        if (!passed) failures++
+        val ink = data.optJSONObject("colors")
+        val uniform = ink == null || ink.keys().asSequence().map { ink.getString(it) }.toSet().size <= 1
+        val ok = passed && uniform
+        samples.put(data.put("name", name).put("uniform", uniform).put("passed", ok))
+        if (!ok) failures++
     }
 
     private fun screenshot(name: String) {
@@ -360,5 +405,4 @@ class DetailMediaOverlayProbe : Instrumentation() {
     private fun <T> field(name: String): T = DetailActivity::class.java.getDeclaredField(name)
         .apply { isAccessible = true }.get(activity) as T
 
-    companion object { private const val FIXTURE_TIME = 1791676800129L }
 }

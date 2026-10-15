@@ -31,7 +31,8 @@ import kotlin.math.roundToInt
 
 /**
  * 每个附件持有一个实例。与显示请求并行取得最大边 256 的静态封面，解码与裁剪由 Glide 后台处理。
- * 小图和图形点集有界缓存；每个图形最多 256 个点，播放期间没有定时任务。
+ * 小图和图形点集有界缓存；每个图形最多 256 个点，各元素等权共同选择该附件的统一颜色。
+ * 播放期间没有定时任务。
  */
 class DetailMediaOverlayColors(private val tile: ViewGroup, private val image: ImageView) {
     /** 只读静态取样；与 Glide 位图独立，顶栏可复用而无需再次解码。 */
@@ -71,6 +72,7 @@ class DetailMediaOverlayColors(private val tile: ViewGroup, private val image: I
     private var captureGeneration = 0
     private var generation = 0
     private val appliedInk = mutableMapOf<Int, Boolean>()
+    private var sharedDark = false
     var pending = false; private set
 
     // 数值仅在 debug 采集，供真实详情页回归读取，不参与生产行为。
@@ -111,6 +113,7 @@ class DetailMediaOverlayColors(private val tile: ViewGroup, private val image: I
         appliedKey = null
         raster = cache.get(identity)
         revision++
+        sharedDark = false
         // 复用 holder 时不得暂时显示上一个附件的黑色。
         views.filter { appliedInk[it.id] == true }.forEach { setDark(it, false) }
         if (raster != null) {
@@ -220,6 +223,8 @@ class DetailMediaOverlayColors(private val tile: ViewGroup, private val image: I
         val identity = key ?: return
         if (tile.width <= 0 || tile.height <= 0) return
         val visible = views.filter { it.visibility == View.VISIBLE && it.width > 0 && it.height > 0 }
+        // 异步检测后新出现的标识先沿用附件当前颜色，等待评分时也不与其他元素混色。
+        visible.filter { sharedDark || appliedInk[it.id] != null }.forEach { setDark(it, sharedDark) }
         val bounds = visible.map { view ->
             Rect(0, 0, view.width, view.height).also { tile.offsetDescendantRectToMyCoords(view, it) }
         }
@@ -234,10 +239,11 @@ class DetailMediaOverlayColors(private val tile: ViewGroup, private val image: I
         val time = if (BuildConfig.DEBUG) System.nanoTime() else 0L
         val backdrop = if (grid.transparent) backdrop(grid.width, grid.height) else null
         val resultKey = "$identity:$geometry:${backdrop?.pixels?.contentHashCode() ?: 0}"
-        fun publish(colors: List<Pair<Int, Boolean>>, prepareMicros: Long, workerMicros: Long) {
+        fun publish(dark: Boolean, prepareMicros: Long, workerMicros: Long) {
             if (key != identity || generation != token || signature != requestSignature) return
             val applyTime = if (BuildConfig.DEBUG) System.nanoTime() else 0L
-            colors.forEach { (id, dark) -> setDark(tile.findViewById(id), dark) }
+            sharedDark = dark
+            visible.forEach { setDark(it, dark) }
             pending = false
             job = null
             if (BuildConfig.DEBUG) {
@@ -268,7 +274,7 @@ class DetailMediaOverlayColors(private val tile: ViewGroup, private val image: I
                 return if (color ushr 24 == 255) color else MediaOverlayContrast.composite(
                     color, backdrop?.at(x, y) ?: Color.BLACK, color ushr 24)
             }
-            val colors = elements.mapIndexed { index, element ->
+            val groups = elements.mapIndexed { index, element ->
                 element.ink?.let(::prepareInk)
                 val rect = bounds[index]
                 fun x(value: Float) = (rect.left + value * rect.width()) / tileWidth
@@ -277,11 +283,12 @@ class DetailMediaOverlayColors(private val tile: ViewGroup, private val image: I
                     background(x(p.x), y(p.y)), background(x(p.inkX), y(p.inkY)),
                     (p.alpha * element.alpha).roundToInt(), p.weight)
                 }
-                element.id to MediaOverlayContrast.choose(samples, if (element.text) 4.5 else 3.0).dark
+                MediaOverlayContrast.Group(samples, if (element.text) 4.5 else 3.0)
             }
-            results.put(resultKey, colors)
+            val dark = MediaOverlayContrast.chooseGroups(groups).dark
+            results.put(resultKey, dark)
             val workerMicros = if (BuildConfig.DEBUG) (System.nanoTime() - workerTime) / 1000 else 0L
-            tile.post { publish(colors, prepareMicros, workerMicros) }
+            tile.post { publish(dark, prepareMicros, workerMicros) }
         }
     }
 
@@ -455,7 +462,7 @@ class DetailMediaOverlayColors(private val tile: ViewGroup, private val image: I
         }
         private val masks = LruCache<String, List<Point>>(64)
         private val inks = LruCache<String, Pair<Bitmap, Bitmap>>(16)
-        private val results = LruCache<String, List<Pair<Int, Boolean>>>(256)
+        private val results = LruCache<String, Boolean>(256)
         private val executor = ThreadPoolExecutor(1, 1, 15L, TimeUnit.SECONDS,
             LinkedBlockingQueue(), { work -> Thread(work, "DetailOverlayContrast").apply { priority = Thread.NORM_PRIORITY - 1 } }
         ).apply { allowCoreThreadTimeOut(true) }

@@ -10,6 +10,7 @@ import kotlin.math.pow
 object MediaOverlayContrast {
     data class Sample(val background: Int, val underInk: Int = background,
                       val alpha: Int = 196, val weight: Double = 1.0)
+    data class Group(val samples: List<Sample>, val minimumContrast: Double = 3.0)
     data class Result(val dark: Boolean, val whiteCoverage: Double, val blackCoverage: Double,
                       val logContrastAdvantage: Double = 0.0) {
         /** 滚动临界区域保持原色；覆盖率差 6% 或同等覆盖下对比度差 12% 才换色。 */
@@ -46,11 +47,20 @@ object MediaOverlayContrast {
 
     /** 每组对应一个按钮，有效样点内部归一化后共同评分，图形大小不改变按钮权重。 */
     fun chooseEqualGroups(groups: List<List<Sample>>, minimumContrast: Double = 3.0): Result =
-        choose(groups.flatMap { group ->
-            val visible = group.filter { it.alpha > 0 && it.weight > 0.0 }
-            val total = visible.sumOf { it.weight }
-            if (total > 0.0) visible.map { it.copy(weight = it.weight / total) } else emptyList()
-        }, minimumContrast)
+        chooseGroups(groups.map { Group(it, minimumContrast) })
+
+    /** 各元素等权，文字与普通图形可保留不同的参考对比度。 */
+    fun chooseGroups(groups: List<Group>): Result {
+        val results = groups.filter { group -> group.samples.any { it.alpha > 0 && it.weight > 0.0 } }
+            .map { choose(it.samples, it.minimumContrast) }
+        if (results.isEmpty()) return Result(false, 0.0, 0.0)
+        val whiteCoverage = results.sumOf { it.whiteCoverage } / results.size
+        val blackCoverage = results.sumOf { it.blackCoverage } / results.size
+        val advantage = results.sumOf { it.logContrastAdvantage } / results.size
+        val difference = blackCoverage - whiteCoverage
+        return Result(if (abs(difference) > 1e-9) difference > 0.0 else advantage > 1e-9,
+            whiteCoverage, blackCoverage, advantage)
+    }
 
     fun choose(samples: List<Sample>, minimumContrast: Double = 3.0): Result {
         var whiteCoverage = 0.0

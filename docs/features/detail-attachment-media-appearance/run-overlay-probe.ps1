@@ -6,8 +6,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-if ($DeviceSerial -notin @('9018f404', 'R5CW20BLNKL', '192.168.100.67:42641')) {
-    throw '仅允许本轮用户明确授权的三台设备。'
+if ($DeviceSerial -notin @('3B1629006YC00000', 'R5CW20BLNKL')) {
+    throw '仅允许本会话明确授权的两台设备。'
 }
 $adbPath = 'E:\AndroidSDK\platform-tools\adb.exe'
 $repoPath = (Resolve-Path (Join-Path $PSScriptRoot '../../..')).Path
