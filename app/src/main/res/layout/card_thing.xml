@@ -60,7 +60,7 @@
                 android:ellipsize="end"
                 android:textSize="11sp"
                 android:textColor="@color/white_76p"
-                android:background="@color/black_26p"
+                android:background="@color/black_42p"
                 tools:ignore="SmallSp"/>
 
             <ProgressBar

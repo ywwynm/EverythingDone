@@ -32,9 +32,7 @@
 
 ## Media Count Overlay
 
-- When image/video count text is rendered on top of a black overlay for top,
-  bottom, left, or right Thing Card media placement, keep that text and icon in
-  the fixed light overlay style. Live colour preview in the Thing Card
-  Appearance panel should not recolour this overlay count from the draft Thing
-  background. Inline hidden-media counts that sit directly on the Thing Card
-  foreground may continue to follow the adaptive Thing foreground colour.
+- 2026-10-15：封面左下角或右下角的图片／视频数量文字继续跟随记事前景色；浅色记事使用深色文字时，数量提示的遮罩须同步切为偏白色。深色记事仍使用浅色文字和偏黑色遮罩。用户最新要求两种遮罩的不透明度统一改为约 42%。
+- 本轮允许在 `3B1629006YC00000` 与 `R5CW20BLNKL` 上测试、验证，优先最小范围修复。
+- 后续不透明度调整：沿用用户“无需装机验证，直接发布”的要求。
+- 独立的带图标媒体数量层维持原有浅色文字、图标和黑色遮罩；直接排在卡片内容上的隐藏媒体数量继续跟随记事前景色。

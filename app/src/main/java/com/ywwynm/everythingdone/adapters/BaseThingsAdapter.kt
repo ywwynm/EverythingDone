@@ -1909,7 +1909,7 @@ abstract class BaseThingsAdapter(context: Context?) :
     ) {
         holder.tvTitle!!.setTextColor(textColorPrimary(foregroundBaseColor))
         holder.tvContent!!.setTextColor(textColorSecondary(foregroundBaseColor))
-        holder.tvImageCount!!.setTextColor(textColorSecondary(foregroundBaseColor))
+        applyThingCardImageCountColors(holder, foregroundBaseColor)
         applyThingCardOverlayMediaCountColors(holder)
         holder.tvInlineMediaCount!!.setTextColor(textColorTertiary(foregroundBaseColor))
         applyThingCardMediaCountIcon(holder.ivInlineMediaCount, foregroundBaseColor)
@@ -1937,6 +1937,18 @@ abstract class BaseThingsAdapter(context: Context?) :
                 R.drawable.card_audio_attachment
             }
         )
+    }
+
+    private fun applyThingCardImageCountColors(
+        holder: BaseThingViewHolder,
+        foregroundBaseColor: Int
+    ) {
+        holder.tvImageCount!!.setTextColor(textColorSecondary(foregroundBaseColor))
+        holder.tvImageCount.setBackgroundColor(ContextCompat.getColor(
+            mContext!!,
+            if (BackgroundUtil.isLight(foregroundBaseColor)) R.color.white_42p
+            else R.color.black_42p
+        ))
     }
 
     private fun applyThingCardMediaCountIcon(
@@ -3231,9 +3243,7 @@ abstract class BaseThingsAdapter(context: Context?) :
             holder.tvImageCount!!.text =
                 AttachmentHelper.getImageAttachmentCountStr(attachment, mContext)
             holder.tvImageCount.visibility = View.VISIBLE
-            holder.tvImageCount.setTextColor(
-                textColorSecondary(getThingCardForegroundBaseColor(thing))
-            )
+            applyThingCardImageCountColors(holder, getThingCardForegroundBaseColor(thing))
             updateThingCardImageCountLayout(holder, placement)
 
             // 选择遮罩统一由 setCardAppearance / applySelectionAppearance 更新，
