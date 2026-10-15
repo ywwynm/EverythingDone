@@ -2,6 +2,12 @@
 
 围绕"让 GIF(及动态 WebP)在更多界面播放"的设计决定。术语见根目录 `CONTEXT.md` 的 **Animated Image** / **Animated Playback**。
 
+## 2026-10-15：修正回收与位图池责任
+
+后续普通滑动调查又覆盖了 DRAGGING／SETTLING：取消首页全局请求暂停及封面 M2 暂停；临时缓存／预取 GIF 按实际附着状态暂停和恢复，正式回收继续清理。GIF 的首帧可在原有界位图缓存中作临时回显，完整动画仍继续加载，详见 [普通滑动调查](../animated-video-cover/regular-scroll-investigation-2026-10-15.md)。
+
+真实复杂列表证明原 D5 的“item 回收后 Glide 自动暂停”并不充分：首页使用 Application RequestManager，进入 RecycledViewPool 的高卡片 GIF 仍运行。BaseThingsAdapter 现于正式回收时 clear 两个媒体目标并失效旧绑定标记，暂时离屏缓存保持原行为。同时 MediaCropTransformation 复用 Glide 位图池，保留逐帧预裁切、尺寸、颜色与透明像素；不调整拖动中的可见内容加载和播放。定位、历史核对与验证见 [内存归因](../animated-video-cover/memory-investigation-2026-10-15.md)。
+
 ## 2026-06-24
 
 ### D1 裁切 dialog 不做动画

@@ -7019,7 +7019,6 @@ class ThingsActivity :
                 EdgeEffectUtil.forRecyclerView(recyclerView, edgeColor)
                 if (mNewItemRevealGating || mIsRevealAnimPlaying) revealLog("scrollState=$newState gating=$mNewItemRevealGating scrolling=$mNewItemRevealScrolling")
                 if (newState == RecyclerView.SCROLL_STATE_IDLE) {
-                    Glide.with(mApp!!).resumeRequests()
                     // Home Chrome Retraction: snap to fully shown / fully hidden on release.
                     snapHomeChromeRetraction()
                     // 原地揭示时若列表恰好还在惯性滚动，maybeReveal 会因非 IDLE 跳过；
@@ -7031,8 +7030,6 @@ class ThingsActivity :
                     if (mThingCardAppearanceVisibilityScrolling) {
                         finishThingCardAppearanceVisibilityScroll()
                     }
-                } else { // dragging or settling
-                    Glide.with(mApp!!).pauseRequests()
                 }
             }
         })

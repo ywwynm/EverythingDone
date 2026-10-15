@@ -4,6 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <instrumentation android:name=".listvalidation.ListIdentityProbe"
+        android:targetPackage="${applicationId}" android:label="隔离数据的完成恢复删除身份回归" />
     <instrumentation android:name=".views.particledismiss.DoingBackgroundRegressionProbe"
         android:targetPackage="com.ywwynm.everythingdone" android:label="做事背景、横竖屏和动画回归" />
     <instrumentation android:name=".notification.NoticeableNotificationScrollProbe"
@@ -70,6 +72,10 @@
         android:networkSecurityConfig="@xml/debug_network_security_config"
         android:usesCleartextTraffic="true"
         tools:replace="android:networkSecurityConfig">
+
+        <activity android:name=".listvalidation.GifLifecycleActivity"
+            android:exported="false" android:excludeFromRecents="true"
+            android:theme="@style/EverythingDoneTheme.Settings" />
 
         <activity android:name=".notification.NoticeableNotificationLandscapeProbeActivity"
             android:exported="false" android:excludeFromRecents="true" android:screenOrientation="landscape"

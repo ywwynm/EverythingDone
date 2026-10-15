@@ -1,0 +1,2591 @@
+[
+  {
+    "run": "memory-meizu-baseline3-1015",
+    "dragSeconds": 55.446,
+    "pssPeakMiB": 1226.44140625,
+    "pssMedianMiB": 1027.18896484375,
+    "nativeAllocatedPeakMiB": 443.4491729736328,
+    "poolMaximumBytes": 17466624,
+    "lastDragPool": {
+      "hits": 2637,
+      "misses": 32,
+      "puts": 5288,
+      "evictions": 2637,
+      "currentSize": 16766400,
+      "maxSize": 17466624
+    },
+    "exitRunningLoaders": 1,
+    "traceHealth": [
+      {
+        "name": "stackprofile_empty_callstack",
+        "severity": "error",
+        "value": "13"
+      },
+      {
+        "name": "heapprofd_last_profile_timestamp",
+        "severity": "info",
+        "value": "2561759713196113"
+      },
+      {
+        "name": "heapprofd_unwind_time_us",
+        "severity": "info",
+        "value": "24136344"
+      },
+      {
+        "name": "heapprofd_unwind_samples",
+        "severity": "info",
+        "value": "34805"
+      },
+      {
+        "name": "heapprofd_client_spinlock_blocked",
+        "severity": "info",
+        "value": "67000"
+      },
+      {
+        "name": "heapprofd_client_disconnected",
+        "severity": "info",
+        "value": "1"
+      }
+    ],
+    "allocationPaths": [
+      {
+        "path": "com.ywwynm.everythingdone.helpers.MediaCropBitmapRenderer.renderCrop",
+        "allocatedMiB": 13841.304321289062,
+        "liveAtTraceEndMiB": 243.36309814453125,
+        "dragAllocatedMiB": 10788.515502929688
+      },
+      {
+        "path": "com.ywwynm.everythingdone.listvalidation.ComplexMediaDragAudit.run$inspect",
+        "allocatedMiB": 616.35400390625,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 581.0390625
+      },
+      {
+        "path": "其它原生分配",
+        "allocatedMiB": 463.6556091308594,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 395.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.listvalidation.ComplexMediaDragAudit.prepare",
+        "allocatedMiB": 267.84375,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN12SkArenaAlloc11ensureSpaceEjj",
+        "allocatedMiB": 191.0,
+        "liveAtTraceEndMiB": 4.0,
+        "dragAllocatedMiB": 181.0
+      },
+      {
+        "path": "com.bumptech.glide.load.resource.bitmap.ImageReader$InputStreamImageReader.decodeBitmap",
+        "allocatedMiB": 144.3828125,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 138.4501953125
+      },
+      {
+        "path": "_ZN7android10uirenderer12renderthread10EglManager11swapBuffersERKNS1_5FrameERK6SkRect",
+        "allocatedMiB": 108.0,
+        "liveAtTraceEndMiB": 2.0,
+        "dragAllocatedMiB": 100.0
+      },
+      {
+        "path": "_ZN16GrDrawingManager5flushE6SkSpanIP14GrSurfaceProxyEN10SkSurfaces20BackendSurfaceAccessERK11GrFlushInfoPKN5skgpu19MutableTextureStateE",
+        "allocatedMiB": 58.0,
+        "liveAtTraceEndMiB": 3.0,
+        "dragAllocatedMiB": 56.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.database.ThingDAO.getMaxThingLocation",
+        "allocatedMiB": 51.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.bumptech.glide.load.engine.bitmap_recycle.LruBitmapPool.createBitmap",
+        "allocatedMiB": 45.05767822265625,
+        "liveAtTraceEndMiB": 7.32421875,
+        "dragAllocatedMiB": 41.39556884765625
+      },
+      {
+        "path": "_ZN7android10SkiaCanvas4saveEj",
+        "allocatedMiB": 38.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 34.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.adapters.BaseThingsAdapter.cacheThingCardMediaBitmap",
+        "allocatedMiB": 37.689971923828125,
+        "liveAtTraceEndMiB": 23.984527587890625,
+        "dragAllocatedMiB": 34.26361083984375
+      },
+      {
+        "path": "_ZN20SkContainerAllocator8allocateEid",
+        "allocatedMiB": 29.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 26.0
+      },
+      {
+        "path": "_ZN16SkSurface_Ganesh11onNewCanvasEv",
+        "allocatedMiB": 26.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 23.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.InterceptTouchCardView.dispatchDraw",
+        "allocatedMiB": 18.0,
+        "liveAtTraceEndMiB": 2.0,
+        "dragAllocatedMiB": 14.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh18SurfaceFillContext13internalClearEPK7SkIRectNSt3__15arrayIfLm4EEEb",
+        "allocatedMiB": 17.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 17.0
+      },
+      {
+        "path": "_ZN7android6Bitmap18allocateHeapBitmapEP8SkBitmap",
+        "allocatedMiB": 16.657470703125,
+        "liveAtTraceEndMiB": 16.657470703125,
+        "dragAllocatedMiB": 16.657470703125
+      },
+      {
+        "path": "_ZN24SkScalerContext_FreeType15generateMetricsERK7SkGlyphP12SkArenaAlloc",
+        "allocatedMiB": 16.0,
+        "liveAtTraceEndMiB": 3.0,
+        "dragAllocatedMiB": 13.0
+      },
+      {
+        "path": "_ZN8SkCanvas19resetForNextPictureERK7SkIRect",
+        "allocatedMiB": 16.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 13.0
+      },
+      {
+        "path": "_ZN7android10uirenderer12skiapipeline19SkiaRecordingCanvas7enableZEb",
+        "allocatedMiB": 15.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 15.0
+      },
+      {
+        "path": "_ZN24SkScalerContext_FreeType13generateImageERK7SkGlyphPv",
+        "allocatedMiB": 13.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 13.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.ActivityHeader.shouldUseCompactCollapsedFolderTitle",
+        "allocatedMiB": 13.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 13.0
+      },
+      {
+        "path": "_ZN16SkBlockAllocator8addBlockEii",
+        "allocatedMiB": 12.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 12.0
+      },
+      {
+        "path": "_Z27GrMakeCachedBitmapProxyViewP18GrRecordingContextRK8SkBitmapNSt3__117basic_string_viewIcNS4_11char_traitsIcEEEEN5skgpu9MipmappedE",
+        "allocatedMiB": 11.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 9.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.helpers.DebugFileLogger.log$lambda$1",
+        "allocatedMiB": 10.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 9.0
+      },
+      {
+        "path": "_ZN7GrGLGpu13uploadTexDataE7SkISizej7SkIRectjjmPK10GrMipLeveli",
+        "allocatedMiB": 10.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 8.0
+      },
+      {
+        "path": "_ZN15GrOvalOpFactory19MakeCircularRRectOpEP18GrRecordingContextO7GrPaintRK8SkMatrixRK7SkRRectRK11SkStrokeRecPK12GrShaderCaps",
+        "allocatedMiB": 9.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 9.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.listvalidation.MediaMemoryAudit.snapshot",
+        "allocatedMiB": 9.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 9.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh18SurfaceDrawContext14fillRectToRectEPK6GrClipO7GrPaint4GrAARK8SkMatrixRK6SkRectSD_",
+        "allocatedMiB": 9.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 8.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh6Device4MakeENSt3__110unique_ptrINS0_18SurfaceDrawContextENS2_14default_deleteIS4_EEEE11SkAlphaTypeNS1_12InitContentsE",
+        "allocatedMiB": 8.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 7.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.DrawerHeader.updateDrawerHeader",
+        "allocatedMiB": 7.8572845458984375,
+        "liveAtTraceEndMiB": 3.4078216552734375,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN11SkTDStorage7reserveEi",
+        "allocatedMiB": 7.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 6.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.InterceptTouchCardView.onMeasure",
+        "allocatedMiB": 6.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 4.0
+      },
+      {
+        "path": "_ZN15GrOpsRenderPass12bindPipelineERK13GrProgramInfoRK6SkRect",
+        "allocatedMiB": 6.0,
+        "liveAtTraceEndMiB": 2.0,
+        "dragAllocatedMiB": 3.0
+      },
+      {
+        "path": "_ZN8SkCanvas4initE5sk_spI8SkDeviceE",
+        "allocatedMiB": 6.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 6.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh18SurfaceDrawContext14drawFastShadowEPK6GrClipRK8SkMatrixRK6SkPathRK15SkDrawShadowRec",
+        "allocatedMiB": 6.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 4.0
+      },
+      {
+        "path": "_ZN7android10uirenderer12skiapipeline18SkiaOpenGLPipeline10setSurfaceEP13ANativeWindowNS0_12renderthread12SwapBehaviorEi",
+        "allocatedMiB": 5.0,
+        "liveAtTraceEndMiB": 5.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh13ShadowRRectOp4MakeEP18GrRecordingContextjRK8SkMatrixRK7SkRRectff",
+        "allocatedMiB": 5.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 5.0
+      },
+      {
+        "path": "_ZN6sktext3gpu8TextBlob4MakeERKNS_12GlyphRunListERK7SkPaintRK8SkMatrix18SkStrikeDeviceInfoPNS_26StrikeForGPUCacheInterfaceE",
+        "allocatedMiB": 5.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 5.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleForegroundSurface.refresh",
+        "allocatedMiB": 4.72406005859375,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 4.72406005859375
+      },
+      {
+        "path": "com.ywwynm.everythingdone.database.ThingFolderDAO.getChildFolders",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleGl.createContext",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 4.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.bumptech.glide.load.resource.bitmap.BitmapEncoder.encode",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 3.0
+      },
+      {
+        "path": "_ZN12skia_private10THashTableIP14GrTextureProxyN5skgpu9UniqueKeyEN14SkTDynamicHashIS1_S4_N15GrProxyProvider28UniquelyKeyedProxyHashTraitsEE13AdaptedTraitsEE6resizeEi",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 4.0
+      },
+      {
+        "path": "_ZN16GrGLRenderTarget11MakeWrappedEP7GrGLGpuRK7SkISize10GrGLFormatiRKNS_3IDsEiN5skgpu9ProtectedENSt3__117basic_string_viewIcNSB_11char_traitsIcEEEE",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 4.0
+      },
+      {
+        "path": "_ZN8SkCanvasC2ERK7SkIRect",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 4.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.activities.EverythingDoneBaseActivity.onCreate",
+        "allocatedMiB": 3.7587890625,
+        "liveAtTraceEndMiB": 2.1962890625,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.model.ThingsCounts.setCounts",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.database.ThingDAO.create",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.managers.ThingListOverlayDragController.start",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 3.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.listvalidation.ComplexMediaDragAudit.field",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 3.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.activities.ThingsActivity$FolderDropOutlineDrawable.draw",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 3.0
+      },
+      {
+        "path": "_ZN10SkSurfaces23WrapBackendRenderTargetEP18GrRecordingContextRK21GrBackendRenderTarget15GrSurfaceOrigin11SkColorType5sk_spI12SkColorSpaceEPK14SkSurfacePropsPFvPvESD_",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 3.0
+      },
+      {
+        "path": "_ZN7GrGLGpu18beginCommandBufferEP16GrGLRenderTargetbRK7SkIRect15GrSurfaceOriginRKN15GrOpsRenderPass16LoadAndStoreInfoERKNS6_23StencilLoadAndStoreInfoE",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 3.0
+      },
+      {
+        "path": "_ZN14GrSurfaceProxyC2E5sk_spI9GrSurfaceE12SkBackingFitNS_12UseAllocatorE",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 3.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleHardwareSnapshot.capture$lambda$28",
+        "allocatedMiB": 2.5477447509765625,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 2.5477447509765625
+      },
+      {
+        "path": "com.ywwynm.everythingdone.database.ThingDAO.getThingsForDisplay",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.helpers.AlarmHelper.createAllAlarms",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.interaction.UiInteractions.installWindow",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.ThingFilterPanel.applyTypeButtonVisual",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.DrawerNavigationView$DrawerItemHolder.createIconDrawable",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleDriftRenderer$Companion.read",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleDriftRenderer$Companion.compile",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.adapters.ThingsAdapter.onCreateViewHolder",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleDriftContent.samplesFrom",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 2.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh18SurfaceDrawContext16drawTexturedQuadEPK6GrClip18GrSurfaceProxyView11SkAlphaType5sk_spI17GrColorSpaceXformE12SkFilterMode12SkMipmapModeRK8SkRGBA4fILS6_2EE11SkBlendModeP8DrawQuadPK6SkRect",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 2.0
+      },
+      {
+        "path": "_ZN7GrGLGpu15onCreateTextureE7SkISizeRK15GrBackendFormatN5skgpu10RenderableEiNS4_8BudgetedENS4_9ProtectedEijNSt3__117basic_string_viewIcNS8_11char_traitsIcEEEE",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN15GrProxyProvider21createProxyFromBitmapERK8SkBitmapN5skgpu9MipmappedE12SkBackingFitNS3_8BudgetedE",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 2.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh12PinAsTextureEP18GrRecordingContextP7SkImage",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 2.0
+      },
+      {
+        "path": "_ZN11SkTDStorage6insertEiiPKv",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 2.0
+      },
+      {
+        "path": "_ZNSt3__110__function6__funcIZN5skgpu6ganesh18SurfaceDrawContext16drawGlyphRunListEP8SkCanvasPK6GrClipRK8SkMatrixRKN6sktext12GlyphRunListE18SkStrikeDeviceInfoRK7SkPaintE3$_1NS_9allocatorISL_EEFvPKNSD_3gpu11AtlasSubRunE7SkPointSK_5sk_spI8SkRefCntENSO_12RendererDataEEEclEOSR_OSS_SK_OSV_OSW_.__uniq.126963779068130672566403203175510579496.f5be48746ebfc98e8279f51592224127",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleGlCardHandoff$Companion.prepareTogether$lambda$10",
+        "allocatedMiB": 1.2738723754882812,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.2738723754882812
+      },
+      {
+        "path": "com.ywwynm.everythingdone.database.ThingDAO.getThingsCursor",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.database.HabitDAO.updateMaxHabitReminderRecordId",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.listvalidation.ListIdentityProbe.onStart$lambda$34",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.database.ThingDAO.updateHeader",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.activities.UiInteractionActivity.<init>",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.activities.EverythingDoneBaseActivity.attachBaseContext",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.App.defaultAccentBackground_delegate$lambda$9",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.ColorAreaView.<init>",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.FloatingActionButton.<init>",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.bumptech.glide.request.BaseRequestOptions.clone",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZNK19SkTypeface_FreeType10getFaceRecEv",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.utils.DisplayUtil.opaqueTintDrawable",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN7android9PaintGlueL18getMetricsInternalElP13SkFontMetricsb.__uniq.295321301672566532533700490907482056561",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleGlBitmapRenderer.<init>",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleDriftRenderer$Companion.link",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN7android10uirenderer12skiapipeline11ShaderCache4loadERK6SkData",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN9SkPathRef6EditorC2EP5sk_spIS_Eiii",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.adapters.BaseThingsAdapter.setCardAppearance",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.activities.ThingsActivity.createOverlayDragSource",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN7android12SkMatrixGlue9mapPointsEP7_JNIEnvP8_jobjectlP12_jfloatArrayiS6_iih",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.ThingCardChecklistView.bind",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh9TextureOp4MakeEP18GrRecordingContext18GrSurfaceProxyView11SkAlphaType5sk_spI17GrColorSpaceXformE12SkFilterMode12SkMipmapModeRK8SkRGBA4fILS5_2EENS1_8SaturateE11SkBlendMode8GrAATypeP8DrawQuadPK6SkRect",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.bumptech.glide.load.resource.bitmap.BitmapResource.initialize",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN7android10uirenderer12skiapipeline19SkiaRecordingCanvas15initDisplayListEPNS0_10RenderNodeEii",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN6sktext3gpu10TextStrike8getGlyphE15SkPackedGlyphID",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.bumptech.glide.load.resource.gif.GifDrawable.draw",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN6sktext15GlyphRunBuilder18blobToGlyphRunListERK10SkTextBlob7SkPoint",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.bumptech.glide.load.engine.bitmap_recycle.LruBitmapPool.dump",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.helpers.CheckListHelper.toCheckListItems",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh18SurfaceDrawContext9drawRRectEPK6GrClipO7GrPaint4GrAARK8SkMatrixRK7SkRRectRK7GrStyle",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN18GrResourceProvider24findAndRefScratchTextureE7SkISizeRK15GrBackendFormat13GrTextureTypeN5skgpu10RenderableEiNS5_9MipmappedENS5_9ProtectedENSt3__117basic_string_viewIcNS9_11char_traitsIcEEEE",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.listvalidation.MediaMemoryAudit.field",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      }
+    ]
+  },
+  {
+    "run": "memory-meizu-pool-1015",
+    "dragSeconds": 55.616,
+    "pssPeakMiB": 1097.3515625,
+    "pssMedianMiB": 928.6474609375,
+    "nativeAllocatedPeakMiB": 416.6920928955078,
+    "poolMaximumBytes": 17466624,
+    "lastDragPool": {
+      "hits": 4879,
+      "misses": 405,
+      "puts": 5269,
+      "evictions": 388,
+      "currentSize": 14474976,
+      "maxSize": 17466624
+    },
+    "exitRunningLoaders": 1,
+    "traceHealth": [
+      {
+        "name": "heapprofd_last_profile_timestamp",
+        "severity": "info",
+        "value": "2562095016541297"
+      },
+      {
+        "name": "heapprofd_unwind_time_us",
+        "severity": "info",
+        "value": "17713857"
+      },
+      {
+        "name": "heapprofd_unwind_samples",
+        "severity": "info",
+        "value": "18067"
+      },
+      {
+        "name": "heapprofd_client_spinlock_blocked",
+        "severity": "info",
+        "value": "83000"
+      },
+      {
+        "name": "heapprofd_client_disconnected",
+        "severity": "info",
+        "value": "1"
+      }
+    ],
+    "allocationPaths": [
+      {
+        "path": "com.bumptech.glide.load.engine.bitmap_recycle.LruBitmapPool.createBitmap",
+        "allocatedMiB": 3100.1098022460938,
+        "liveAtTraceEndMiB": 57.442413330078125,
+        "dragAllocatedMiB": 2488.7290954589844
+      },
+      {
+        "path": "com.ywwynm.everythingdone.listvalidation.ComplexMediaDragAudit.run$inspect",
+        "allocatedMiB": 627.35400390625,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 591.0390625
+      },
+      {
+        "path": "其它原生分配",
+        "allocatedMiB": 466.6556091308594,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 408.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.listvalidation.ComplexMediaDragAudit.prepare",
+        "allocatedMiB": 268.84375,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN12SkArenaAlloc11ensureSpaceEjj",
+        "allocatedMiB": 195.0,
+        "liveAtTraceEndMiB": 10.0,
+        "dragAllocatedMiB": 181.0
+      },
+      {
+        "path": "com.bumptech.glide.load.resource.bitmap.ImageReader$InputStreamImageReader.decodeBitmap",
+        "allocatedMiB": 193.84375,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 181.978515625
+      },
+      {
+        "path": "_ZN7android10uirenderer12renderthread10EglManager11swapBuffersERKNS1_5FrameERK6SkRect",
+        "allocatedMiB": 112.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 100.0
+      },
+      {
+        "path": "_ZN16GrDrawingManager5flushE6SkSpanIP14GrSurfaceProxyEN10SkSurfaces20BackendSurfaceAccessERK11GrFlushInfoPKN5skgpu19MutableTextureStateE",
+        "allocatedMiB": 56.0,
+        "liveAtTraceEndMiB": 3.0,
+        "dragAllocatedMiB": 55.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.database.ThingDAO.getMaxThingLocation",
+        "allocatedMiB": 49.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN7android10SkiaCanvas4saveEj",
+        "allocatedMiB": 42.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 39.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.helpers.MediaCropBitmapRenderer.renderCrop",
+        "allocatedMiB": 37.689971923828125,
+        "liveAtTraceEndMiB": 3.426361083984375,
+        "dragAllocatedMiB": 34.26361083984375
+      },
+      {
+        "path": "com.ywwynm.everythingdone.adapters.BaseThingsAdapter.cacheThingCardMediaBitmap",
+        "allocatedMiB": 37.689971923828125,
+        "liveAtTraceEndMiB": 23.984527587890625,
+        "dragAllocatedMiB": 34.26361083984375
+      },
+      {
+        "path": "_ZN16SkSurface_Ganesh11onNewCanvasEv",
+        "allocatedMiB": 25.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 24.0
+      },
+      {
+        "path": "_ZN20SkContainerAllocator8allocateEid",
+        "allocatedMiB": 25.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 23.0
+      },
+      {
+        "path": "_ZN7android10uirenderer12skiapipeline19SkiaRecordingCanvas7enableZEb",
+        "allocatedMiB": 19.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 17.0
+      },
+      {
+        "path": "_ZN24SkScalerContext_FreeType15generateMetricsERK7SkGlyphP12SkArenaAlloc",
+        "allocatedMiB": 18.0,
+        "liveAtTraceEndMiB": 2.0,
+        "dragAllocatedMiB": 16.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.InterceptTouchCardView.dispatchDraw",
+        "allocatedMiB": 17.0,
+        "liveAtTraceEndMiB": 4.0,
+        "dragAllocatedMiB": 14.0
+      },
+      {
+        "path": "_ZN7android6Bitmap18allocateHeapBitmapEP8SkBitmap",
+        "allocatedMiB": 16.657470703125,
+        "liveAtTraceEndMiB": 16.657470703125,
+        "dragAllocatedMiB": 16.657470703125
+      },
+      {
+        "path": "com.ywwynm.everythingdone.helpers.MediaCropBitmapRenderer.renderCropInto$app",
+        "allocatedMiB": 16.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 14.0
+      },
+      {
+        "path": "com.bumptech.glide.load.resource.bitmap.BitmapEncoder.encode",
+        "allocatedMiB": 16.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 16.0
+      },
+      {
+        "path": "_Z27GrMakeCachedBitmapProxyViewP18GrRecordingContextRK8SkBitmapNSt3__117basic_string_viewIcNS4_11char_traitsIcEEEEN5skgpu9MipmappedE",
+        "allocatedMiB": 15.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 13.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh13ShadowRRectOp4MakeEP18GrRecordingContextjRK8SkMatrixRK7SkRRectff",
+        "allocatedMiB": 13.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 12.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh18SurfaceFillContext13internalClearEPK7SkIRectNSt3__15arrayIfLm4EEEb",
+        "allocatedMiB": 12.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 11.0
+      },
+      {
+        "path": "_ZN8SkCanvas19resetForNextPictureERK7SkIRect",
+        "allocatedMiB": 12.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 9.0
+      },
+      {
+        "path": "_ZN24SkScalerContext_FreeType13generateImageERK7SkGlyphPv",
+        "allocatedMiB": 11.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 11.0
+      },
+      {
+        "path": "_ZN16SkBlockAllocator8addBlockEii",
+        "allocatedMiB": 11.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 10.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.ActivityHeader.shouldUseCompactCollapsedFolderTitle",
+        "allocatedMiB": 11.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 11.0
+      },
+      {
+        "path": "_ZN7GrGLGpu13uploadTexDataE7SkISizej7SkIRectjjmPK10GrMipLeveli",
+        "allocatedMiB": 10.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 8.0
+      },
+      {
+        "path": "_ZN15GrOvalOpFactory19MakeCircularRRectOpEP18GrRecordingContextO7GrPaintRK8SkMatrixRK7SkRRectRK11SkStrokeRecPK12GrShaderCaps",
+        "allocatedMiB": 10.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 10.0
+      },
+      {
+        "path": "_ZN7GrGLGpu18beginCommandBufferEP16GrGLRenderTargetbRK7SkIRect15GrSurfaceOriginRKN15GrOpsRenderPass16LoadAndStoreInfoERKNS6_23StencilLoadAndStoreInfoE",
+        "allocatedMiB": 10.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 10.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.helpers.DebugFileLogger.log$lambda$1",
+        "allocatedMiB": 10.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 9.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh18SurfaceDrawContext14fillRectToRectEPK6GrClipO7GrPaint4GrAARK8SkMatrixRK6SkRectSD_",
+        "allocatedMiB": 9.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 9.0
+      },
+      {
+        "path": "_ZN8SkCanvasC2ERK7SkIRect",
+        "allocatedMiB": 8.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 8.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.DrawerHeader.updateDrawerHeader",
+        "allocatedMiB": 7.8572845458984375,
+        "liveAtTraceEndMiB": 3.4078216552734375,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN7android10uirenderer12skiapipeline18SkiaOpenGLPipeline10setSurfaceEP13ANativeWindowNS0_12renderthread12SwapBehaviorEi",
+        "allocatedMiB": 7.0,
+        "liveAtTraceEndMiB": 5.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.InterceptTouchCardView.onMeasure",
+        "allocatedMiB": 7.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 3.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.listvalidation.MediaMemoryAudit.snapshot",
+        "allocatedMiB": 7.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 6.0
+      },
+      {
+        "path": "_ZN11SkTDStorage7reserveEi",
+        "allocatedMiB": 6.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 6.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleForegroundSurface.refresh",
+        "allocatedMiB": 5.72406005859375,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 5.72406005859375
+      },
+      {
+        "path": "com.ywwynm.everythingdone.database.ThingDAO.create",
+        "allocatedMiB": 5.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh18SurfaceDrawContext14drawFastShadowEPK6GrClipRK8SkMatrixRK6SkPathRK15SkDrawShadowRec",
+        "allocatedMiB": 5.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 5.0
+      },
+      {
+        "path": "_ZN16GrGLRenderTarget11MakeWrappedEP7GrGLGpuRK7SkISize10GrGLFormatiRKNS_3IDsEiN5skgpu9ProtectedENSt3__117basic_string_viewIcNSB_11char_traitsIcEEEE",
+        "allocatedMiB": 5.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 5.0
+      },
+      {
+        "path": "_ZN10SkSurfaces23WrapBackendRenderTargetEP18GrRecordingContextRK21GrBackendRenderTarget15GrSurfaceOrigin11SkColorType5sk_spI12SkColorSpaceEPK14SkSurfacePropsPFvPvESD_",
+        "allocatedMiB": 5.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 5.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.activities.EverythingDoneBaseActivity.onCreate",
+        "allocatedMiB": 4.7587890625,
+        "liveAtTraceEndMiB": 1.1962890625,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.model.ThingsCounts.setCounts",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.utils.DisplayUtil.opaqueTintDrawable",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN8SkCanvas4initE5sk_spI8SkDeviceE",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 3.0
+      },
+      {
+        "path": "_ZN6sktext3gpu8TextBlob4MakeERKNS_12GlyphRunListERK7SkPaintRK8SkMatrix18SkStrikeDeviceInfoPNS_26StrikeForGPUCacheInterfaceE",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 4.0
+      },
+      {
+        "path": "com.bumptech.glide.load.engine.bitmap_recycle.LruBitmapPool.get",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 4.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh6Device4MakeENSt3__110unique_ptrINS0_18SurfaceDrawContextENS2_14default_deleteIS4_EEEE11SkAlphaTypeNS1_12InitContentsE",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 3.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.database.ThingDAO.updateHeader",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.database.ThingFolderDAO.getChildFolders",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleGl.createContext",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 3.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.ThingCardChecklistView.bind",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZNSt3__110__function6__funcIZN5skgpu6ganesh18SurfaceDrawContext16drawGlyphRunListEP8SkCanvasPK6GrClipRK8SkMatrixRKN6sktext12GlyphRunListE18SkStrikeDeviceInfoRK7SkPaintE3$_1NS_9allocatorISL_EEFvPKNSD_3gpu11AtlasSubRunE7SkPointSK_5sk_spI8SkRefCntENSO_12RendererDataEEEclEOSR_OSS_SK_OSV_OSW_.__uniq.126963779068130672566403203175510579496.f5be48746ebfc98e8279f51592224127",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 3.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.adapters.ThingsAdapter.onCreateViewHolder",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 3.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh18SurfaceDrawContext9drawRRectEPK6GrClipO7GrPaint4GrAARK8SkMatrixRK7SkRRectRK7GrStyle",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 3.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh9TextureOp4MakeEP18GrRecordingContext18GrSurfaceProxyView11SkAlphaType5sk_spI17GrColorSpaceXformE12SkFilterMode12SkMipmapModeRK8SkRGBA4fILS5_2EENS1_8SaturateE11SkBlendMode8GrAATypeP8DrawQuadPK6SkRect",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 3.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleHardwareSnapshot.capture$lambda$28",
+        "allocatedMiB": 2.5477447509765625,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 2.5477447509765625
+      },
+      {
+        "path": "com.ywwynm.everythingdone.database.ThingDAO.getThingsForDisplay",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.activities.UiInteractionActivity.setTheme",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN15GrOpsRenderPass12bindPipelineERK13GrProgramInfoRK6SkRect",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZNK19SkTypeface_FreeType10getFaceRecEv",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 2.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleDriftRenderer$Companion.read",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleDriftRenderer$Companion.compile",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN11SkTDStorage6insertEiiPKv",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 2.0
+      },
+      {
+        "path": "_ZN12skia_private10THashTableIP14GrTextureProxyN5skgpu9UniqueKeyEN14SkTDynamicHashIS1_S4_N15GrProxyProvider28UniquelyKeyedProxyHashTraitsEE13AdaptedTraitsEE6resizeEi",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 2.0
+      },
+      {
+        "path": "com.bumptech.glide.disklrucache.DiskLruCache.flushWriter",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 2.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.listvalidation.ComplexMediaDragAudit.field",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 2.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh12PinAsTextureEP18GrRecordingContextP7SkImage",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 2.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.listvalidation.MediaMemoryAudit.field",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleGlCardHandoff$Companion.prepareTogether$lambda$10",
+        "allocatedMiB": 1.2738723754882812,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.2738723754882812
+      },
+      {
+        "path": "com.ywwynm.everythingdone.model.ThingsCounts.checkSelf",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.helpers.AlarmHelper.createAllAlarms",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.listvalidation.ListIdentityProbe.onStart$lambda$34",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.interaction.UiInteractions.installWindow",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.ColorAreaView.<init>",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.DrawerNavigationView.<init>",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.taptransfer.transport.TapPayloadWriter$Companion.cleanUpStale",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZNK22SkFontScanner_FreeType12scanInstanceEP13SkStreamAssetiiP8SkStringP11SkFontStylePbPN12skia_private7STArrayILi4EN13SkFontScanner14AxisDefinitionELb1EEE",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.ThingFilterPanel.applyTypeButtonVisual",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN7android10uirenderer12skiapipeline19SkiaRecordingCanvas14drawRenderNodeEPNS0_10RenderNodeE",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleGlBitmapRenderer.<init>",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleDriftRenderer$Companion.link",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleForegroundSurface.initialise",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN14GrDynamicAtlasC1E11GrColorTypeNS_19InternalMultisampleE7SkISizeiRK6GrCapsNS_19RectanizerAlgorithmE",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh17AtlasPathRenderer14addPathToAtlasEP18GrRecordingContextRK8SkMatrixRK6SkPathRK6SkRectP7SkIRectP10SkIPoint16PbRKNSt3__18functionIFbPK14GrSurfaceProxyEEE",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh18SurfaceDrawContext26drawShapeUsingPathRendererEPK6GrClipO7GrPaint4GrAARK8SkMatrixO13GrStyledShapeb",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN11GrGLProgram4MakeEP7GrGLGpuRK27GrGLSLBuiltinUniformHandlesjRK12SkTBlockListIN22GrGLProgramDataManager13GLUniformInfoELi1EESA_NSt3__110unique_ptrIN19GrGeometryProcessor11ProgramImplENSB_14default_deleteISE_EEEENSC_IN15GrXferProcessor11ProgramImplENSF_ISJ_EEEENSB_6vectorINSC_IN19GrFragmentProcessor11ProgramImplENSF_ISO_EEEENSB_9allocatorISQ_EEEENSC_IA_NS_9AttributeENSF_ISV_EEEEiiii",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN8SkStrike9digestForEN7skglyph10ActionTypeE15SkPackedGlyphID",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN7GrGLGpu15onCreateTextureE7SkISizeRK15GrBackendFormatN5skgpu10RenderableEiNS4_8BudgetedENS4_9ProtectedEijNSt3__117basic_string_viewIcNS8_11char_traitsIcEEEE",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZNK12_GLOBAL__N_116DirectMaskSubRun15makeAtlasTextOpEPK6GrClipRK8SkMatrix7SkPointRK7SkPaintO5sk_spI8SkRefCntEPN5skgpu6ganesh18SurfaceDrawContextE.__uniq.174293967548894696757720325934719502794",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.helpers.CheckListHelper.toCheckListItems",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.bumptech.glide.load.model.AssetUriLoader.handles",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN6sktext3gpu10TextStrike8getGlyphE15SkPackedGlyphID",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN7android10uirenderer15RecordingCanvas14onDrawDrawableEP10SkDrawablePK8SkMatrix",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.bumptech.glide.load.resource.bitmap.BitmapResource.initialize",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh18SurfaceDrawContext16drawTexturedQuadEPK6GrClip18GrSurfaceProxyView11SkAlphaType5sk_spI17GrColorSpaceXformE12SkFilterMode12SkMipmapModeRK8SkRGBA4fILS6_2EE11SkBlendModeP8DrawQuadPK6SkRect",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.bumptech.glide.load.engine.bitmap_recycle.SizeConfigStrategy.get",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN7android6Bitmap18allocateHeapBitmapERK11SkImageInfo",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.ThingsStaggeredLayoutManager.onLayoutChildren",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN15GrProxyProvider21createProxyFromBitmapERK8SkBitmapN5skgpu9MipmappedE12SkBackingFitNS3_8BudgetedE",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      }
+    ]
+  },
+  {
+    "run": "memory-meizu-fixed-1015",
+    "dragSeconds": 55.53,
+    "pssPeakMiB": 1127.18359375,
+    "pssMedianMiB": 916.42626953125,
+    "nativeAllocatedPeakMiB": 423.7890167236328,
+    "poolMaximumBytes": 17466624,
+    "lastDragPool": {
+      "hits": 4885,
+      "misses": 431,
+      "puts": 5303,
+      "evictions": 415,
+      "currentSize": 15703776,
+      "maxSize": 17466624
+    },
+    "exitRunningLoaders": 0,
+    "traceHealth": [
+      {
+        "name": "heapprofd_last_profile_timestamp",
+        "severity": "info",
+        "value": "2562836613359608"
+      },
+      {
+        "name": "heapprofd_unwind_time_us",
+        "severity": "info",
+        "value": "17677828"
+      },
+      {
+        "name": "heapprofd_unwind_samples",
+        "severity": "info",
+        "value": "17977"
+      },
+      {
+        "name": "heapprofd_client_spinlock_blocked",
+        "severity": "info",
+        "value": "77000"
+      },
+      {
+        "name": "heapprofd_client_disconnected",
+        "severity": "info",
+        "value": "1"
+      }
+    ],
+    "allocationPaths": [
+      {
+        "path": "com.bumptech.glide.load.engine.bitmap_recycle.LruBitmapPool.createBitmap",
+        "allocatedMiB": 2688.3684997558594,
+        "liveAtTraceEndMiB": 29.114898681640625,
+        "dragAllocatedMiB": 2422.6156616210938
+      },
+      {
+        "path": "com.ywwynm.everythingdone.listvalidation.ComplexMediaDragAudit.run$inspect",
+        "allocatedMiB": 634.35400390625,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 597.0390625
+      },
+      {
+        "path": "其它原生分配",
+        "allocatedMiB": 507.6556091308594,
+        "liveAtTraceEndMiB": 2.0,
+        "dragAllocatedMiB": 445.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.listvalidation.ComplexMediaDragAudit.prepare",
+        "allocatedMiB": 269.84375,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.bumptech.glide.load.resource.bitmap.ImageReader$InputStreamImageReader.decodeBitmap",
+        "allocatedMiB": 190.84375,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 178.978515625
+      },
+      {
+        "path": "_ZN12SkArenaAlloc11ensureSpaceEjj",
+        "allocatedMiB": 185.0,
+        "liveAtTraceEndMiB": 7.0,
+        "dragAllocatedMiB": 171.0
+      },
+      {
+        "path": "_ZN7android10uirenderer12renderthread10EglManager11swapBuffersERKNS1_5FrameERK6SkRect",
+        "allocatedMiB": 118.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 106.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.database.ThingDAO.getMaxThingLocation",
+        "allocatedMiB": 50.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN16GrDrawingManager5flushE6SkSpanIP14GrSurfaceProxyEN10SkSurfaces20BackendSurfaceAccessERK11GrFlushInfoPKN5skgpu19MutableTextureStateE",
+        "allocatedMiB": 49.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 46.0
+      },
+      {
+        "path": "_ZN7android10SkiaCanvas4saveEj",
+        "allocatedMiB": 43.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 38.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.helpers.MediaCropBitmapRenderer.renderCrop",
+        "allocatedMiB": 37.689971923828125,
+        "liveAtTraceEndMiB": 3.426361083984375,
+        "dragAllocatedMiB": 34.26361083984375
+      },
+      {
+        "path": "com.ywwynm.everythingdone.adapters.BaseThingsAdapter.cacheThingCardMediaBitmap",
+        "allocatedMiB": 37.689971923828125,
+        "liveAtTraceEndMiB": 23.984527587890625,
+        "dragAllocatedMiB": 34.26361083984375
+      },
+      {
+        "path": "com.ywwynm.everythingdone.helpers.MediaCropBitmapRenderer.renderCropInto$app",
+        "allocatedMiB": 26.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 21.0
+      },
+      {
+        "path": "_ZN16SkSurface_Ganesh11onNewCanvasEv",
+        "allocatedMiB": 25.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 23.0
+      },
+      {
+        "path": "_ZN20SkContainerAllocator8allocateEid",
+        "allocatedMiB": 23.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 23.0
+      },
+      {
+        "path": "_Z27GrMakeCachedBitmapProxyViewP18GrRecordingContextRK8SkBitmapNSt3__117basic_string_viewIcNS4_11char_traitsIcEEEEN5skgpu9MipmappedE",
+        "allocatedMiB": 17.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 17.0
+      },
+      {
+        "path": "_ZN7android6Bitmap18allocateHeapBitmapEP8SkBitmap",
+        "allocatedMiB": 16.657470703125,
+        "liveAtTraceEndMiB": 16.657470703125,
+        "dragAllocatedMiB": 16.657470703125
+      },
+      {
+        "path": "_ZN7android10uirenderer12skiapipeline19SkiaRecordingCanvas7enableZEb",
+        "allocatedMiB": 16.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 15.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh18SurfaceFillContext13internalClearEPK7SkIRectNSt3__15arrayIfLm4EEEb",
+        "allocatedMiB": 15.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 14.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.InterceptTouchCardView.dispatchDraw",
+        "allocatedMiB": 14.0,
+        "liveAtTraceEndMiB": 2.0,
+        "dragAllocatedMiB": 12.0
+      },
+      {
+        "path": "_ZN7GrGLGpu13uploadTexDataE7SkISizej7SkIRectjjmPK10GrMipLeveli",
+        "allocatedMiB": 13.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 12.0
+      },
+      {
+        "path": "_ZN24SkScalerContext_FreeType15generateMetricsERK7SkGlyphP12SkArenaAlloc",
+        "allocatedMiB": 12.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 11.0
+      },
+      {
+        "path": "_ZN8SkCanvas19resetForNextPictureERK7SkIRect",
+        "allocatedMiB": 10.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 8.0
+      },
+      {
+        "path": "_ZN24SkScalerContext_FreeType13generateImageERK7SkGlyphPv",
+        "allocatedMiB": 9.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 9.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh18SurfaceDrawContext16drawTexturedQuadEPK6GrClip18GrSurfaceProxyView11SkAlphaType5sk_spI17GrColorSpaceXformE12SkFilterMode12SkMipmapModeRK8SkRGBA4fILS6_2EE11SkBlendModeP8DrawQuadPK6SkRect",
+        "allocatedMiB": 8.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 8.0
+      },
+      {
+        "path": "_ZN11SkTDStorage7reserveEi",
+        "allocatedMiB": 8.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 8.0
+      },
+      {
+        "path": "_ZN16SkBlockAllocator8addBlockEii",
+        "allocatedMiB": 8.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 8.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.listvalidation.ComplexMediaDragAudit.field",
+        "allocatedMiB": 8.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 8.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.helpers.DebugFileLogger.log$lambda$1",
+        "allocatedMiB": 8.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 8.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.DrawerHeader.updateDrawerHeader",
+        "allocatedMiB": 7.8572845458984375,
+        "liveAtTraceEndMiB": 3.4078216552734375,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.InterceptTouchCardView.onMeasure",
+        "allocatedMiB": 7.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 6.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh13ShadowRRectOp4MakeEP18GrRecordingContextjRK8SkMatrixRK7SkRRectff",
+        "allocatedMiB": 7.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 7.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh18SurfaceDrawContext14fillRectToRectEPK6GrClipO7GrPaint4GrAARK8SkMatrixRK6SkRectSD_",
+        "allocatedMiB": 7.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 7.0
+      },
+      {
+        "path": "_ZN8SkCanvasC2ERK7SkIRect",
+        "allocatedMiB": 7.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 7.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.ActivityHeader.shouldUseCompactCollapsedFolderTitle",
+        "allocatedMiB": 7.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 7.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.activities.EverythingDoneBaseActivity.onCreate",
+        "allocatedMiB": 6.7587890625,
+        "liveAtTraceEndMiB": 2.1962890625,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.bumptech.glide.load.resource.bitmap.BitmapEncoder.encode",
+        "allocatedMiB": 6.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 5.0
+      },
+      {
+        "path": "_ZN15GrOvalOpFactory19MakeCircularRRectOpEP18GrRecordingContextO7GrPaintRK8SkMatrixRK7SkRRectRK11SkStrokeRecPK12GrShaderCaps",
+        "allocatedMiB": 6.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 6.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh6Device4MakeENSt3__110unique_ptrINS0_18SurfaceDrawContextENS2_14default_deleteIS4_EEEE11SkAlphaTypeNS1_12InitContentsE",
+        "allocatedMiB": 6.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 6.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleDriftRenderer$Companion.compile",
+        "allocatedMiB": 5.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN15GrOpsRenderPass12bindPipelineERK13GrProgramInfoRK6SkRect",
+        "allocatedMiB": 5.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 4.0
+      },
+      {
+        "path": "_ZN6sktext3gpu8TextBlob4MakeERKNS_12GlyphRunListERK7SkPaintRK8SkMatrix18SkStrikeDeviceInfoPNS_26StrikeForGPUCacheInterfaceE",
+        "allocatedMiB": 5.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 5.0
+      },
+      {
+        "path": "_ZN8SkCanvas4initE5sk_spI8SkDeviceE",
+        "allocatedMiB": 5.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 4.0
+      },
+      {
+        "path": "_ZNK22SkFontScanner_FreeType12scanInstanceEP13SkStreamAssetiiP8SkStringP11SkFontStylePbPN12skia_private7STArrayILi4EN13SkFontScanner14AxisDefinitionELb1EEE",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.utils.DisplayUtil.opaqueTintDrawable",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.listvalidation.MediaMemoryAudit.snapshot",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 4.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.listvalidation.MediaMemoryAudit.field",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 3.0
+      },
+      {
+        "path": "_ZN15GrProxyProvider21createProxyFromBitmapERK8SkBitmapN5skgpu9MipmappedE12SkBackingFitNS3_8BudgetedE",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 4.0
+      },
+      {
+        "path": "_ZN14GrSurfaceProxyC2E5sk_spI9GrSurfaceE12SkBackingFitNS_12UseAllocatorE",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 4.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.model.ThingsCounts.setCounts",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.database.ThingDAO.create",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.adapters.ThingsAdapter.onCreateViewHolder",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh18SurfaceDrawContext9drawRRectEPK6GrClipO7GrPaint4GrAARK8SkMatrixRK7SkRRectRK7GrStyle",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 2.0
+      },
+      {
+        "path": "_ZN16GrGLRenderTarget11MakeWrappedEP7GrGLGpuRK7SkISize10GrGLFormatiRKNS_3IDsEiN5skgpu9ProtectedENSt3__117basic_string_viewIcNSB_11char_traitsIcEEEE",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 3.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh9TextureOp4MakeEP18GrRecordingContext18GrSurfaceProxyView11SkAlphaType5sk_spI17GrColorSpaceXformE12SkFilterMode12SkMipmapModeRK8SkRGBA4fILS5_2EENS1_8SaturateE11SkBlendMode8GrAATypeP8DrawQuadPK6SkRect",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 3.0
+      },
+      {
+        "path": "_ZN7GrGLGpu18beginCommandBufferEP16GrGLRenderTargetbRK7SkIRect15GrSurfaceOriginRKN15GrOpsRenderPass16LoadAndStoreInfoERKNS6_23StencilLoadAndStoreInfoE",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 2.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleForegroundSurface.refresh",
+        "allocatedMiB": 2.72406005859375,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 2.72406005859375
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleHardwareSnapshot.capture$lambda$28",
+        "allocatedMiB": 2.5477447509765625,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 2.5477447509765625
+      },
+      {
+        "path": "com.ywwynm.everythingdone.listvalidation.ListIdentityProbe.onStart$lambda$35",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.database.ThingFolderDAO.getChildFolders",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.database.ThingDAO.updateHeader",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.ThingFilterPanel.applyTypeButtonVisual",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleGl.createContext",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 2.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleGlBitmapRenderer.<init>",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh18SurfaceDrawContext14drawFastShadowEPK6GrClipRK8SkMatrixRK6SkPathRK15SkDrawShadowRec",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 2.0
+      },
+      {
+        "path": "_ZN7android12SkMatrixGlue9mapPointsEP7_JNIEnvP8_jobjectlP12_jfloatArrayiS6_iih",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 2.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleGlCardHandoff$Companion.prepareTogether$lambda$10",
+        "allocatedMiB": 1.2738723754882812,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.2738723754882812
+      },
+      {
+        "path": "com.ywwynm.everythingdone.activities.UiInteractionActivity.setTheme",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.interaction.UiInteractions.installWindow",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.ColorAreaView.<init>",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.ColorAreaView.tintTools",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.FloatingActionButton.<init>",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN7android10uirenderer12skiapipeline18SkiaOpenGLPipeline10setSurfaceEP13ANativeWindowNS0_12renderthread12SwapBehaviorEi",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.DrawerNavigationView$DrawerItemHolder.createIconDrawable",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN7android10uirenderer12skiapipeline19SkiaRecordingCanvas14drawRenderNodeEPNS0_10RenderNodeE",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.activities.ThingsActivity.tintHomeMenuIconsForAppearance",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN7android10uirenderer15RecordingCanvas14onDrawDrawableEP10SkDrawablePK8SkMatrix",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.database.ThingDAO.getThingsForDisplay",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.bumptech.glide.disklrucache.DiskLruCache.open",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh17AtlasPathRenderer14addPathToAtlasEP18GrRecordingContextRK8SkMatrixRK6SkPathRK6SkRectP7SkIRectP10SkIPoint16PbRKNSt3__18functionIFbPK14GrSurfaceProxyEEE",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN7android10uirenderer12skiapipeline11ShaderCache4loadERK6SkData",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.helpers.VideoCoverPreviewManager.previewDir",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN18GrResourceProvider24findAndRefScratchTextureE7SkISizeRK15GrBackendFormat13GrTextureTypeN5skgpu10RenderableEiNS5_9MipmappedENS5_9ProtectedENSt3__117basic_string_viewIcNS9_11char_traitsIcEEEE",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh18SurfaceDrawContext4MakeEP18GrRecordingContext11GrColorType5sk_spI14GrSurfaceProxyES5_I12SkColorSpaceE15GrSurfaceOriginRK14SkSurfaceProps",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.activities.ThingsActivity$FolderDropOutlineDrawable.draw",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.bumptech.glide.load.resource.gif.GifDrawable.draw",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh12PinAsTextureEP18GrRecordingContextP7SkImage",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.adapters.BaseThingsAdapter.getAnimatedThingCardMediaCacheSignature",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.helpers.AttachmentHelper.getAudioAttachmentCountStr",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN11SkTDStorage6insertEiiPKv",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.bumptech.glide.load.engine.bitmap_recycle.LruBitmapPool.get",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZNSt3__110__function6__funcIZN5skgpu6ganesh18SurfaceDrawContext16drawGlyphRunListEP8SkCanvasPK6GrClipRK8SkMatrixRKN6sktext12GlyphRunListE18SkStrikeDeviceInfoRK7SkPaintE3$_1NS_9allocatorISL_EEFvPKNSD_3gpu11AtlasSubRunE7SkPointSK_5sk_spI8SkRefCntENSO_12RendererDataEEEclEOSR_OSS_SK_OSV_OSW_.__uniq.126963779068130672566403203175510579496.f5be48746ebfc98e8279f51592224127",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN7GrGLGpu15onCreateTextureE7SkISizeRK15GrBackendFormatN5skgpu10RenderableEiNS4_8BudgetedENS4_9ProtectedEijNSt3__117basic_string_viewIcNS8_11char_traitsIcEEEE",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.listvalidation.ListIdentityProbe.graphicsMemory",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      }
+    ]
+  },
+  {
+    "run": "memory-meizu-pool2x-1015",
+    "dragSeconds": 55.715,
+    "pssPeakMiB": 759.765625,
+    "pssMedianMiB": 694.85546875,
+    "nativeAllocatedPeakMiB": 234.43370056152344,
+    "poolMaximumBytes": 34933248,
+    "lastDragPool": {
+      "hits": 5174,
+      "misses": 108,
+      "puts": 5269,
+      "evictions": 91,
+      "currentSize": 17561376,
+      "maxSize": 34933248
+    },
+    "exitRunningLoaders": 0,
+    "traceHealth": [
+      {
+        "name": "heapprofd_last_profile_timestamp",
+        "severity": "info",
+        "value": "2562992002624341"
+      },
+      {
+        "name": "heapprofd_unwind_time_us",
+        "severity": "info",
+        "value": "18652259"
+      },
+      {
+        "name": "heapprofd_unwind_samples",
+        "severity": "info",
+        "value": "17343"
+      },
+      {
+        "name": "heapprofd_client_spinlock_blocked",
+        "severity": "info",
+        "value": "78000"
+      },
+      {
+        "name": "heapprofd_client_disconnected",
+        "severity": "info",
+        "value": "1"
+      }
+    ],
+    "allocationPaths": [
+      {
+        "path": "com.ywwynm.everythingdone.listvalidation.ComplexMediaDragAudit.run$inspect",
+        "allocatedMiB": 650.6689453125,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 581.0390625
+      },
+      {
+        "path": "com.bumptech.glide.load.engine.bitmap_recycle.LruBitmapPool.createBitmap",
+        "allocatedMiB": 649.5888061523438,
+        "liveAtTraceEndMiB": 54.060394287109375,
+        "dragAllocatedMiB": 620.0894165039062
+      },
+      {
+        "path": "其它原生分配",
+        "allocatedMiB": 513.6556091308594,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 438.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.listvalidation.ComplexMediaDragAudit.prepare",
+        "allocatedMiB": 267.84375,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.bumptech.glide.load.resource.bitmap.ImageReader$InputStreamImageReader.decodeBitmap",
+        "allocatedMiB": 190.84375,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 178.978515625
+      },
+      {
+        "path": "_ZN12SkArenaAlloc11ensureSpaceEjj",
+        "allocatedMiB": 185.0,
+        "liveAtTraceEndMiB": 9.0,
+        "dragAllocatedMiB": 172.0
+      },
+      {
+        "path": "_ZN7android10uirenderer12renderthread10EglManager11swapBuffersERKNS1_5FrameERK6SkRect",
+        "allocatedMiB": 111.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 98.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.database.ThingDAO.getMaxThingLocation",
+        "allocatedMiB": 51.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN7android10SkiaCanvas4saveEj",
+        "allocatedMiB": 50.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 47.0
+      },
+      {
+        "path": "_ZN16GrDrawingManager5flushE6SkSpanIP14GrSurfaceProxyEN10SkSurfaces20BackendSurfaceAccessERK11GrFlushInfoPKN5skgpu19MutableTextureStateE",
+        "allocatedMiB": 46.0,
+        "liveAtTraceEndMiB": 4.0,
+        "dragAllocatedMiB": 43.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.adapters.BaseThingsAdapter.cacheThingCardMediaBitmap",
+        "allocatedMiB": 37.689971923828125,
+        "liveAtTraceEndMiB": 23.984527587890625,
+        "dragAllocatedMiB": 35.405731201171875
+      },
+      {
+        "path": "com.ywwynm.everythingdone.helpers.MediaCropBitmapRenderer.renderCrop",
+        "allocatedMiB": 37.689971923828125,
+        "liveAtTraceEndMiB": 3.426361083984375,
+        "dragAllocatedMiB": 35.405731201171875
+      },
+      {
+        "path": "com.ywwynm.everythingdone.helpers.MediaCropBitmapRenderer.renderCropInto$app",
+        "allocatedMiB": 25.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 25.0
+      },
+      {
+        "path": "_ZN20SkContainerAllocator8allocateEid",
+        "allocatedMiB": 22.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 20.0
+      },
+      {
+        "path": "_ZN16SkSurface_Ganesh11onNewCanvasEv",
+        "allocatedMiB": 21.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 21.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh18SurfaceFillContext13internalClearEPK7SkIRectNSt3__15arrayIfLm4EEEb",
+        "allocatedMiB": 20.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 17.0
+      },
+      {
+        "path": "_ZN7android6Bitmap18allocateHeapBitmapEP8SkBitmap",
+        "allocatedMiB": 16.657470703125,
+        "liveAtTraceEndMiB": 16.657470703125,
+        "dragAllocatedMiB": 16.657470703125
+      },
+      {
+        "path": "_ZN8SkCanvas19resetForNextPictureERK7SkIRect",
+        "allocatedMiB": 15.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 13.0
+      },
+      {
+        "path": "_ZN24SkScalerContext_FreeType13generateImageERK7SkGlyphPv",
+        "allocatedMiB": 14.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 14.0
+      },
+      {
+        "path": "_ZN16SkBlockAllocator8addBlockEii",
+        "allocatedMiB": 14.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 12.0
+      },
+      {
+        "path": "_ZN24SkScalerContext_FreeType15generateMetricsERK7SkGlyphP12SkArenaAlloc",
+        "allocatedMiB": 13.0,
+        "liveAtTraceEndMiB": 2.0,
+        "dragAllocatedMiB": 11.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.InterceptTouchCardView.dispatchDraw",
+        "allocatedMiB": 13.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 13.0
+      },
+      {
+        "path": "_ZN7android10uirenderer12skiapipeline19SkiaRecordingCanvas7enableZEb",
+        "allocatedMiB": 12.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 11.0
+      },
+      {
+        "path": "_Z27GrMakeCachedBitmapProxyViewP18GrRecordingContextRK8SkBitmapNSt3__117basic_string_viewIcNS4_11char_traitsIcEEEEN5skgpu9MipmappedE",
+        "allocatedMiB": 11.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 10.0
+      },
+      {
+        "path": "_ZN15GrOvalOpFactory19MakeCircularRRectOpEP18GrRecordingContextO7GrPaintRK8SkMatrixRK7SkRRectRK11SkStrokeRecPK12GrShaderCaps",
+        "allocatedMiB": 11.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 10.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh13ShadowRRectOp4MakeEP18GrRecordingContextjRK8SkMatrixRK7SkRRectff",
+        "allocatedMiB": 11.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 9.0
+      },
+      {
+        "path": "com.bumptech.glide.load.resource.bitmap.BitmapEncoder.encode",
+        "allocatedMiB": 10.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 9.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh9TextureOp4MakeEP18GrRecordingContext18GrSurfaceProxyView11SkAlphaType5sk_spI17GrColorSpaceXformE12SkFilterMode12SkMipmapModeRK8SkRGBA4fILS5_2EENS1_8SaturateE11SkBlendMode8GrAATypeP8DrawQuadPK6SkRect",
+        "allocatedMiB": 8.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 7.0
+      },
+      {
+        "path": "_ZN11SkTDStorage7reserveEi",
+        "allocatedMiB": 8.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 7.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.DrawerHeader.updateDrawerHeader",
+        "allocatedMiB": 7.8572845458984375,
+        "liveAtTraceEndMiB": 3.4078216552734375,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN8SkCanvasC2ERK7SkIRect",
+        "allocatedMiB": 7.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 6.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.listvalidation.ComplexMediaDragAudit.field",
+        "allocatedMiB": 7.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 7.0
+      },
+      {
+        "path": "_ZN7GrGLGpu13uploadTexDataE7SkISizej7SkIRectjjmPK10GrMipLeveli",
+        "allocatedMiB": 7.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 6.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.helpers.DebugFileLogger.log$lambda$1",
+        "allocatedMiB": 7.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 7.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh6Device4MakeENSt3__110unique_ptrINS0_18SurfaceDrawContextENS2_14default_deleteIS4_EEEE11SkAlphaTypeNS1_12InitContentsE",
+        "allocatedMiB": 6.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 6.0
+      },
+      {
+        "path": "com.bumptech.glide.load.engine.bitmap_recycle.LruBitmapPool.get",
+        "allocatedMiB": 6.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 6.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh18SurfaceDrawContext14fillRectToRectEPK6GrClipO7GrPaint4GrAARK8SkMatrixRK6SkRectSD_",
+        "allocatedMiB": 6.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 6.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.database.ThingDAO.create",
+        "allocatedMiB": 5.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN7android10uirenderer12skiapipeline18SkiaOpenGLPipeline10setSurfaceEP13ANativeWindowNS0_12renderthread12SwapBehaviorEi",
+        "allocatedMiB": 5.0,
+        "liveAtTraceEndMiB": 5.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.listvalidation.MediaMemoryAudit.snapshot",
+        "allocatedMiB": 5.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 4.0
+      },
+      {
+        "path": "_ZN12skia_private10THashTableIP14GrTextureProxyN5skgpu9UniqueKeyEN14SkTDynamicHashIS1_S4_N15GrProxyProvider28UniquelyKeyedProxyHashTraitsEE13AdaptedTraitsEE6resizeEi",
+        "allocatedMiB": 5.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 5.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh18SurfaceDrawContext14drawFastShadowEPK6GrClipRK8SkMatrixRK6SkPathRK15SkDrawShadowRec",
+        "allocatedMiB": 5.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 5.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleForegroundSurface.refresh",
+        "allocatedMiB": 4.72406005859375,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 4.72406005859375
+      },
+      {
+        "path": "com.ywwynm.everythingdone.database.ThingDAO.updateHeader",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZN15GrOpsRenderPass12bindPipelineERK13GrProgramInfoRK6SkRect",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 3.0,
+        "dragAllocatedMiB": 3.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.InterceptTouchCardView.onMeasure",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 4.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.ActivityHeader.shouldUseCompactCollapsedFolderTitle",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 4.0
+      },
+      {
+        "path": "_ZN10SkSurfaces23WrapBackendRenderTargetEP18GrRecordingContextRK21GrBackendRenderTarget15GrSurfaceOrigin11SkColorType5sk_spI12SkColorSpaceEPK14SkSurfacePropsPFvPvESD_",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 4.0
+      },
+      {
+        "path": "_ZN8SkCanvas4initE5sk_spI8SkDeviceE",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 4.0
+      },
+      {
+        "path": "_ZN16GrGLRenderTarget11MakeWrappedEP7GrGLGpuRK7SkISize10GrGLFormatiRKNS_3IDsEiN5skgpu9ProtectedENSt3__117basic_string_viewIcNSB_11char_traitsIcEEEE",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 4.0
+      },
+      {
+        "path": "_ZN7GrGLGpu18beginCommandBufferEP16GrGLRenderTargetbRK7SkIRect15GrSurfaceOriginRKN15GrOpsRenderPass16LoadAndStoreInfoERKNS6_23StencilLoadAndStoreInfoE",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 2.0
+      },
+      {
+        "path": "_ZN6sktext3gpu8TextBlob4MakeERKNS_12GlyphRunListERK7SkPaintRK8SkMatrix18SkStrikeDeviceInfoPNS_26StrikeForGPUCacheInterfaceE",
+        "allocatedMiB": 4.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 4.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.activities.EverythingDoneBaseActivity.onCreate",
+        "allocatedMiB": 3.7587890625,
+        "liveAtTraceEndMiB": 1.1962890625,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.database.ThingFolderDAO.getChildFolders",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZNK19SkTypeface_FreeType10getFaceRecEv",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 3.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleGl.createContext",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 3.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleForegroundSurface.initialise",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 3.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh18SurfaceDrawContext9drawRRectEPK6GrClipO7GrPaint4GrAARK8SkMatrixRK7SkRRectRK7GrStyle",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 3.0
+      },
+      {
+        "path": "_ZN5skgpu6ganesh18SurfaceDrawContext16drawTexturedQuadEPK6GrClip18GrSurfaceProxyView11SkAlphaType5sk_spI17GrColorSpaceXformE12SkFilterMode12SkMipmapModeRK8SkRGBA4fILS6_2EE11SkBlendModeP8DrawQuadPK6SkRect",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 3.0
+      },
+      {
+        "path": "_ZN15GrProxyProvider21createProxyFromBitmapERK8SkBitmapN5skgpu9MipmappedE12SkBackingFitNS3_8BudgetedE",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 3.0
+      },
+      {
+        "path": "com.bumptech.glide.disklrucache.DiskLruCache.flushWriter",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 3.0
+      },
+      {
+        "path": "_ZNSt3__110__function6__funcIZN5skgpu6ganesh18SurfaceDrawContext16drawGlyphRunListEP8SkCanvasPK6GrClipRK8SkMatrixRKN6sktext12GlyphRunListE18SkStrikeDeviceInfoRK7SkPaintE3$_1NS_9allocatorISL_EEFvPKNSD_3gpu11AtlasSubRunE7SkPointSK_5sk_spI8SkRefCntENSO_12RendererDataEEEclEOSR_OSS_SK_OSV_OSW_.__uniq.126963779068130672566403203175510579496.f5be48746ebfc98e8279f51592224127",
+        "allocatedMiB": 3.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 3.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleHardwareSnapshot.capture$lambda$28",
+        "allocatedMiB": 2.5477447509765625,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 2.5477447509765625
+      },
+      {
+        "path": "com.ywwynm.everythingdone.database.ThingDAO.getThingsForDisplay",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.helpers.AlarmHelper.createAllAlarms",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.activities.UiInteractionActivity.setTheme",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.utils.DisplayUtil.opaqueTintDrawable",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.ThingFilterPanel.applyTypeButtonVisual",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleDriftRenderer$Companion.read",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleDriftRenderer$Companion.compile",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.FloatingActionButton.onDraw",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 2.0
+      },
+      {
+        "path": "com.bumptech.glide.load.engine.bitmap_recycle.SizeConfigStrategy.get",
+        "allocatedMiB": 2.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleGlCardHandoff$Companion.prepareTogether$lambda$10",
+        "allocatedMiB": 1.2738723754882812,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.2738723754882812
+      },
+      {
+        "path": "com.ywwynm.everythingdone.database.ThingDAO.recreateHeader",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.model.ThingsCounts.checkSelf",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.listvalidation.ListIdentityProbe.onStart$lambda$35",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.model.ThingsCounts.setCounts",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.interaction.UiInteractions.installWindow",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.App.defaultAccentBackground_delegate$lambda$9",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.ThingBackgroundEditor.<init>",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.DrawerNavigationView.<init>",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.DrawerNavigationView$DrawerItemHolder.createIconDrawable",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "_ZNK22SkFontScanner_FreeType12scanInstanceEP13SkStreamAssetiiP8SkStringP11SkFontStylePbPN12skia_private7STArrayILi4EN13SkFontScanner14AxisDefinitionELb1EEE",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleGlBitmapRenderer.<init>",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleDriftRenderer$Companion.link",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.model.Thing.<init>",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.particledismiss.ParticleGlBitmapRenderer.copyImportedTexture",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.adapters.ThingsAdapter.onCreateViewHolder",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN7android10uirenderer15RecordingCanvas11onDrawRRectERK7SkRRectRK7SkPaint",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN12skia_private10THashTableI13SkGlyphDigest15SkPackedGlyphIDS1_E6resizeEi",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 1.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.managers.ThingListOverlayDragController$updateAutoScroll$1.run",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN6sktext15GlyphRunBuilder18blobToGlyphRunListERK10SkTextBlob7SkPoint",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.ThingCardChecklistView.bind",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.bumptech.glide.load.resource.gif.GifDrawable.draw",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.helpers.AttachmentHelper.getImageAttachmentCountStr",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN7android12SkMatrixGlue9mapPointsEP7_JNIEnvP8_jobjectlP12_jfloatArrayiS6_iih",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "com.bumptech.glide.load.model.AssetUriLoader.handles",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 1.0
+      },
+      {
+        "path": "_ZN18GrResourceProvider24findAndRefScratchTextureE7SkISizeRK15GrBackendFormat13GrTextureTypeN5skgpu10RenderableEiNS5_9MipmappedENS5_9ProtectedENSt3__117basic_string_viewIcNS9_11char_traitsIcEEEE",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.views.ThingsStaggeredLayoutManager.onLayoutChildren",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      },
+      {
+        "path": "com.ywwynm.everythingdone.listvalidation.ListIdentityProbe.graphicsMemory",
+        "allocatedMiB": 1.0,
+        "liveAtTraceEndMiB": 0.0,
+        "dragAllocatedMiB": 0.0
+      }
+    ]
+  }
+]

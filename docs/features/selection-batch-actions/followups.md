@@ -1,5 +1,9 @@
 # Selection Batch Actions Followups
 
+## 连续完成／恢复／删除偶发错删的后续复现
+
+2026-10-15 在三台授权 Android 设备上各执行两轮完整路径，未复现用户报告的 A 留下、B 消失；正式文件导入已验证重新分配本机 ID。暂不修改业务逻辑。若再次出现，需结合当时版本、连续录屏与动作目标身份，补充实际触发时序；不能据当前通过样本判断用户误操作。详见 [调查记录](identity-investigation-2026-10-15.md)。
+
 ## 清理未用的单选旧方法
 
 `ThingsActivity` 的 `toggleSelectedStickyEntry`、`toggleSelectedPrivateEntry`

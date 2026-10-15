@@ -46,6 +46,16 @@ object MediaCropBitmapRenderer {
         if (sourceWidth <= 0 || sourceHeight <= 0) return null
 
         val output = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
+        renderCropInto(source, output, crop)
+        return output
+    }
+
+    /** 调用方提供已清空的目标位图；静态烘焙和动图帧共用原有裁切数学。 */
+    internal fun renderCropInto(source: Bitmap, output: Bitmap, crop: Crop) {
+        val targetWidth = output.width
+        val targetHeight = output.height
+        val sourceWidth = source.width
+        val sourceHeight = source.height
         val sourceAspectRatio = normalizeSourceAspectRatio(crop.sourceAspectRatio)
         val cropSourceW: Float
         val cropSourceH: Float
@@ -89,7 +99,6 @@ object MediaCropBitmapRenderer {
         matrix.setScale(effectiveScale, effectiveScale)
         matrix.postTranslate(left, top)
         Canvas(output).drawBitmap(source, matrix, null)
-        return output
     }
 
     private fun getSourceBitmap(drawable: Drawable): Bitmap? {

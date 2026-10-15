@@ -1,0 +1,9 @@
+gradle.beforeProject { project ->
+    if (project.path == ':app') {
+        project.plugins.withId('com.android.application') {
+            project.extensions.getByName('androidComponents').finalizeDsl { android ->
+                android.sourceSets.debug.assets.srcDir(project.rootProject.file('tmp/selection-transition-20261013/complex-assets'))
+            }
+        }
+    }
+}

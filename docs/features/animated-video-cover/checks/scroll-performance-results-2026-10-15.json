@@ -1,0 +1,5364 @@
+{
+  "date": "2026-10-15",
+  "overallNoRegressionConfirmed": false,
+  "productionCodeChangedThisRound": false,
+  "scopeDecision": {
+    "userInstruction": "先按已有结果整理",
+    "meizuRetestDeferredByUser": true,
+    "status": "已有结果已归档，魅族补测暂缓；不等待解锁后自动继续"
+  },
+  "fixture": {
+    "cards": 97,
+    "media": 80,
+    "animated": 48,
+    "checklistCards": 32,
+    "itemsPerChecklist": 96
+  },
+  "paired": {
+    "samsung": {
+      "legacy": {
+        "run": "perf-samsung-a2-1015",
+        "policy": "legacy",
+        "model": "SM-S9180",
+        "refreshRate": 120.00001,
+        "ok": true,
+        "seen": 98,
+        "mediaReady": 80,
+        "pssPeakMiB": 882.61,
+        "allIncludingScreenshotsPssPeakMiB": 882.61,
+        "nativePeakMiB": 289.73,
+        "javaPeakMiB": 102.66,
+        "memorySampleMs": {
+          "median": 34.24,
+          "p95": 39.468,
+          "p99": 40.582,
+          "max": 44.582
+        },
+        "groups": {
+          "normal-finger-down": {
+            "frames": 3918,
+            "seconds": 41.46,
+            "distancePx": 149394,
+            "totalMs": {
+              "median": 6.592,
+              "p95": 11.91,
+              "p99": 24.836,
+              "max": 53.893
+            },
+            "overDeadlinePct": 4.467,
+            "over50ms": 2,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.825,
+                "p95": 2.472,
+                "p99": 11.507,
+                "max": 46.137
+              },
+              "layout": {
+                "median": 0.243,
+                "p95": 0.351,
+                "p99": 0.592,
+                "max": 7.66
+              },
+              "draw": {
+                "median": 0.194,
+                "p95": 0.499,
+                "p99": 1.436,
+                "max": 5.533
+              },
+              "sync": {
+                "median": 0.135,
+                "p95": 0.22,
+                "p99": 0.297,
+                "max": 2.49
+              },
+              "gpu": {
+                "median": 1.837,
+                "p95": 3.139,
+                "p99": 4.862,
+                "max": 7.382
+              }
+            },
+            "timelineFrames": 3904,
+            "frameMetricsCoveragePct": 100.36,
+            "presentationGapMs": {
+              "median": 9.482,
+              "p95": 17.677,
+              "p99": 25.491,
+              "max": 49.754
+            },
+            "presentationGapsOver25ms": 41,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 94.16,
+            "timelineAppJankPct": 3.663,
+            "timelineAnyJankPct": 68.34,
+            "timelineLatePct": 68.34,
+            "pssPeakMiB": 827.99,
+            "pssMedianMiB": 682.72,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 13,
+            "changedGifObjects": 40,
+            "spinnerSamples": 37,
+            "pausedSamples": 154,
+            "samples": 231
+          },
+          "normal-finger-up": {
+            "frames": 3682,
+            "seconds": 41.48,
+            "distancePx": 149394,
+            "totalMs": {
+              "median": 7.112,
+              "p95": 12.331,
+              "p99": 23.216,
+              "max": 56.795
+            },
+            "overDeadlinePct": 6.111,
+            "over50ms": 1,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.865,
+                "p95": 2.203,
+                "p99": 10.183,
+                "max": 50.761
+              },
+              "layout": {
+                "median": 0.231,
+                "p95": 0.339,
+                "p99": 0.573,
+                "max": 5.236
+              },
+              "draw": {
+                "median": 0.166,
+                "p95": 0.303,
+                "p99": 1.242,
+                "max": 4.243
+              },
+              "sync": {
+                "median": 0.144,
+                "p95": 0.24,
+                "p99": 0.375,
+                "max": 7.56
+              },
+              "gpu": {
+                "median": 2.047,
+                "p95": 3.949,
+                "p99": 5.757,
+                "max": 15.129
+              }
+            },
+            "timelineFrames": 3674,
+            "frameMetricsCoveragePct": 100.22,
+            "presentationGapMs": {
+              "median": 9.642,
+              "p95": 17.983,
+              "p99": 25.445,
+              "max": 52.975
+            },
+            "presentationGapsOver25ms": 38,
+            "presentationGapsOver50ms": 1,
+            "presentedFramesPerSecond": 88.58,
+            "timelineAppJankPct": 4.164,
+            "timelineAnyJankPct": 63.664,
+            "timelineLatePct": 63.664,
+            "pssPeakMiB": 774.47,
+            "pssMedianMiB": 725.69,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 34,
+            "changedGifObjects": 46,
+            "spinnerSamples": 0,
+            "pausedSamples": 154,
+            "samples": 231
+          },
+          "normal-fling-down-input": {
+            "frames": 73,
+            "seconds": 0.73,
+            "distancePx": null,
+            "totalMs": {
+              "median": 7.019,
+              "p95": 18.61,
+              "p99": 37.319,
+              "max": 47.473
+            },
+            "overDeadlinePct": 16.438,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.713,
+                "p95": 7.5,
+                "p99": 31.448,
+                "max": 40.94
+              },
+              "layout": {
+                "median": 0.181,
+                "p95": 1.647,
+                "p99": 2.157,
+                "max": 2.306
+              },
+              "draw": {
+                "median": 0.133,
+                "p95": 0.999,
+                "p99": 2.459,
+                "max": 2.781
+              },
+              "sync": {
+                "median": 0.112,
+                "p95": 0.181,
+                "p99": 0.221,
+                "max": 0.234
+              },
+              "gpu": {
+                "median": 1.746,
+                "p95": 3.498,
+                "p99": 4.38,
+                "max": 5.109
+              }
+            },
+            "timelineFrames": 73,
+            "frameMetricsCoveragePct": 100.0,
+            "presentationGapMs": {
+              "median": 7.7,
+              "p95": 16.853,
+              "p99": 36.369,
+              "max": 44.606
+            },
+            "presentationGapsOver25ms": 2,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 100.02,
+            "timelineAppJankPct": 12.329,
+            "timelineAnyJankPct": 76.712,
+            "timelineLatePct": 76.712,
+            "pssPeakMiB": 0.0,
+            "pssMedianMiB": 0.0,
+            "seenCards": 0,
+            "readyCards": 0,
+            "playingSamples": 0,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 0
+          },
+          "normal-fling-down": {
+            "frames": 2351,
+            "seconds": 19.66,
+            "distancePx": 149394,
+            "totalMs": {
+              "median": 17.055,
+              "p95": 25.416,
+              "p99": 25.672,
+              "max": 39.862
+            },
+            "overDeadlinePct": 0.0,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.756,
+                "p95": 1.3,
+                "p99": 8.299,
+                "max": 33.268
+              },
+              "layout": {
+                "median": 0.182,
+                "p95": 0.252,
+                "p99": 0.369,
+                "max": 3.72
+              },
+              "draw": {
+                "median": 0.105,
+                "p95": 0.195,
+                "p99": 1.407,
+                "max": 3.241
+              },
+              "sync": {
+                "median": 0.107,
+                "p95": 0.172,
+                "p99": 0.251,
+                "max": 0.472
+              },
+              "gpu": {
+                "median": 4.026,
+                "p95": 12.496,
+                "p99": 14.335,
+                "max": 17.358
+              }
+            },
+            "timelineFrames": 2351,
+            "frameMetricsCoveragePct": 100.0,
+            "presentationGapMs": {
+              "median": 8.336,
+              "p95": 8.712,
+              "p99": 12.558,
+              "max": 31.148
+            },
+            "presentationGapsOver25ms": 2,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 119.6,
+            "timelineAppJankPct": 0.128,
+            "timelineAnyJankPct": 100.0,
+            "timelineLatePct": 100.0,
+            "pssPeakMiB": 712.59,
+            "pssMedianMiB": 608.53,
+            "seenCards": 97,
+            "readyCards": 18,
+            "playingSamples": 2,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 97,
+            "samples": 106
+          },
+          "normal-fling-up-input": {
+            "frames": 78,
+            "seconds": 0.78,
+            "distancePx": null,
+            "totalMs": {
+              "median": 8.631,
+              "p95": 24.79,
+              "p99": 28.534,
+              "max": 32.034
+            },
+            "overDeadlinePct": 12.821,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.712,
+                "p95": 13.985,
+                "p99": 18.497,
+                "max": 19.03
+              },
+              "layout": {
+                "median": 0.142,
+                "p95": 1.435,
+                "p99": 3.792,
+                "max": 4.235
+              },
+              "draw": {
+                "median": 0.127,
+                "p95": 1.052,
+                "p99": 1.407,
+                "max": 1.449
+              },
+              "sync": {
+                "median": 0.106,
+                "p95": 0.229,
+                "p99": 0.561,
+                "max": 0.97
+              },
+              "gpu": {
+                "median": 1.915,
+                "p95": 4.993,
+                "p99": 7.902,
+                "max": 12.515
+              }
+            },
+            "timelineFrames": 78,
+            "frameMetricsCoveragePct": 100.0,
+            "presentationGapMs": {
+              "median": 8.293,
+              "p95": 22.46,
+              "p99": 37.271,
+              "max": 42.61
+            },
+            "presentationGapsOver25ms": 4,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 100.57,
+            "timelineAppJankPct": 11.538,
+            "timelineAnyJankPct": 92.308,
+            "timelineLatePct": 92.308,
+            "pssPeakMiB": 0.0,
+            "pssMedianMiB": 0.0,
+            "seenCards": 0,
+            "readyCards": 0,
+            "playingSamples": 0,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 0
+          },
+          "normal-fling-up": {
+            "frames": 2298,
+            "seconds": 19.22,
+            "distancePx": 149394,
+            "totalMs": {
+              "median": 17.049,
+              "p95": 25.889,
+              "p99": 26.204,
+              "max": 41.244
+            },
+            "overDeadlinePct": 0.305,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.771,
+                "p95": 1.739,
+                "p99": 8.089,
+                "max": 33.924
+              },
+              "layout": {
+                "median": 0.164,
+                "p95": 0.232,
+                "p99": 1.096,
+                "max": 30.126
+              },
+              "draw": {
+                "median": 0.107,
+                "p95": 0.236,
+                "p99": 1.277,
+                "max": 2.792
+              },
+              "sync": {
+                "median": 0.111,
+                "p95": 0.178,
+                "p99": 0.259,
+                "max": 1.199
+              },
+              "gpu": {
+                "median": 3.958,
+                "p95": 14.086,
+                "p99": 14.821,
+                "max": 16.057
+              }
+            },
+            "timelineFrames": 2297,
+            "frameMetricsCoveragePct": 100.04,
+            "presentationGapMs": {
+              "median": 8.337,
+              "p95": 8.764,
+              "p99": 13.178,
+              "max": 32.483
+            },
+            "presentationGapsOver25ms": 4,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 119.49,
+            "timelineAppJankPct": 0.305,
+            "timelineAnyJankPct": 99.913,
+            "timelineLatePct": 99.913,
+            "pssPeakMiB": 629.82,
+            "pssMedianMiB": 596.8,
+            "seenCards": 95,
+            "readyCards": 16,
+            "playingSamples": 3,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 96,
+            "samples": 103
+          },
+          "selection-finger-down": {
+            "frames": 2549,
+            "seconds": 40.91,
+            "distancePx": 149394,
+            "totalMs": {
+              "median": 6.284,
+              "p95": 13.542,
+              "p99": 24.374,
+              "max": 53.916
+            },
+            "overDeadlinePct": 8.317,
+            "over50ms": 2,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.752,
+                "p95": 2.224,
+                "p99": 11.506,
+                "max": 45.644
+              },
+              "layout": {
+                "median": 0.238,
+                "p95": 0.349,
+                "p99": 1.506,
+                "max": 6.136
+              },
+              "draw": {
+                "median": 0.161,
+                "p95": 0.284,
+                "p99": 1.703,
+                "max": 6.309
+              },
+              "sync": {
+                "median": 0.179,
+                "p95": 0.286,
+                "p99": 0.388,
+                "max": 3.932
+              },
+              "gpu": {
+                "median": 2.24,
+                "p95": 3.102,
+                "p99": 4.021,
+                "max": 7.538
+              }
+            },
+            "timelineFrames": 2545,
+            "frameMetricsCoveragePct": 100.16,
+            "presentationGapMs": {
+              "median": 16.488,
+              "p95": 19.646,
+              "p99": 32.04,
+              "max": 53.474
+            },
+            "presentationGapsOver25ms": 63,
+            "presentationGapsOver50ms": 1,
+            "presentedFramesPerSecond": 62.21,
+            "timelineAppJankPct": 5.501,
+            "timelineAnyJankPct": 12.849,
+            "timelineLatePct": 12.849,
+            "pssPeakMiB": 766.84,
+            "pssMedianMiB": 705.64,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 30,
+            "changedGifObjects": 44,
+            "spinnerSamples": 0,
+            "pausedSamples": 152,
+            "samples": 228
+          },
+          "selection-fling-up-input": {
+            "frames": 76,
+            "seconds": 0.76,
+            "distancePx": null,
+            "totalMs": {
+              "median": 7.371,
+              "p95": 18.459,
+              "p99": 21.89,
+              "max": 22.385
+            },
+            "overDeadlinePct": 10.526,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.758,
+                "p95": 7.708,
+                "p99": 14.61,
+                "max": 14.961
+              },
+              "layout": {
+                "median": 0.169,
+                "p95": 0.889,
+                "p99": 3.079,
+                "max": 4.594
+              },
+              "draw": {
+                "median": 0.13,
+                "p95": 0.975,
+                "p99": 1.936,
+                "max": 2.396
+              },
+              "sync": {
+                "median": 0.135,
+                "p95": 0.382,
+                "p99": 0.971,
+                "max": 1.218
+              },
+              "gpu": {
+                "median": 2.306,
+                "p95": 5.06,
+                "p99": 7.014,
+                "max": 8.029
+              }
+            },
+            "timelineFrames": 76,
+            "frameMetricsCoveragePct": 100.0,
+            "presentationGapMs": {
+              "median": 8.191,
+              "p95": 19.155,
+              "p99": 28.926,
+              "max": 30.02
+            },
+            "presentationGapsOver25ms": 3,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 99.88,
+            "timelineAppJankPct": 7.895,
+            "timelineAnyJankPct": 81.579,
+            "timelineLatePct": 81.579,
+            "pssPeakMiB": 0.0,
+            "pssMedianMiB": 0.0,
+            "seenCards": 0,
+            "readyCards": 0,
+            "playingSamples": 0,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 0
+          },
+          "selection-fling-up": {
+            "frames": 2286,
+            "seconds": 19.12,
+            "distancePx": 149394,
+            "totalMs": {
+              "median": 17.117,
+              "p95": 17.662,
+              "p99": 18.048,
+              "max": 25.742
+            },
+            "overDeadlinePct": 0.044,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.679,
+                "p95": 1.037,
+                "p99": 4.775,
+                "max": 18.938
+              },
+              "layout": {
+                "median": 0.163,
+                "p95": 0.227,
+                "p99": 1.056,
+                "max": 3.982
+              },
+              "draw": {
+                "median": 0.098,
+                "p95": 0.221,
+                "p99": 1.371,
+                "max": 2.209
+              },
+              "sync": {
+                "median": 0.119,
+                "p95": 0.196,
+                "p99": 0.282,
+                "max": 0.703
+              },
+              "gpu": {
+                "median": 4.481,
+                "p95": 6.141,
+                "p99": 6.708,
+                "max": 9.196
+              }
+            },
+            "timelineFrames": 2286,
+            "frameMetricsCoveragePct": 100.0,
+            "presentationGapMs": {
+              "median": 8.333,
+              "p95": 8.686,
+              "p99": 11.427,
+              "max": 33.821
+            },
+            "presentationGapsOver25ms": 3,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 119.55,
+            "timelineAppJankPct": 0.0,
+            "timelineAnyJankPct": 99.825,
+            "timelineLatePct": 99.825,
+            "pssPeakMiB": 681.28,
+            "pssMedianMiB": 658.45,
+            "seenCards": 95,
+            "readyCards": 24,
+            "playingSamples": 1,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 96,
+            "samples": 103
+          },
+          "card-drag-down": {
+            "frames": 5373,
+            "seconds": 45.23,
+            "distancePx": 149394,
+            "totalMs": {
+              "median": 6.676,
+              "p95": 10.143,
+              "p99": 17.45,
+              "max": 43.025
+            },
+            "overDeadlinePct": 0.707,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.702,
+                "p95": 1.386,
+                "p99": 4.691,
+                "max": 31.641
+              },
+              "layout": {
+                "median": 0.311,
+                "p95": 2.16,
+                "p99": 2.799,
+                "max": 8.618
+              },
+              "draw": {
+                "median": 0.238,
+                "p95": 0.499,
+                "p99": 0.821,
+                "max": 3.151
+              },
+              "sync": {
+                "median": 0.156,
+                "p95": 0.266,
+                "p99": 0.38,
+                "max": 3.137
+              },
+              "gpu": {
+                "median": 2.32,
+                "p95": 5.369,
+                "p99": 6.898,
+                "max": 8.223
+              }
+            },
+            "timelineFrames": 5373,
+            "frameMetricsCoveragePct": 100.0,
+            "presentationGapMs": {
+              "median": 8.311,
+              "p95": 10.798,
+              "p99": 16.831,
+              "max": 45.309
+            },
+            "presentationGapsOver25ms": 17,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 118.78,
+            "timelineAppJankPct": 0.67,
+            "timelineAnyJankPct": 96.482,
+            "timelineLatePct": 96.482,
+            "pssPeakMiB": 866.63,
+            "pssMedianMiB": 799.99,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 362,
+            "changedGifObjects": 48,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 219
+          },
+          "card-drag-up": {
+            "frames": 5186,
+            "seconds": 43.66,
+            "distancePx": 149394,
+            "totalMs": {
+              "median": 7.172,
+              "p95": 17.677,
+              "p99": 18.897,
+              "max": 37.235
+            },
+            "overDeadlinePct": 0.675,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.718,
+                "p95": 1.532,
+                "p99": 4.708,
+                "max": 24.963
+              },
+              "layout": {
+                "median": 0.271,
+                "p95": 2.012,
+                "p99": 3.221,
+                "max": 8.319
+              },
+              "draw": {
+                "median": 0.23,
+                "p95": 0.486,
+                "p99": 0.942,
+                "max": 3.863
+              },
+              "sync": {
+                "median": 0.159,
+                "p95": 0.264,
+                "p99": 0.438,
+                "max": 2.999
+              },
+              "gpu": {
+                "median": 2.576,
+                "p95": 12.34,
+                "p99": 13.997,
+                "max": 15.796
+              }
+            },
+            "timelineFrames": 5186,
+            "frameMetricsCoveragePct": 100.0,
+            "presentationGapMs": {
+              "median": 8.336,
+              "p95": 10.726,
+              "p99": 15.989,
+              "max": 38.585
+            },
+            "presentationGapsOver25ms": 9,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 118.79,
+            "timelineAppJankPct": 0.694,
+            "timelineAnyJankPct": 95.006,
+            "timelineLatePct": 95.006,
+            "pssPeakMiB": 882.61,
+            "pssMedianMiB": 824.74,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 344,
+            "changedGifObjects": 48,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 212
+          }
+        },
+        "originalUnchanged": true,
+        "apkSha256": "e62350fa5f1e59de930568996d12124d240df1de9bb91b902e945c88ceffee27",
+        "snapshots": [
+          {
+            "phase": "perf-after-finger",
+            "pssMiB": 714.8,
+            "aliveLoaders": 3,
+            "runningLoaders": 1,
+            "knownGifFrameBitmapBytes": 19554000,
+            "pool": {
+              "hits": 2347,
+              "misses": 156,
+              "puts": 2490,
+              "evictions": 135,
+              "currentSize": 29611440,
+              "maxSize": 35573760
+            }
+          },
+          {
+            "phase": "perf-after-fling",
+            "pssMiB": 600.76,
+            "aliveLoaders": 3,
+            "runningLoaders": 1,
+            "knownGifFrameBitmapBytes": 15585000,
+            "pool": {
+              "hits": 2630,
+              "misses": 197,
+              "puts": 2805,
+              "evictions": 161,
+              "currentSize": 26770800,
+              "maxSize": 35573760
+            }
+          },
+          {
+            "phase": "perf-settled",
+            "pssMiB": 798.86,
+            "aliveLoaders": 3,
+            "runningLoaders": 1,
+            "knownGifFrameBitmapBytes": 19554000,
+            "pool": {
+              "hits": 11993,
+              "misses": 487,
+              "puts": 12454,
+              "evictions": 453,
+              "currentSize": 26371800,
+              "maxSize": 35573760
+            }
+          },
+          {
+            "phase": "after-drag",
+            "pssMiB": 779.36,
+            "aliveLoaders": 3,
+            "runningLoaders": 1,
+            "knownGifFrameBitmapBytes": 19554000,
+            "pool": {
+              "hits": 12085,
+              "misses": 487,
+              "puts": 12546,
+              "evictions": 453,
+              "currentSize": 26371800,
+              "maxSize": 35573760
+            }
+          },
+          {
+            "phase": "activity-finished",
+            "pssMiB": 486.18,
+            "aliveLoaders": 3,
+            "runningLoaders": 0,
+            "knownGifFrameBitmapBytes": 19554000,
+            "pool": {
+              "hits": 12129,
+              "misses": 487,
+              "puts": 12590,
+              "evictions": 453,
+              "currentSize": 26371800,
+              "maxSize": 35573760
+            }
+          }
+        ],
+        "beforeEnvironment": {
+          "batteryC": 37.6,
+          "thermalStatus": 0
+        },
+        "afterEnvironment": {
+          "batteryC": 38.1,
+          "thermalStatus": 0
+        },
+        "measurementLimits": []
+      },
+      "continuous": {
+        "run": "perf-samsung-b1-1015",
+        "policy": "continuous",
+        "model": "SM-S9180",
+        "refreshRate": 120.00001,
+        "ok": true,
+        "seen": 98,
+        "mediaReady": 80,
+        "pssPeakMiB": 897.2,
+        "allIncludingScreenshotsPssPeakMiB": 897.2,
+        "nativePeakMiB": 299.27,
+        "javaPeakMiB": 119.12,
+        "memorySampleMs": {
+          "median": 31.951,
+          "p95": 38.324,
+          "p99": 43.342,
+          "max": 49.141
+        },
+        "groups": {
+          "normal-finger-down": {
+            "frames": 3901,
+            "seconds": 40.79,
+            "distancePx": 149394,
+            "totalMs": {
+              "median": 6.011,
+              "p95": 11.785,
+              "p99": 21.676,
+              "max": 43.122
+            },
+            "overDeadlinePct": 4.871,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.71,
+                "p95": 2.146,
+                "p99": 9.49,
+                "max": 33.867
+              },
+              "layout": {
+                "median": 0.218,
+                "p95": 0.375,
+                "p99": 1.47,
+                "max": 9.579
+              },
+              "draw": {
+                "median": 0.171,
+                "p95": 0.391,
+                "p99": 1.218,
+                "max": 3.326
+              },
+              "sync": {
+                "median": 0.144,
+                "p95": 0.249,
+                "p99": 0.34,
+                "max": 3.13
+              },
+              "gpu": {
+                "median": 1.82,
+                "p95": 2.953,
+                "p99": 4.077,
+                "max": 7.115
+              }
+            },
+            "timelineFrames": 3895,
+            "frameMetricsCoveragePct": 100.15,
+            "presentationGapMs": {
+              "median": 8.987,
+              "p95": 18.227,
+              "p99": 25.171,
+              "max": 55.062
+            },
+            "presentationGapsOver25ms": 40,
+            "presentationGapsOver50ms": 1,
+            "presentedFramesPerSecond": 95.5,
+            "timelineAppJankPct": 3.594,
+            "timelineAnyJankPct": 56.38,
+            "timelineLatePct": 56.38,
+            "pssPeakMiB": 858.98,
+            "pssMedianMiB": 762.53,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 262,
+            "changedGifObjects": 48,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 228
+          },
+          "normal-finger-up": {
+            "frames": 3873,
+            "seconds": 40.79,
+            "distancePx": 149394,
+            "totalMs": {
+              "median": 6.42,
+              "p95": 10.952,
+              "p99": 20.297,
+              "max": 39.516
+            },
+            "overDeadlinePct": 5.061,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.73,
+                "p95": 1.994,
+                "p99": 7.442,
+                "max": 34.835
+              },
+              "layout": {
+                "median": 0.201,
+                "p95": 0.331,
+                "p99": 0.76,
+                "max": 5.934
+              },
+              "draw": {
+                "median": 0.154,
+                "p95": 0.33,
+                "p99": 1.083,
+                "max": 3.288
+              },
+              "sync": {
+                "median": 0.153,
+                "p95": 0.251,
+                "p99": 0.361,
+                "max": 6.992
+              },
+              "gpu": {
+                "median": 2.0,
+                "p95": 4.095,
+                "p99": 6.294,
+                "max": 11.299
+              }
+            },
+            "timelineFrames": 3870,
+            "frameMetricsCoveragePct": 100.08,
+            "presentationGapMs": {
+              "median": 8.949,
+              "p95": 18.156,
+              "p99": 23.085,
+              "max": 42.539
+            },
+            "presentationGapsOver25ms": 28,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 94.88,
+            "timelineAppJankPct": 3.566,
+            "timelineAnyJankPct": 53.824,
+            "timelineLatePct": 53.824,
+            "pssPeakMiB": 841.87,
+            "pssMedianMiB": 776.41,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 256,
+            "changedGifObjects": 48,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 228
+          },
+          "normal-fling-down-input": {
+            "frames": 77,
+            "seconds": 0.75,
+            "distancePx": null,
+            "totalMs": {
+              "median": 6.38,
+              "p95": 20.24,
+              "p99": 29.708,
+              "max": 34.144
+            },
+            "overDeadlinePct": 9.091,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.671,
+                "p95": 4.14,
+                "p99": 14.803,
+                "max": 23.966
+              },
+              "layout": {
+                "median": 0.172,
+                "p95": 0.371,
+                "p99": 1.477,
+                "max": 2.683
+              },
+              "draw": {
+                "median": 0.127,
+                "p95": 0.277,
+                "p99": 0.679,
+                "max": 0.774
+              },
+              "sync": {
+                "median": 0.138,
+                "p95": 0.236,
+                "p99": 0.31,
+                "max": 0.338
+              },
+              "gpu": {
+                "median": 1.792,
+                "p95": 6.121,
+                "p99": 12.918,
+                "max": 14.8
+              }
+            },
+            "timelineFrames": 77,
+            "frameMetricsCoveragePct": 100.0,
+            "presentationGapMs": {
+              "median": 7.905,
+              "p95": 12.306,
+              "p99": 18.947,
+              "max": 25.405
+            },
+            "presentationGapsOver25ms": 1,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 103.24,
+            "timelineAppJankPct": 6.494,
+            "timelineAnyJankPct": 83.117,
+            "timelineLatePct": 83.117,
+            "pssPeakMiB": 0.0,
+            "pssMedianMiB": 0.0,
+            "seenCards": 0,
+            "readyCards": 0,
+            "playingSamples": 0,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 0
+          },
+          "normal-fling-down": {
+            "frames": 2292,
+            "seconds": 19.18,
+            "distancePx": 149394,
+            "totalMs": {
+              "median": 17.687,
+              "p95": 26.384,
+              "p99": 26.656,
+              "max": 39.591
+            },
+            "overDeadlinePct": 0.044,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.966,
+                "p95": 3.625,
+                "p99": 8.902,
+                "max": 31.977
+              },
+              "layout": {
+                "median": 0.187,
+                "p95": 0.317,
+                "p99": 1.597,
+                "max": 6.116
+              },
+              "draw": {
+                "median": 0.129,
+                "p95": 0.317,
+                "p99": 1.524,
+                "max": 4.001
+              },
+              "sync": {
+                "median": 0.137,
+                "p95": 0.241,
+                "p99": 0.368,
+                "max": 3.682
+              },
+              "gpu": {
+                "median": 5.841,
+                "p95": 14.652,
+                "p99": 15.479,
+                "max": 18.007
+              }
+            },
+            "timelineFrames": 2291,
+            "frameMetricsCoveragePct": 100.04,
+            "presentationGapMs": {
+              "median": 8.338,
+              "p95": 8.781,
+              "p99": 11.506,
+              "max": 29.148
+            },
+            "presentationGapsOver25ms": 1,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 119.47,
+            "timelineAppJankPct": 0.044,
+            "timelineAnyJankPct": 99.869,
+            "timelineLatePct": 99.869,
+            "pssPeakMiB": 843.67,
+            "pssMedianMiB": 779.18,
+            "seenCards": 95,
+            "readyCards": 78,
+            "playingSamples": 150,
+            "changedGifObjects": 31,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 99
+          },
+          "normal-fling-up-input": {
+            "frames": 74,
+            "seconds": 0.75,
+            "distancePx": null,
+            "totalMs": {
+              "median": 8.352,
+              "p95": 21.353,
+              "p99": 27.049,
+              "max": 27.154
+            },
+            "overDeadlinePct": 8.108,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.668,
+                "p95": 9.369,
+                "p99": 15.689,
+                "max": 16.464
+              },
+              "layout": {
+                "median": 0.156,
+                "p95": 1.149,
+                "p99": 2.895,
+                "max": 4.283
+              },
+              "draw": {
+                "median": 0.146,
+                "p95": 0.611,
+                "p99": 0.922,
+                "max": 1.257
+              },
+              "sync": {
+                "median": 0.127,
+                "p95": 0.3,
+                "p99": 0.4,
+                "max": 0.465
+              },
+              "gpu": {
+                "median": 1.977,
+                "p95": 6.229,
+                "p99": 13.994,
+                "max": 16.071
+              }
+            },
+            "timelineFrames": 74,
+            "frameMetricsCoveragePct": 100.0,
+            "presentationGapMs": {
+              "median": 8.328,
+              "p95": 11.231,
+              "p99": 16.794,
+              "max": 20.106
+            },
+            "presentationGapsOver25ms": 0,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 98.55,
+            "timelineAppJankPct": 8.108,
+            "timelineAnyJankPct": 91.892,
+            "timelineLatePct": 91.892,
+            "pssPeakMiB": 0.0,
+            "pssMedianMiB": 0.0,
+            "seenCards": 0,
+            "readyCards": 0,
+            "playingSamples": 0,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 0
+          },
+          "normal-fling-up": {
+            "frames": 2311,
+            "seconds": 19.29,
+            "distancePx": 149394,
+            "totalMs": {
+              "median": 18.343,
+              "p95": 26.592,
+              "p99": 26.832,
+              "max": 37.617
+            },
+            "overDeadlinePct": 0.26,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 1.12,
+                "p95": 3.801,
+                "p99": 8.608,
+                "max": 27.773
+              },
+              "layout": {
+                "median": 0.172,
+                "p95": 0.294,
+                "p99": 1.48,
+                "max": 14.473
+              },
+              "draw": {
+                "median": 0.131,
+                "p95": 0.327,
+                "p99": 1.37,
+                "max": 3.772
+              },
+              "sync": {
+                "median": 0.14,
+                "p95": 0.241,
+                "p99": 0.457,
+                "max": 3.27
+              },
+              "gpu": {
+                "median": 8.452,
+                "p95": 14.638,
+                "p99": 15.359,
+                "max": 16.059
+              }
+            },
+            "timelineFrames": 2311,
+            "frameMetricsCoveragePct": 100.0,
+            "presentationGapMs": {
+              "median": 8.337,
+              "p95": 8.902,
+              "p99": 12.848,
+              "max": 28.331
+            },
+            "presentationGapsOver25ms": 1,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 119.8,
+            "timelineAppJankPct": 0.043,
+            "timelineAnyJankPct": 99.913,
+            "timelineLatePct": 99.913,
+            "pssPeakMiB": 836.2,
+            "pssMedianMiB": 799.09,
+            "seenCards": 94,
+            "readyCards": 77,
+            "playingSamples": 149,
+            "changedGifObjects": 31,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 98
+          },
+          "selection-finger-down": {
+            "frames": 3093,
+            "seconds": 40.81,
+            "distancePx": 149394,
+            "totalMs": {
+              "median": 6.058,
+              "p95": 11.589,
+              "p99": 20.245,
+              "max": 62.595
+            },
+            "overDeadlinePct": 8.018,
+            "over50ms": 1,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.715,
+                "p95": 1.962,
+                "p99": 8.172,
+                "max": 56.922
+              },
+              "layout": {
+                "median": 0.213,
+                "p95": 0.355,
+                "p99": 1.63,
+                "max": 5.802
+              },
+              "draw": {
+                "median": 0.165,
+                "p95": 0.335,
+                "p99": 1.407,
+                "max": 4.445
+              },
+              "sync": {
+                "median": 0.181,
+                "p95": 0.313,
+                "p99": 0.439,
+                "max": 4.415
+              },
+              "gpu": {
+                "median": 2.241,
+                "p95": 3.123,
+                "p99": 4.118,
+                "max": 6.187
+              }
+            },
+            "timelineFrames": 3088,
+            "frameMetricsCoveragePct": 100.16,
+            "presentationGapMs": {
+              "median": 12.709,
+              "p95": 19.676,
+              "p99": 29.901,
+              "max": 63.195
+            },
+            "presentationGapsOver25ms": 71,
+            "presentationGapsOver50ms": 3,
+            "presentedFramesPerSecond": 75.68,
+            "timelineAppJankPct": 5.764,
+            "timelineAnyJankPct": 15.285,
+            "timelineLatePct": 15.285,
+            "pssPeakMiB": 835.6,
+            "pssMedianMiB": 767.88,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 256,
+            "changedGifObjects": 48,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 228
+          },
+          "selection-fling-up-input": {
+            "frames": 76,
+            "seconds": 0.76,
+            "distancePx": null,
+            "totalMs": {
+              "median": 6.901,
+              "p95": 15.26,
+              "p99": 19.147,
+              "max": 19.979
+            },
+            "overDeadlinePct": 13.158,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.634,
+                "p95": 8.609,
+                "p99": 11.024,
+                "max": 14.873
+              },
+              "layout": {
+                "median": 0.159,
+                "p95": 1.003,
+                "p99": 1.767,
+                "max": 2.479
+              },
+              "draw": {
+                "median": 0.139,
+                "p95": 0.712,
+                "p99": 1.4,
+                "max": 1.692
+              },
+              "sync": {
+                "median": 0.148,
+                "p95": 0.346,
+                "p99": 0.603,
+                "max": 0.702
+              },
+              "gpu": {
+                "median": 2.279,
+                "p95": 6.056,
+                "p99": 8.133,
+                "max": 8.925
+              }
+            },
+            "timelineFrames": 75,
+            "frameMetricsCoveragePct": 101.33,
+            "presentationGapMs": {
+              "median": 7.968,
+              "p95": 18.602,
+              "p99": 35.412,
+              "max": 38.661
+            },
+            "presentationGapsOver25ms": 3,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 98.53,
+            "timelineAppJankPct": 10.667,
+            "timelineAnyJankPct": 74.667,
+            "timelineLatePct": 74.667,
+            "pssPeakMiB": 0.0,
+            "pssMedianMiB": 0.0,
+            "seenCards": 0,
+            "readyCards": 0,
+            "playingSamples": 0,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 0
+          },
+          "selection-fling-up": {
+            "frames": 2286,
+            "seconds": 19.15,
+            "distancePx": 149394,
+            "totalMs": {
+              "median": 17.404,
+              "p95": 25.865,
+              "p99": 26.206,
+              "max": 39.279
+            },
+            "overDeadlinePct": 0.131,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.797,
+                "p95": 2.713,
+                "p99": 6.237,
+                "max": 26.379
+              },
+              "layout": {
+                "median": 0.171,
+                "p95": 0.281,
+                "p99": 1.329,
+                "max": 5.065
+              },
+              "draw": {
+                "median": 0.129,
+                "p95": 0.341,
+                "p99": 1.494,
+                "max": 2.443
+              },
+              "sync": {
+                "median": 0.157,
+                "p95": 0.279,
+                "p99": 0.561,
+                "max": 3.188
+              },
+              "gpu": {
+                "median": 4.232,
+                "p95": 14.409,
+                "p99": 15.052,
+                "max": 17.261
+              }
+            },
+            "timelineFrames": 2287,
+            "frameMetricsCoveragePct": 99.96,
+            "presentationGapMs": {
+              "median": 8.338,
+              "p95": 8.823,
+              "p99": 11.213,
+              "max": 30.121
+            },
+            "presentationGapsOver25ms": 2,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 119.45,
+            "timelineAppJankPct": 0.044,
+            "timelineAnyJankPct": 99.913,
+            "timelineLatePct": 99.913,
+            "pssPeakMiB": 817.0,
+            "pssMedianMiB": 774.33,
+            "seenCards": 94,
+            "readyCards": 77,
+            "playingSamples": 150,
+            "changedGifObjects": 27,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 101
+          },
+          "card-drag-down": {
+            "frames": 5783,
+            "seconds": 48.69,
+            "distancePx": 149394,
+            "totalMs": {
+              "median": 6.577,
+              "p95": 10.106,
+              "p99": 17.232,
+              "max": 47.713
+            },
+            "overDeadlinePct": 0.692,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.708,
+                "p95": 1.417,
+                "p99": 3.703,
+                "max": 37.091
+              },
+              "layout": {
+                "median": 0.299,
+                "p95": 2.179,
+                "p99": 2.756,
+                "max": 7.635
+              },
+              "draw": {
+                "median": 0.223,
+                "p95": 0.491,
+                "p99": 0.762,
+                "max": 5.243
+              },
+              "sync": {
+                "median": 0.164,
+                "p95": 0.28,
+                "p99": 0.391,
+                "max": 2.724
+              },
+              "gpu": {
+                "median": 2.322,
+                "p95": 5.132,
+                "p99": 6.584,
+                "max": 9.571
+              }
+            },
+            "timelineFrames": 5785,
+            "frameMetricsCoveragePct": 99.97,
+            "presentationGapMs": {
+              "median": 8.325,
+              "p95": 10.796,
+              "p99": 16.676,
+              "max": 51.418
+            },
+            "presentationGapsOver25ms": 19,
+            "presentationGapsOver50ms": 1,
+            "presentedFramesPerSecond": 118.8,
+            "timelineAppJankPct": 0.674,
+            "timelineAnyJankPct": 98.15,
+            "timelineLatePct": 98.133,
+            "pssPeakMiB": 883.29,
+            "pssMedianMiB": 811.03,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 390,
+            "changedGifObjects": 48,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 236
+          },
+          "card-drag-up": {
+            "frames": 4565,
+            "seconds": 38.47,
+            "distancePx": 149394,
+            "totalMs": {
+              "median": 7.547,
+              "p95": 15.915,
+              "p99": 19.216,
+              "max": 59.719
+            },
+            "overDeadlinePct": 0.657,
+            "over50ms": 1,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.728,
+                "p95": 1.6,
+                "p99": 5.04,
+                "max": 33.825
+              },
+              "layout": {
+                "median": 0.297,
+                "p95": 2.117,
+                "p99": 3.403,
+                "max": 10.29
+              },
+              "draw": {
+                "median": 0.236,
+                "p95": 0.504,
+                "p99": 0.993,
+                "max": 5.417
+              },
+              "sync": {
+                "median": 0.168,
+                "p95": 0.29,
+                "p99": 0.507,
+                "max": 3.572
+              },
+              "gpu": {
+                "median": 2.593,
+                "p95": 6.566,
+                "p99": 12.893,
+                "max": 14.868
+              }
+            },
+            "timelineFrames": 4565,
+            "frameMetricsCoveragePct": 100.0,
+            "presentationGapMs": {
+              "median": 8.333,
+              "p95": 10.96,
+              "p99": 16.579,
+              "max": 39.8
+            },
+            "presentationGapsOver25ms": 9,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 118.65,
+            "timelineAppJankPct": 0.657,
+            "timelineAnyJankPct": 97.547,
+            "timelineLatePct": 97.547,
+            "pssPeakMiB": 897.2,
+            "pssMedianMiB": 829.5,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 305,
+            "changedGifObjects": 48,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 186
+          }
+        },
+        "originalUnchanged": true,
+        "apkSha256": "e62350fa5f1e59de930568996d12124d240df1de9bb91b902e945c88ceffee27",
+        "snapshots": [
+          {
+            "phase": "perf-after-finger",
+            "pssMiB": 743.55,
+            "aliveLoaders": 3,
+            "runningLoaders": 1,
+            "knownGifFrameBitmapBytes": 13746000,
+            "pool": {
+              "hits": 8702,
+              "misses": 187,
+              "puts": 8876,
+              "evictions": 167,
+              "currentSize": 23725800,
+              "maxSize": 35573760
+            }
+          },
+          {
+            "phase": "perf-after-fling",
+            "pssMiB": 785.63,
+            "aliveLoaders": 4,
+            "runningLoaders": 1,
+            "knownGifFrameBitmapBytes": 29924640,
+            "pool": {
+              "hits": 12357,
+              "misses": 322,
+              "puts": 12651,
+              "evictions": 287,
+              "currentSize": 16078800,
+              "maxSize": 35573760
+            }
+          },
+          {
+            "phase": "perf-settled",
+            "pssMiB": 793.67,
+            "aliveLoaders": 4,
+            "runningLoaders": 1,
+            "knownGifFrameBitmapBytes": 22200000,
+            "pool": {
+              "hits": 26527,
+              "misses": 608,
+              "puts": 27107,
+              "evictions": 571,
+              "currentSize": 24532800,
+              "maxSize": 35573760
+            }
+          },
+          {
+            "phase": "after-drag",
+            "pssMiB": 801.82,
+            "aliveLoaders": 4,
+            "runningLoaders": 1,
+            "knownGifFrameBitmapBytes": 22200000,
+            "pool": {
+              "hits": 26571,
+              "misses": 608,
+              "puts": 27151,
+              "evictions": 571,
+              "currentSize": 24532800,
+              "maxSize": 35573760
+            }
+          },
+          {
+            "phase": "activity-finished",
+            "pssMiB": 503.52,
+            "aliveLoaders": 4,
+            "runningLoaders": 0,
+            "knownGifFrameBitmapBytes": 22200000,
+            "pool": {
+              "hits": 26615,
+              "misses": 608,
+              "puts": 27195,
+              "evictions": 571,
+              "currentSize": 24532800,
+              "maxSize": 35573760
+            }
+          }
+        ],
+        "beforeEnvironment": {
+          "batteryC": 36.1,
+          "thermalStatus": 0
+        },
+        "afterEnvironment": {
+          "batteryC": 37.6,
+          "thermalStatus": 0
+        },
+        "measurementLimits": []
+      }
+    },
+    "meizu": {
+      "legacy": {
+        "run": "perf-meizu-a1-1015",
+        "policy": "legacy",
+        "model": "MEIZU 20 Inf",
+        "refreshRate": 60.000004,
+        "ok": true,
+        "seen": 98,
+        "mediaReady": 80,
+        "pssPeakMiB": 997.16,
+        "allIncludingScreenshotsPssPeakMiB": 997.16,
+        "nativePeakMiB": 320.07,
+        "javaPeakMiB": 177.04,
+        "memorySampleMs": {
+          "median": 29.12,
+          "p95": 41.292,
+          "p99": 45.781,
+          "max": 60.128
+        },
+        "groups": {
+          "normal-finger-down": {
+            "frames": 3424,
+            "seconds": 35.93,
+            "distancePx": 135106,
+            "totalMs": {
+              "median": 11.237,
+              "p95": 13.585,
+              "p99": 22.88,
+              "max": 136.148
+            },
+            "overDeadlinePct": 2.161,
+            "over50ms": 4,
+            "over100ms": 3,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.427,
+                "p95": 1.469,
+                "p99": 8.73,
+                "max": 109.858
+              },
+              "layout": {
+                "median": 0.278,
+                "p95": 0.525,
+                "p99": 1.683,
+                "max": 7.224
+              },
+              "draw": {
+                "median": 0.184,
+                "p95": 0.512,
+                "p99": 1.835,
+                "max": 24.66
+              },
+              "sync": {
+                "median": 0.2,
+                "p95": 0.342,
+                "p99": 0.451,
+                "max": 1.516
+              },
+              "gpu": {
+                "median": 5.604,
+                "p95": 9.935,
+                "p99": 11.007,
+                "max": 12.294
+              }
+            },
+            "timelineFrames": 3421,
+            "frameMetricsCoveragePct": 100.09,
+            "presentationGapMs": {
+              "median": 8.366,
+              "p95": 17.911,
+              "p99": 24.407,
+              "max": 132.583
+            },
+            "presentationGapsOver25ms": 32,
+            "presentationGapsOver50ms": 4,
+            "presentedFramesPerSecond": 95.22,
+            "timelineAppJankPct": 1.608,
+            "timelineAnyJankPct": 50.015,
+            "timelineLatePct": 31.365,
+            "pssPeakMiB": 879.72,
+            "pssMedianMiB": 742.05,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 39,
+            "changedGifObjects": 44,
+            "spinnerSamples": 18,
+            "pausedSamples": 134,
+            "samples": 201
+          },
+          "normal-finger-up": {
+            "frames": 3387,
+            "seconds": 35.71,
+            "distancePx": 135106,
+            "totalMs": {
+              "median": 11.248,
+              "p95": 13.374,
+              "p99": 20.828,
+              "max": 34.999
+            },
+            "overDeadlinePct": 1.978,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.424,
+                "p95": 1.007,
+                "p99": 6.837,
+                "max": 27.054
+              },
+              "layout": {
+                "median": 0.246,
+                "p95": 0.434,
+                "p99": 0.538,
+                "max": 5.552
+              },
+              "draw": {
+                "median": 0.164,
+                "p95": 0.343,
+                "p99": 1.544,
+                "max": 3.324
+              },
+              "sync": {
+                "median": 0.207,
+                "p95": 0.347,
+                "p99": 0.486,
+                "max": 1.272
+              },
+              "gpu": {
+                "median": 5.501,
+                "p95": 9.563,
+                "p99": 10.731,
+                "max": 12.407
+              }
+            },
+            "timelineFrames": 3383,
+            "frameMetricsCoveragePct": 100.12,
+            "presentationGapMs": {
+              "median": 8.395,
+              "p95": 17.708,
+              "p99": 23.309,
+              "max": 38.521
+            },
+            "presentationGapsOver25ms": 28,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 94.72,
+            "timelineAppJankPct": 1.419,
+            "timelineAnyJankPct": 50.399,
+            "timelineLatePct": 24.446,
+            "pssPeakMiB": 835.4,
+            "pssMedianMiB": 711.53,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 31,
+            "changedGifObjects": 47,
+            "spinnerSamples": 0,
+            "pausedSamples": 134,
+            "samples": 201
+          },
+          "normal-fling-down-input": {
+            "frames": 46,
+            "seconds": 1.04,
+            "distancePx": null,
+            "totalMs": {
+              "median": 13.864,
+              "p95": 28.737,
+              "p99": 52.777,
+              "max": 61.224
+            },
+            "overDeadlinePct": 23.913,
+            "over50ms": 1,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.403,
+                "p95": 14.771,
+                "p99": 26.544,
+                "max": 35.157
+              },
+              "layout": {
+                "median": 0.158,
+                "p95": 1.826,
+                "p99": 2.353,
+                "max": 2.465
+              },
+              "draw": {
+                "median": 0.143,
+                "p95": 1.271,
+                "p99": 2.037,
+                "max": 2.14
+              },
+              "sync": {
+                "median": 0.162,
+                "p95": 0.356,
+                "p99": 0.547,
+                "max": 0.701
+              },
+              "gpu": {
+                "median": 3.871,
+                "p95": 11.495,
+                "p99": 11.848,
+                "max": 11.988
+              }
+            },
+            "timelineFrames": 73,
+            "frameMetricsCoveragePct": 63.01,
+            "presentationGapMs": {
+              "median": 8.544,
+              "p95": 47.672,
+              "p99": 78.758,
+              "max": 80.759
+            },
+            "presentationGapsOver25ms": 7,
+            "presentationGapsOver50ms": 3,
+            "presentedFramesPerSecond": 69.27,
+            "timelineAppJankPct": 2.74,
+            "timelineAnyJankPct": 94.521,
+            "timelineLatePct": 93.151,
+            "pssPeakMiB": 0.0,
+            "pssMedianMiB": 0.0,
+            "seenCards": 0,
+            "readyCards": 0,
+            "playingSamples": 0,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 0
+          },
+          "normal-fling-down": {
+            "frames": 47,
+            "seconds": 28.6,
+            "distancePx": 135106,
+            "totalMs": {
+              "median": 11.258,
+              "p95": 19.374,
+              "p99": 31.61,
+              "max": 41.974
+            },
+            "overDeadlinePct": 8.511,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.396,
+                "p95": 0.657,
+                "p99": 15.4,
+                "max": 27.807
+              },
+              "layout": {
+                "median": 0.251,
+                "p95": 1.178,
+                "p99": 1.376,
+                "max": 1.395
+              },
+              "draw": {
+                "median": 0.155,
+                "p95": 0.425,
+                "p99": 0.712,
+                "max": 0.942
+              },
+              "sync": {
+                "median": 0.168,
+                "p95": 0.353,
+                "p99": 0.756,
+                "max": 1.044
+              },
+              "gpu": {
+                "median": 6.954,
+                "p95": 10.116,
+                "p99": 11.079,
+                "max": 11.283
+              }
+            },
+            "timelineFrames": 3400,
+            "frameMetricsCoveragePct": 1.38,
+            "presentationGapMs": {
+              "median": 8.275,
+              "p95": 9.288,
+              "p99": 10.947,
+              "max": 35.301
+            },
+            "presentationGapsOver25ms": 6,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 118.88,
+            "timelineAppJankPct": 0.029,
+            "timelineAnyJankPct": 100.0,
+            "timelineLatePct": 100.0,
+            "pssPeakMiB": 827.56,
+            "pssMedianMiB": 673.53,
+            "seenCards": 95,
+            "readyCards": 24,
+            "playingSamples": 5,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 143,
+            "samples": 157
+          },
+          "normal-fling-up-input": {
+            "frames": 63,
+            "seconds": 0.99,
+            "distancePx": null,
+            "totalMs": {
+              "median": 11.486,
+              "p95": 23.577,
+              "p99": 28.219,
+              "max": 31.937
+            },
+            "overDeadlinePct": 15.873,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.431,
+                "p95": 8.869,
+                "p99": 22.464,
+                "max": 25.296
+              },
+              "layout": {
+                "median": 0.178,
+                "p95": 1.253,
+                "p99": 1.841,
+                "max": 1.952
+              },
+              "draw": {
+                "median": 0.167,
+                "p95": 0.952,
+                "p99": 1.735,
+                "max": 2.402
+              },
+              "sync": {
+                "median": 0.171,
+                "p95": 0.35,
+                "p99": 0.539,
+                "max": 0.595
+              },
+              "gpu": {
+                "median": 3.994,
+                "p95": 11.188,
+                "p99": 12.011,
+                "max": 12.263
+              }
+            },
+            "timelineFrames": 87,
+            "frameMetricsCoveragePct": 72.41,
+            "presentationGapMs": {
+              "median": 8.545,
+              "p95": 24.375,
+              "p99": 48.48,
+              "max": 73.403
+            },
+            "presentationGapsOver25ms": 4,
+            "presentationGapsOver50ms": 1,
+            "presentedFramesPerSecond": 87.26,
+            "timelineAppJankPct": 2.299,
+            "timelineAnyJankPct": 88.506,
+            "timelineLatePct": 87.356,
+            "pssPeakMiB": 0.0,
+            "pssMedianMiB": 0.0,
+            "seenCards": 0,
+            "readyCards": 0,
+            "playingSamples": 0,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 0
+          },
+          "normal-fling-up": {
+            "frames": 72,
+            "seconds": 28.65,
+            "distancePx": 135106,
+            "totalMs": {
+              "median": 11.159,
+              "p95": 17.371,
+              "p99": 29.627,
+              "max": 53.809
+            },
+            "overDeadlinePct": 8.333,
+            "over50ms": 1,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.357,
+                "p95": 1.638,
+                "p99": 18.126,
+                "max": 39.666
+              },
+              "layout": {
+                "median": 0.194,
+                "p95": 2.027,
+                "p99": 4.244,
+                "max": 4.348
+              },
+              "draw": {
+                "median": 0.154,
+                "p95": 0.924,
+                "p99": 1.425,
+                "max": 1.954
+              },
+              "sync": {
+                "median": 0.171,
+                "p95": 0.397,
+                "p99": 0.46,
+                "max": 0.499
+              },
+              "gpu": {
+                "median": 5.134,
+                "p95": 8.533,
+                "p99": 9.802,
+                "max": 9.984
+              }
+            },
+            "timelineFrames": 3395,
+            "frameMetricsCoveragePct": 2.12,
+            "presentationGapMs": {
+              "median": 8.279,
+              "p95": 9.2,
+              "p99": 12.254,
+              "max": 46.871
+            },
+            "presentationGapsOver25ms": 7,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 118.5,
+            "timelineAppJankPct": 0.029,
+            "timelineAnyJankPct": 100.0,
+            "timelineLatePct": 100.0,
+            "pssPeakMiB": 768.52,
+            "pssMedianMiB": 714.18,
+            "seenCards": 93,
+            "readyCards": 25,
+            "playingSamples": 2,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 147,
+            "samples": 156
+          },
+          "selection-finger-down": {
+            "frames": 2477,
+            "seconds": 35.25,
+            "distancePx": 135106,
+            "totalMs": {
+              "median": 8.699,
+              "p95": 13.786,
+              "p99": 23.105,
+              "max": 40.624
+            },
+            "overDeadlinePct": 3.149,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.484,
+                "p95": 1.309,
+                "p99": 7.494,
+                "max": 28.47
+              },
+              "layout": {
+                "median": 0.312,
+                "p95": 0.467,
+                "p99": 0.75,
+                "max": 6.142
+              },
+              "draw": {
+                "median": 0.189,
+                "p95": 0.351,
+                "p99": 2.069,
+                "max": 5.785
+              },
+              "sync": {
+                "median": 0.284,
+                "p95": 0.447,
+                "p99": 0.641,
+                "max": 2.743
+              },
+              "gpu": {
+                "median": 4.306,
+                "p95": 9.248,
+                "p99": 11.176,
+                "max": 12.093
+              }
+            },
+            "timelineFrames": 2475,
+            "frameMetricsCoveragePct": 100.08,
+            "presentationGapMs": {
+              "median": 15.817,
+              "p95": 19.383,
+              "p99": 28.296,
+              "max": 43.083
+            },
+            "presentationGapsOver25ms": 47,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 70.21,
+            "timelineAppJankPct": 1.455,
+            "timelineAnyJankPct": 66.02,
+            "timelineLatePct": 10.101,
+            "pssPeakMiB": 992.29,
+            "pssMedianMiB": 867.18,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 45,
+            "changedGifObjects": 46,
+            "spinnerSamples": 0,
+            "pausedSamples": 132,
+            "samples": 198
+          },
+          "selection-fling-up-input": {
+            "frames": 74,
+            "seconds": 0.94,
+            "distancePx": null,
+            "totalMs": {
+              "median": 9.787,
+              "p95": 15.698,
+              "p99": 22.733,
+              "max": 26.185
+            },
+            "overDeadlinePct": 6.757,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.343,
+                "p95": 3.769,
+                "p99": 7.883,
+                "max": 11.508
+              },
+              "layout": {
+                "median": 0.169,
+                "p95": 0.722,
+                "p99": 3.493,
+                "max": 5.69
+              },
+              "draw": {
+                "median": 0.156,
+                "p95": 1.006,
+                "p99": 1.608,
+                "max": 1.712
+              },
+              "sync": {
+                "median": 0.197,
+                "p95": 0.548,
+                "p99": 0.791,
+                "max": 1.022
+              },
+              "gpu": {
+                "median": 4.216,
+                "p95": 9.045,
+                "p99": 9.94,
+                "max": 10.831
+              }
+            },
+            "timelineFrames": 83,
+            "frameMetricsCoveragePct": 89.16,
+            "presentationGapMs": {
+              "median": 8.364,
+              "p95": 23.03,
+              "p99": 45.084,
+              "max": 77.816
+            },
+            "presentationGapsOver25ms": 3,
+            "presentationGapsOver50ms": 1,
+            "presentedFramesPerSecond": 88.08,
+            "timelineAppJankPct": 0.0,
+            "timelineAnyJankPct": 69.88,
+            "timelineLatePct": 48.193,
+            "pssPeakMiB": 0.0,
+            "pssMedianMiB": 0.0,
+            "seenCards": 0,
+            "readyCards": 0,
+            "playingSamples": 0,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 0
+          },
+          "selection-fling-up": {
+            "frames": 86,
+            "seconds": 28.42,
+            "distancePx": 135106,
+            "totalMs": {
+              "median": 11.627,
+              "p95": 14.467,
+              "p99": 16.858,
+              "max": 18.016
+            },
+            "overDeadlinePct": 4.651,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.387,
+                "p95": 0.7,
+                "p99": 3.008,
+                "max": 5.457
+              },
+              "layout": {
+                "median": 0.222,
+                "p95": 1.034,
+                "p99": 1.618,
+                "max": 2.144
+              },
+              "draw": {
+                "median": 0.158,
+                "p95": 0.387,
+                "p99": 0.785,
+                "max": 1.016
+              },
+              "sync": {
+                "median": 0.197,
+                "p95": 0.402,
+                "p99": 1.072,
+                "max": 1.314
+              },
+              "gpu": {
+                "median": 7.493,
+                "p95": 9.427,
+                "p99": 12.336,
+                "max": 13.811
+              }
+            },
+            "timelineFrames": 3393,
+            "frameMetricsCoveragePct": 2.53,
+            "presentationGapMs": {
+              "median": 8.278,
+              "p95": 9.156,
+              "p99": 10.564,
+              "max": 25.495
+            },
+            "presentationGapsOver25ms": 1,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 119.38,
+            "timelineAppJankPct": 0.0,
+            "timelineAnyJankPct": 100.0,
+            "timelineLatePct": 100.0,
+            "pssPeakMiB": 997.16,
+            "pssMedianMiB": 731.5,
+            "seenCards": 94,
+            "readyCards": 23,
+            "playingSamples": 0,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 145,
+            "samples": 155
+          },
+          "card-drag-down": {
+            "frames": 6192,
+            "seconds": 51.65,
+            "distancePx": 135106,
+            "totalMs": {
+              "median": 8.329,
+              "p95": 11.715,
+              "p99": 18.372,
+              "max": 55.633
+            },
+            "overDeadlinePct": 0.323,
+            "over50ms": 2,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.407,
+                "p95": 0.894,
+                "p99": 3.155,
+                "max": 43.238
+              },
+              "layout": {
+                "median": 0.344,
+                "p95": 2.2,
+                "p99": 2.754,
+                "max": 5.654
+              },
+              "draw": {
+                "median": 0.275,
+                "p95": 0.58,
+                "p99": 0.802,
+                "max": 3.763
+              },
+              "sync": {
+                "median": 0.243,
+                "p95": 0.384,
+                "p99": 0.484,
+                "max": 1.781
+              },
+              "gpu": {
+                "median": 4.467,
+                "p95": 5.658,
+                "p99": 6.319,
+                "max": 9.848
+              }
+            },
+            "timelineFrames": 6192,
+            "frameMetricsCoveragePct": 100.0,
+            "presentationGapMs": {
+              "median": 8.243,
+              "p95": 10.497,
+              "p99": 14.653,
+              "max": 56.916
+            },
+            "presentationGapsOver25ms": 17,
+            "presentationGapsOver50ms": 1,
+            "presentedFramesPerSecond": 119.87,
+            "timelineAppJankPct": 0.388,
+            "timelineAnyJankPct": 88.194,
+            "timelineLatePct": 87.597,
+            "pssPeakMiB": 942.09,
+            "pssMedianMiB": 836.38,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 453,
+            "changedGifObjects": 48,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 249
+          },
+          "card-drag-up": {
+            "frames": 5058,
+            "seconds": 42.19,
+            "distancePx": 135106,
+            "totalMs": {
+              "median": 9.04,
+              "p95": 12.96,
+              "p99": 21.059,
+              "max": 37.194
+            },
+            "overDeadlinePct": 0.395,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.423,
+                "p95": 0.961,
+                "p99": 4.115,
+                "max": 23.915
+              },
+              "layout": {
+                "median": 0.342,
+                "p95": 2.261,
+                "p99": 3.094,
+                "max": 6.402
+              },
+              "draw": {
+                "median": 0.283,
+                "p95": 0.6,
+                "p99": 1.044,
+                "max": 2.823
+              },
+              "sync": {
+                "median": 0.253,
+                "p95": 0.396,
+                "p99": 0.516,
+                "max": 1.122
+              },
+              "gpu": {
+                "median": 4.763,
+                "p95": 6.898,
+                "p99": 9.52,
+                "max": 11.635
+              }
+            },
+            "timelineFrames": 5058,
+            "frameMetricsCoveragePct": 100.0,
+            "presentationGapMs": {
+              "median": 8.27,
+              "p95": 10.534,
+              "p99": 14.884,
+              "max": 36.291
+            },
+            "presentationGapsOver25ms": 13,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 119.89,
+            "timelineAppJankPct": 0.514,
+            "timelineAnyJankPct": 94.187,
+            "timelineLatePct": 94.187,
+            "pssPeakMiB": 958.2,
+            "pssMedianMiB": 865.81,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 357,
+            "changedGifObjects": 48,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 202
+          }
+        },
+        "originalUnchanged": true,
+        "apkSha256": "e62350fa5f1e59de930568996d12124d240df1de9bb91b902e945c88ceffee27",
+        "snapshots": [
+          {
+            "phase": "perf-after-finger",
+            "pssMiB": 761.81,
+            "aliveLoaders": 3,
+            "runningLoaders": 1,
+            "knownGifFrameBitmapBytes": 18160512,
+            "pool": {
+              "hits": 2036,
+              "misses": 170,
+              "puts": 2193,
+              "evictions": 152,
+              "currentSize": 18036576,
+              "maxSize": 34933248
+            }
+          },
+          {
+            "phase": "perf-after-fling",
+            "pssMiB": 773.28,
+            "aliveLoaders": 6,
+            "runningLoaders": 1,
+            "knownGifFrameBitmapBytes": 39060256,
+            "pool": {
+              "hits": 2382,
+              "misses": 229,
+              "puts": 2582,
+              "evictions": 197,
+              "currentSize": 7587904,
+              "maxSize": 34933248
+            }
+          },
+          {
+            "phase": "perf-settled",
+            "pssMiB": 827.55,
+            "aliveLoaders": 5,
+            "runningLoaders": 1,
+            "knownGifFrameBitmapBytes": 41457856,
+            "pool": {
+              "hits": 12817,
+              "misses": 523,
+              "puts": 13310,
+              "evictions": 485,
+              "currentSize": 22433408,
+              "maxSize": 34933248
+            }
+          },
+          {
+            "phase": "after-drag",
+            "pssMiB": 875.05,
+            "aliveLoaders": 5,
+            "runningLoaders": 1,
+            "knownGifFrameBitmapBytes": 41457856,
+            "pool": {
+              "hits": 12959,
+              "misses": 523,
+              "puts": 13452,
+              "evictions": 485,
+              "currentSize": 22433408,
+              "maxSize": 34933248
+            }
+          },
+          {
+            "phase": "activity-finished",
+            "pssMiB": 580.76,
+            "aliveLoaders": 5,
+            "runningLoaders": 0,
+            "knownGifFrameBitmapBytes": 46712960,
+            "pool": {
+              "hits": 13011,
+              "misses": 523,
+              "puts": 13504,
+              "evictions": 485,
+              "currentSize": 22433408,
+              "maxSize": 34933248
+            }
+          }
+        ],
+        "beforeEnvironment": {
+          "batteryC": 39.0,
+          "thermalStatus": 0
+        },
+        "afterEnvironment": {
+          "batteryC": 40.0,
+          "thermalStatus": 0
+        },
+        "measurementLimits": [
+          "fling 的 FrameMetrics 缺报，不据此判断惯性长帧"
+        ]
+      },
+      "continuous": {
+        "run": "perf-meizu-b2-1015",
+        "policy": "continuous",
+        "model": "MEIZU 20 Inf",
+        "refreshRate": 60.000004,
+        "ok": true,
+        "seen": 98,
+        "mediaReady": 80,
+        "pssPeakMiB": 1014.16,
+        "allIncludingScreenshotsPssPeakMiB": 1014.16,
+        "nativePeakMiB": 325.02,
+        "javaPeakMiB": 230.67,
+        "memorySampleMs": {
+          "median": 37.453,
+          "p95": 47.723,
+          "p99": 55.972,
+          "max": 65.821
+        },
+        "groups": {
+          "normal-finger-down": {
+            "frames": 3549,
+            "seconds": 35.85,
+            "distancePx": 135106,
+            "totalMs": {
+              "median": 10.996,
+              "p95": 13.412,
+              "p99": 22.356,
+              "max": 89.878
+            },
+            "overDeadlinePct": 2.141,
+            "over50ms": 5,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.435,
+                "p95": 1.307,
+                "p99": 9.111,
+                "max": 77.015
+              },
+              "layout": {
+                "median": 0.289,
+                "p95": 0.501,
+                "p99": 1.662,
+                "max": 7.702
+              },
+              "draw": {
+                "median": 0.195,
+                "p95": 0.44,
+                "p99": 1.873,
+                "max": 5.206
+              },
+              "sync": {
+                "median": 0.214,
+                "p95": 0.358,
+                "p99": 0.475,
+                "max": 1.738
+              },
+              "gpu": {
+                "median": 5.022,
+                "p95": 9.591,
+                "p99": 10.844,
+                "max": 14.507
+              }
+            },
+            "timelineFrames": 3545,
+            "frameMetricsCoveragePct": 100.11,
+            "presentationGapMs": {
+              "median": 8.338,
+              "p95": 17.63,
+              "p99": 22.144,
+              "max": 86.672
+            },
+            "presentationGapsOver25ms": 22,
+            "presentationGapsOver50ms": 3,
+            "presentedFramesPerSecond": 98.9,
+            "timelineAppJankPct": 1.664,
+            "timelineAnyJankPct": 46.685,
+            "timelineLatePct": 25.726,
+            "pssPeakMiB": 858.74,
+            "pssMedianMiB": 731.56,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 242,
+            "changedGifObjects": 48,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 201
+          },
+          "normal-finger-up": {
+            "frames": 3612,
+            "seconds": 35.74,
+            "distancePx": 135106,
+            "totalMs": {
+              "median": 11.257,
+              "p95": 13.518,
+              "p99": 21.12,
+              "max": 46.486
+            },
+            "overDeadlinePct": 2.021,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.432,
+                "p95": 1.126,
+                "p99": 7.123,
+                "max": 37.453
+              },
+              "layout": {
+                "median": 0.262,
+                "p95": 0.445,
+                "p99": 1.002,
+                "max": 6.062
+              },
+              "draw": {
+                "median": 0.179,
+                "p95": 0.41,
+                "p99": 1.351,
+                "max": 3.301
+              },
+              "sync": {
+                "median": 0.218,
+                "p95": 0.362,
+                "p99": 0.497,
+                "max": 2.506
+              },
+              "gpu": {
+                "median": 5.448,
+                "p95": 9.472,
+                "p99": 10.554,
+                "max": 13.504
+              }
+            },
+            "timelineFrames": 3613,
+            "frameMetricsCoveragePct": 99.97,
+            "presentationGapMs": {
+              "median": 8.33,
+              "p95": 17.557,
+              "p99": 22.196,
+              "max": 41.538
+            },
+            "presentationGapsOver25ms": 24,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 101.08,
+            "timelineAppJankPct": 1.412,
+            "timelineAnyJankPct": 49.626,
+            "timelineLatePct": 31.58,
+            "pssPeakMiB": 872.96,
+            "pssMedianMiB": 783.09,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 243,
+            "changedGifObjects": 48,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 201
+          },
+          "normal-fling-down-input": {
+            "frames": 78,
+            "seconds": 0.92,
+            "distancePx": null,
+            "totalMs": {
+              "median": 11.786,
+              "p95": 27.762,
+              "p99": 28.393,
+              "max": 29.577
+            },
+            "overDeadlinePct": 14.103,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.401,
+                "p95": 8.768,
+                "p99": 14.473,
+                "max": 15.738
+              },
+              "layout": {
+                "median": 0.232,
+                "p95": 0.886,
+                "p99": 4.231,
+                "max": 7.273
+              },
+              "draw": {
+                "median": 0.191,
+                "p95": 0.8,
+                "p99": 2.089,
+                "max": 2.158
+              },
+              "sync": {
+                "median": 0.192,
+                "p95": 0.313,
+                "p99": 0.446,
+                "max": 0.729
+              },
+              "gpu": {
+                "median": 4.396,
+                "p95": 9.554,
+                "p99": 12.17,
+                "max": 14.276
+              }
+            },
+            "timelineFrames": 80,
+            "frameMetricsCoveragePct": 97.5,
+            "presentationGapMs": {
+              "median": 8.429,
+              "p95": 19.891,
+              "p99": 26.215,
+              "max": 29.434
+            },
+            "presentationGapsOver25ms": 1,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 87.03,
+            "timelineAppJankPct": 1.25,
+            "timelineAnyJankPct": 82.5,
+            "timelineLatePct": 78.75,
+            "pssPeakMiB": 0.0,
+            "pssMedianMiB": 0.0,
+            "seenCards": 0,
+            "readyCards": 0,
+            "playingSamples": 0,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 0
+          },
+          "normal-fling-down": {
+            "frames": 84,
+            "seconds": 28.26,
+            "distancePx": 135106,
+            "totalMs": {
+              "median": 19.219,
+              "p95": 29.261,
+              "p99": 53.742,
+              "max": 61.086
+            },
+            "overDeadlinePct": 32.143,
+            "over50ms": 2,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.356,
+                "p95": 8.455,
+                "p99": 35.023,
+                "max": 44.356
+              },
+              "layout": {
+                "median": 0.228,
+                "p95": 0.375,
+                "p99": 0.6,
+                "max": 1.119
+              },
+              "draw": {
+                "median": 0.18,
+                "p95": 0.432,
+                "p99": 2.12,
+                "max": 2.615
+              },
+              "sync": {
+                "median": 0.189,
+                "p95": 0.373,
+                "p99": 0.525,
+                "max": 0.583
+              },
+              "gpu": {
+                "median": 7.85,
+                "p95": 11.068,
+                "p99": 12.96,
+                "max": 13.487
+              }
+            },
+            "timelineFrames": 1667,
+            "frameMetricsCoveragePct": 5.04,
+            "presentationGapMs": {
+              "median": 8.273,
+              "p95": 9.636,
+              "p99": 20.637,
+              "max": 3479.444
+            },
+            "presentationGapsOver25ms": 17,
+            "presentationGapsOver50ms": 4,
+            "presentedFramesPerSecond": 58.95,
+            "timelineAppJankPct": 0.12,
+            "timelineAnyJankPct": 99.88,
+            "timelineLatePct": 99.82,
+            "pssPeakMiB": 973.84,
+            "pssMedianMiB": 765.68,
+            "seenCards": 90,
+            "readyCards": 74,
+            "playingSamples": 232,
+            "changedGifObjects": 31,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 141,
+            "presentationVerdict": "未确认，不能当作有效的 58.95 FPS 或 3.48 秒卡屏"
+          },
+          "normal-fling-up-input": {
+            "frames": 74,
+            "seconds": 0.91,
+            "distancePx": null,
+            "totalMs": {
+              "median": 11.558,
+              "p95": 25.913,
+              "p99": 31.728,
+              "max": 41.797
+            },
+            "overDeadlinePct": 13.514,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.437,
+                "p95": 10.136,
+                "p99": 18.674,
+                "max": 25.509
+              },
+              "layout": {
+                "median": 0.224,
+                "p95": 0.987,
+                "p99": 1.318,
+                "max": 1.836
+              },
+              "draw": {
+                "median": 0.193,
+                "p95": 0.591,
+                "p99": 2.422,
+                "max": 2.65
+              },
+              "sync": {
+                "median": 0.209,
+                "p95": 0.329,
+                "p99": 0.605,
+                "max": 0.723
+              },
+              "gpu": {
+                "median": 3.745,
+                "p95": 10.278,
+                "p99": 10.904,
+                "max": 11.348
+              }
+            },
+            "timelineFrames": 83,
+            "frameMetricsCoveragePct": 89.16,
+            "presentationGapMs": {
+              "median": 8.426,
+              "p95": 19.485,
+              "p99": 25.755,
+              "max": 41.089
+            },
+            "presentationGapsOver25ms": 1,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 91.33,
+            "timelineAppJankPct": 1.205,
+            "timelineAnyJankPct": 86.747,
+            "timelineLatePct": 84.337,
+            "pssPeakMiB": 0.0,
+            "pssMedianMiB": 0.0,
+            "seenCards": 0,
+            "readyCards": 0,
+            "playingSamples": 0,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 0
+          },
+          "normal-fling-up": {
+            "frames": 69,
+            "seconds": 28.45,
+            "distancePx": 135106,
+            "totalMs": {
+              "median": 15.49,
+              "p95": 25.987,
+              "p99": 50.962,
+              "max": 55.371
+            },
+            "overDeadlinePct": 31.884,
+            "over50ms": 1,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.41,
+                "p95": 7.115,
+                "p99": 37.458,
+                "max": 41.837
+              },
+              "layout": {
+                "median": 0.226,
+                "p95": 1.283,
+                "p99": 15.128,
+                "max": 38.812
+              },
+              "draw": {
+                "median": 0.193,
+                "p95": 0.885,
+                "p99": 1.613,
+                "max": 1.922
+              },
+              "sync": {
+                "median": 0.191,
+                "p95": 0.397,
+                "p99": 0.441,
+                "max": 0.455
+              },
+              "gpu": {
+                "median": 4.304,
+                "p95": 10.164,
+                "p99": 10.521,
+                "max": 10.715
+              }
+            },
+            "timelineFrames": 3309,
+            "frameMetricsCoveragePct": 2.09,
+            "presentationGapMs": {
+              "median": 8.288,
+              "p95": 9.391,
+              "p99": 15.167,
+              "max": 59.229
+            },
+            "presentationGapsOver25ms": 16,
+            "presentationGapsOver50ms": 4,
+            "presentedFramesPerSecond": 116.13,
+            "timelineAppJankPct": 0.03,
+            "timelineAnyJankPct": 100.0,
+            "timelineLatePct": 99.849,
+            "pssPeakMiB": 876.14,
+            "pssMedianMiB": 799.66,
+            "seenCards": 94,
+            "readyCards": 77,
+            "playingSamples": 263,
+            "changedGifObjects": 35,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 148
+          },
+          "selection-finger-down": {
+            "frames": 2961,
+            "seconds": 35.73,
+            "distancePx": 135106,
+            "totalMs": {
+              "median": 8.653,
+              "p95": 13.503,
+              "p99": 20.053,
+              "max": 47.248
+            },
+            "overDeadlinePct": 2.398,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.48,
+                "p95": 1.116,
+                "p99": 6.455,
+                "max": 29.759
+              },
+              "layout": {
+                "median": 0.305,
+                "p95": 0.489,
+                "p99": 1.402,
+                "max": 6.112
+              },
+              "draw": {
+                "median": 0.219,
+                "p95": 0.437,
+                "p99": 1.681,
+                "max": 4.712
+              },
+              "sync": {
+                "median": 0.287,
+                "p95": 0.466,
+                "p99": 0.612,
+                "max": 2.075
+              },
+              "gpu": {
+                "median": 4.314,
+                "p95": 9.493,
+                "p99": 10.816,
+                "max": 13.262
+              }
+            },
+            "timelineFrames": 2955,
+            "frameMetricsCoveragePct": 100.2,
+            "presentationGapMs": {
+              "median": 10.011,
+              "p95": 18.491,
+              "p99": 25.211,
+              "max": 55.311
+            },
+            "presentationGapsOver25ms": 33,
+            "presentationGapsOver50ms": 1,
+            "presentedFramesPerSecond": 82.7,
+            "timelineAppJankPct": 1.354,
+            "timelineAnyJankPct": 60.914,
+            "timelineLatePct": 7.986,
+            "pssPeakMiB": 994.67,
+            "pssMedianMiB": 864.7,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 243,
+            "changedGifObjects": 48,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 201
+          },
+          "selection-fling-up-input": {
+            "frames": 89,
+            "seconds": 0.92,
+            "distancePx": null,
+            "totalMs": {
+              "median": 10.588,
+              "p95": 21.705,
+              "p99": 27.631,
+              "max": 29.995
+            },
+            "overDeadlinePct": 10.112,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.39,
+                "p95": 5.977,
+                "p99": 14.208,
+                "max": 17.252
+              },
+              "layout": {
+                "median": 0.202,
+                "p95": 0.969,
+                "p99": 3.073,
+                "max": 3.691
+              },
+              "draw": {
+                "median": 0.201,
+                "p95": 1.185,
+                "p99": 1.941,
+                "max": 2.444
+              },
+              "sync": {
+                "median": 0.257,
+                "p95": 0.549,
+                "p99": 0.678,
+                "max": 0.703
+              },
+              "gpu": {
+                "median": 4.507,
+                "p95": 8.704,
+                "p99": 10.59,
+                "max": 10.828
+              }
+            },
+            "timelineFrames": 81,
+            "frameMetricsCoveragePct": 109.88,
+            "presentationGapMs": {
+              "median": 8.322,
+              "p95": 20.948,
+              "p99": 32.37,
+              "max": 35.779
+            },
+            "presentationGapsOver25ms": 3,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 88.26,
+            "timelineAppJankPct": 6.173,
+            "timelineAnyJankPct": 49.383,
+            "timelineLatePct": 20.988,
+            "pssPeakMiB": 0.0,
+            "pssMedianMiB": 0.0,
+            "seenCards": 0,
+            "readyCards": 0,
+            "playingSamples": 0,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 0
+          },
+          "selection-fling-up": {
+            "frames": 3441,
+            "seconds": 28.49,
+            "distancePx": 135106,
+            "totalMs": {
+              "median": 12.028,
+              "p95": 12.99,
+              "p99": 17.185,
+              "max": 26.775
+            },
+            "overDeadlinePct": 0.029,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.484,
+                "p95": 0.86,
+                "p99": 3.211,
+                "max": 11.764
+              },
+              "layout": {
+                "median": 0.29,
+                "p95": 0.44,
+                "p99": 0.55,
+                "max": 4.357
+              },
+              "draw": {
+                "median": 0.205,
+                "p95": 0.38,
+                "p99": 1.322,
+                "max": 4.328
+              },
+              "sync": {
+                "median": 0.277,
+                "p95": 0.431,
+                "p99": 0.569,
+                "max": 1.487
+              },
+              "gpu": {
+                "median": 8.657,
+                "p95": 9.899,
+                "p99": 10.581,
+                "max": 14.435
+              }
+            },
+            "timelineFrames": 3406,
+            "frameMetricsCoveragePct": 101.03,
+            "presentationGapMs": {
+              "median": 8.278,
+              "p95": 8.634,
+              "p99": 13.393,
+              "max": 27.101
+            },
+            "presentationGapsOver25ms": 1,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 119.44,
+            "timelineAppJankPct": 0.0,
+            "timelineAnyJankPct": 99.971,
+            "timelineLatePct": 99.883,
+            "pssPeakMiB": 1014.16,
+            "pssMedianMiB": 826.87,
+            "seenCards": 92,
+            "readyCards": 75,
+            "playingSamples": 252,
+            "changedGifObjects": 35,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 152
+          },
+          "card-drag-down": {
+            "frames": 4269,
+            "seconds": 35.87,
+            "distancePx": 135106,
+            "totalMs": {
+              "median": 10.417,
+              "p95": 13.487,
+              "p99": 21.961,
+              "max": 66.765
+            },
+            "overDeadlinePct": 0.679,
+            "over50ms": 4,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.424,
+                "p95": 0.951,
+                "p99": 4.32,
+                "max": 54.096
+              },
+              "layout": {
+                "median": 0.439,
+                "p95": 2.347,
+                "p99": 2.839,
+                "max": 5.163
+              },
+              "draw": {
+                "median": 0.309,
+                "p95": 0.632,
+                "p99": 1.117,
+                "max": 3.257
+              },
+              "sync": {
+                "median": 0.258,
+                "p95": 0.403,
+                "p99": 0.504,
+                "max": 2.05
+              },
+              "gpu": {
+                "median": 4.79,
+                "p95": 9.649,
+                "p99": 10.406,
+                "max": 11.247
+              }
+            },
+            "timelineFrames": 4269,
+            "frameMetricsCoveragePct": 100.0,
+            "presentationGapMs": {
+              "median": 8.281,
+              "p95": 10.471,
+              "p99": 15.757,
+              "max": 67.495
+            },
+            "presentationGapsOver25ms": 17,
+            "presentationGapsOver50ms": 2,
+            "presentedFramesPerSecond": 119.01,
+            "timelineAppJankPct": 0.656,
+            "timelineAnyJankPct": 70.836,
+            "timelineLatePct": 68.494,
+            "pssPeakMiB": 879.06,
+            "pssMedianMiB": 782.15,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 308,
+            "changedGifObjects": 48,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 171
+          },
+          "card-drag-up": {
+            "frames": 4149,
+            "seconds": 34.69,
+            "distancePx": 135106,
+            "totalMs": {
+              "median": 9.223,
+              "p95": 13.106,
+              "p99": 23.388,
+              "max": 38.782
+            },
+            "overDeadlinePct": 0.434,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.431,
+                "p95": 0.966,
+                "p99": 4.921,
+                "max": 25.053
+              },
+              "layout": {
+                "median": 0.4,
+                "p95": 2.442,
+                "p99": 3.653,
+                "max": 7.19
+              },
+              "draw": {
+                "median": 0.308,
+                "p95": 0.63,
+                "p99": 1.238,
+                "max": 2.529
+              },
+              "sync": {
+                "median": 0.253,
+                "p95": 0.395,
+                "p99": 0.543,
+                "max": 1.462
+              },
+              "gpu": {
+                "median": 4.749,
+                "p95": 6.902,
+                "p99": 9.102,
+                "max": 12.458
+              }
+            },
+            "timelineFrames": 4149,
+            "frameMetricsCoveragePct": 100.0,
+            "presentationGapMs": {
+              "median": 8.242,
+              "p95": 10.702,
+              "p99": 17.147,
+              "max": 37.063
+            },
+            "presentationGapsOver25ms": 18,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": 119.6,
+            "timelineAppJankPct": 0.627,
+            "timelineAnyJankPct": 92.818,
+            "timelineLatePct": 92.818,
+            "pssPeakMiB": 905.64,
+            "pssMedianMiB": 811.2,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 295,
+            "changedGifObjects": 48,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 166
+          }
+        },
+        "originalUnchanged": true,
+        "apkSha256": "e62350fa5f1e59de930568996d12124d240df1de9bb91b902e945c88ceffee27",
+        "snapshots": [
+          {
+            "phase": "perf-after-finger",
+            "pssMiB": 767.83,
+            "aliveLoaders": 3,
+            "runningLoaders": 1,
+            "knownGifFrameBitmapBytes": 25754080,
+            "pool": {
+              "hits": 8236,
+              "misses": 211,
+              "puts": 8436,
+              "evictions": 191,
+              "currentSize": 18404704,
+              "maxSize": 34933248
+            }
+          },
+          {
+            "phase": "perf-after-fling",
+            "pssMiB": 721.44,
+            "aliveLoaders": 5,
+            "runningLoaders": 1,
+            "knownGifFrameBitmapBytes": 49511328,
+            "pool": {
+              "hits": 13916,
+              "misses": 319,
+              "puts": 14204,
+              "evictions": 284,
+              "currentSize": 18038976,
+              "maxSize": 34933248
+            }
+          },
+          {
+            "phase": "perf-settled",
+            "pssMiB": 781.96,
+            "aliveLoaders": 4,
+            "runningLoaders": 1,
+            "knownGifFrameBitmapBytes": 44317760,
+            "pool": {
+              "hits": 27826,
+              "misses": 617,
+              "puts": 28407,
+              "evictions": 572,
+              "currentSize": 29346016,
+              "maxSize": 34933248
+            }
+          },
+          {
+            "phase": "after-drag",
+            "pssMiB": 829.6,
+            "aliveLoaders": 4,
+            "runningLoaders": 1,
+            "knownGifFrameBitmapBytes": 44317760,
+            "pool": {
+              "hits": 27970,
+              "misses": 617,
+              "puts": 28551,
+              "evictions": 572,
+              "currentSize": 29346016,
+              "maxSize": 34933248
+            }
+          },
+          {
+            "phase": "activity-finished",
+            "pssMiB": 614.1,
+            "aliveLoaders": 4,
+            "runningLoaders": 0,
+            "knownGifFrameBitmapBytes": 44317760,
+            "pool": {
+              "hits": 28026,
+              "misses": 617,
+              "puts": 28607,
+              "evictions": 572,
+              "currentSize": 29346016,
+              "maxSize": 34933248
+            }
+          }
+        ],
+        "beforeEnvironment": {
+          "batteryC": 40.0,
+          "thermalStatus": 0
+        },
+        "afterEnvironment": {
+          "batteryC": 41.0,
+          "thermalStatus": 3
+        },
+        "measurementLimits": [
+          "fling 的 FrameMetrics 缺报，不据此判断惯性长帧",
+          "结束 thermal status=3；normal-fling-down 呈现轨迹有记录空洞，按用户要求暂缓复核"
+        ]
+      }
+    },
+    "oppo": {
+      "legacy": {
+        "run": "perf-oppo-a2-1015",
+        "policy": "legacy",
+        "model": "PLZ110",
+        "refreshRate": 120.00001,
+        "ok": true,
+        "seen": 98,
+        "mediaReady": 80,
+        "pssPeakMiB": 502.64,
+        "allIncludingScreenshotsPssPeakMiB": 502.64,
+        "nativePeakMiB": 264.3,
+        "javaPeakMiB": 147.19,
+        "memorySampleMs": {
+          "median": 32.923,
+          "p95": 36.382,
+          "p99": 40.8,
+          "max": 42.913
+        },
+        "groups": {
+          "normal-finger-down": {
+            "frames": 3627,
+            "seconds": 38.32,
+            "distancePx": 119611,
+            "totalMs": {
+              "median": 5.527,
+              "p95": 8.026,
+              "p99": 14.722,
+              "max": 24.318
+            },
+            "overDeadlinePct": 1.075,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.318,
+                "p95": 0.59,
+                "p99": 4.965,
+                "max": 20.085
+              },
+              "layout": {
+                "median": 0.198,
+                "p95": 0.288,
+                "p99": 1.46,
+                "max": 5.752
+              },
+              "draw": {
+                "median": 0.256,
+                "p95": 0.488,
+                "p99": 1.382,
+                "max": 3.534
+              },
+              "sync": {
+                "median": 0.145,
+                "p95": 0.238,
+                "p99": 0.322,
+                "max": 1.43
+              },
+              "gpu": {
+                "median": 1.892,
+                "p95": 2.89,
+                "p99": 4.791,
+                "max": 13.802
+              }
+            },
+            "timelineFrames": 0,
+            "frameMetricsCoveragePct": null,
+            "presentationGapMs": {
+              "median": null,
+              "p95": null,
+              "p99": null,
+              "max": null
+            },
+            "presentationGapsOver25ms": 0,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": null,
+            "timelineAppJankPct": null,
+            "timelineAnyJankPct": null,
+            "timelineLatePct": null,
+            "pssPeakMiB": 502.64,
+            "pssMedianMiB": 404.98,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 49,
+            "changedGifObjects": 48,
+            "spinnerSamples": 9,
+            "pausedSamples": 144,
+            "samples": 216
+          },
+          "normal-finger-up": {
+            "frames": 3527,
+            "seconds": 38.27,
+            "distancePx": 119611,
+            "totalMs": {
+              "median": 5.762,
+              "p95": 8.199,
+              "p99": 14.776,
+              "max": 22.781
+            },
+            "overDeadlinePct": 1.219,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.301,
+                "p95": 0.452,
+                "p99": 4.283,
+                "max": 18.748
+              },
+              "layout": {
+                "median": 0.191,
+                "p95": 0.295,
+                "p99": 1.563,
+                "max": 5.402
+              },
+              "draw": {
+                "median": 0.241,
+                "p95": 0.394,
+                "p99": 1.279,
+                "max": 3.558
+              },
+              "sync": {
+                "median": 0.148,
+                "p95": 0.236,
+                "p99": 0.335,
+                "max": 0.579
+              },
+              "gpu": {
+                "median": 2.074,
+                "p95": 3.061,
+                "p99": 4.926,
+                "max": 14.288
+              }
+            },
+            "timelineFrames": 0,
+            "frameMetricsCoveragePct": null,
+            "presentationGapMs": {
+              "median": null,
+              "p95": null,
+              "p99": null,
+              "max": null
+            },
+            "presentationGapsOver25ms": 0,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": null,
+            "timelineAppJankPct": null,
+            "timelineAnyJankPct": null,
+            "timelineLatePct": null,
+            "pssPeakMiB": 491.11,
+            "pssMedianMiB": 425.58,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 44,
+            "changedGifObjects": 48,
+            "spinnerSamples": 0,
+            "pausedSamples": 144,
+            "samples": 216
+          },
+          "normal-fling-down-input": {
+            "frames": 66,
+            "seconds": 0.58,
+            "distancePx": null,
+            "totalMs": {
+              "median": 4.889,
+              "p95": 10.034,
+              "p99": 12.403,
+              "max": 12.924
+            },
+            "overDeadlinePct": 0.0,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.301,
+                "p95": 1.703,
+                "p99": 2.521,
+                "max": 2.987
+              },
+              "layout": {
+                "median": 0.147,
+                "p95": 0.318,
+                "p99": 1.437,
+                "max": 1.946
+              },
+              "draw": {
+                "median": 0.222,
+                "p95": 1.147,
+                "p99": 2.027,
+                "max": 3.123
+              },
+              "sync": {
+                "median": 0.124,
+                "p95": 0.248,
+                "p99": 1.036,
+                "max": 2.331
+              },
+              "gpu": {
+                "median": 1.819,
+                "p95": 2.371,
+                "p99": 3.26,
+                "max": 4.392
+              }
+            },
+            "timelineFrames": 0,
+            "frameMetricsCoveragePct": null,
+            "presentationGapMs": {
+              "median": null,
+              "p95": null,
+              "p99": null,
+              "max": null
+            },
+            "presentationGapsOver25ms": 0,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": null,
+            "timelineAppJankPct": null,
+            "timelineAnyJankPct": null,
+            "timelineLatePct": null,
+            "pssPeakMiB": 0.0,
+            "pssMedianMiB": 0.0,
+            "seenCards": 0,
+            "readyCards": 0,
+            "playingSamples": 0,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 0
+          },
+          "normal-fling-down": {
+            "frames": 1445,
+            "seconds": 11.97,
+            "distancePx": 119611,
+            "totalMs": {
+              "median": 7.331,
+              "p95": 15.61,
+              "p99": 16.564,
+              "max": 17.448
+            },
+            "overDeadlinePct": 0.0,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.296,
+                "p95": 0.514,
+                "p99": 2.048,
+                "max": 4.918
+              },
+              "layout": {
+                "median": 0.16,
+                "p95": 0.21,
+                "p99": 2.074,
+                "max": 5.688
+              },
+              "draw": {
+                "median": 0.199,
+                "p95": 0.436,
+                "p99": 1.739,
+                "max": 4.049
+              },
+              "sync": {
+                "median": 0.116,
+                "p95": 0.179,
+                "p99": 0.244,
+                "max": 0.422
+              },
+              "gpu": {
+                "median": 5.457,
+                "p95": 13.725,
+                "p99": 14.54,
+                "max": 15.543
+              }
+            },
+            "timelineFrames": 0,
+            "frameMetricsCoveragePct": null,
+            "presentationGapMs": {
+              "median": null,
+              "p95": null,
+              "p99": null,
+              "max": null
+            },
+            "presentationGapsOver25ms": 0,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": null,
+            "timelineAppJankPct": null,
+            "timelineAnyJankPct": null,
+            "timelineLatePct": null,
+            "pssPeakMiB": 444.93,
+            "pssMedianMiB": 389.52,
+            "seenCards": 86,
+            "readyCards": 17,
+            "playingSamples": 1,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 56,
+            "samples": 63
+          },
+          "normal-fling-up-input": {
+            "frames": 49,
+            "seconds": 0.49,
+            "distancePx": null,
+            "totalMs": {
+              "median": 5.225,
+              "p95": 10.151,
+              "p99": 12.767,
+              "max": 12.791
+            },
+            "overDeadlinePct": 0.0,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.367,
+                "p95": 2.962,
+                "p99": 3.653,
+                "max": 3.997
+              },
+              "layout": {
+                "median": 0.138,
+                "p95": 1.481,
+                "p99": 2.312,
+                "max": 2.756
+              },
+              "draw": {
+                "median": 0.217,
+                "p95": 0.634,
+                "p99": 1.181,
+                "max": 1.582
+              },
+              "sync": {
+                "median": 0.113,
+                "p95": 0.237,
+                "p99": 0.3,
+                "max": 0.341
+              },
+              "gpu": {
+                "median": 1.833,
+                "p95": 3.563,
+                "p99": 4.601,
+                "max": 5.179
+              }
+            },
+            "timelineFrames": 0,
+            "frameMetricsCoveragePct": null,
+            "presentationGapMs": {
+              "median": null,
+              "p95": null,
+              "p99": null,
+              "max": null
+            },
+            "presentationGapsOver25ms": 0,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": null,
+            "timelineAppJankPct": null,
+            "timelineAnyJankPct": null,
+            "timelineLatePct": null,
+            "pssPeakMiB": 0.0,
+            "pssMedianMiB": 0.0,
+            "seenCards": 0,
+            "readyCards": 0,
+            "playingSamples": 0,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 0
+          },
+          "normal-fling-up": {
+            "frames": 1316,
+            "seconds": 10.82,
+            "distancePx": 119611,
+            "totalMs": {
+              "median": 15.92,
+              "p95": 23.685,
+              "p99": 32.071,
+              "max": 33.314
+            },
+            "overDeadlinePct": 0.076,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.353,
+                "p95": 0.702,
+                "p99": 7.874,
+                "max": 17.561
+              },
+              "layout": {
+                "median": 0.156,
+                "p95": 0.193,
+                "p99": 1.278,
+                "max": 15.54
+              },
+              "draw": {
+                "median": 0.214,
+                "p95": 0.679,
+                "p99": 1.317,
+                "max": 2.651
+              },
+              "sync": {
+                "median": 0.116,
+                "p95": 0.178,
+                "p99": 0.254,
+                "max": 0.382
+              },
+              "gpu": {
+                "median": 13.653,
+                "p95": 14.754,
+                "p99": 15.206,
+                "max": 15.991
+              }
+            },
+            "timelineFrames": 0,
+            "frameMetricsCoveragePct": null,
+            "presentationGapMs": {
+              "median": null,
+              "p95": null,
+              "p99": null,
+              "max": null
+            },
+            "presentationGapsOver25ms": 0,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": null,
+            "timelineAppJankPct": null,
+            "timelineAnyJankPct": null,
+            "timelineLatePct": null,
+            "pssPeakMiB": 440.08,
+            "pssMedianMiB": 407.42,
+            "seenCards": 84,
+            "readyCards": 12,
+            "playingSamples": 1,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 50,
+            "samples": 56
+          },
+          "selection-finger-down": {
+            "frames": 2720,
+            "seconds": 38.32,
+            "distancePx": 119611,
+            "totalMs": {
+              "median": 5.444,
+              "p95": 8.151,
+              "p99": 17.221,
+              "max": 24.866
+            },
+            "overDeadlinePct": 1.507,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.343,
+                "p95": 0.647,
+                "p99": 6.079,
+                "max": 20.409
+              },
+              "layout": {
+                "median": 0.19,
+                "p95": 0.288,
+                "p99": 1.683,
+                "max": 6.078
+              },
+              "draw": {
+                "median": 0.236,
+                "p95": 0.419,
+                "p99": 1.533,
+                "max": 4.906
+              },
+              "sync": {
+                "median": 0.194,
+                "p95": 0.315,
+                "p99": 0.431,
+                "max": 0.795
+              },
+              "gpu": {
+                "median": 2.248,
+                "p95": 3.042,
+                "p99": 4.612,
+                "max": 15.805
+              }
+            },
+            "timelineFrames": 0,
+            "frameMetricsCoveragePct": null,
+            "presentationGapMs": {
+              "median": null,
+              "p95": null,
+              "p99": null,
+              "max": null
+            },
+            "presentationGapsOver25ms": 0,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": null,
+            "timelineAppJankPct": null,
+            "timelineAnyJankPct": null,
+            "timelineLatePct": null,
+            "pssPeakMiB": 488.45,
+            "pssMedianMiB": 434.4,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 33,
+            "changedGifObjects": 48,
+            "spinnerSamples": 0,
+            "pausedSamples": 144,
+            "samples": 216
+          },
+          "selection-fling-up-input": {
+            "frames": 51,
+            "seconds": 0.49,
+            "distancePx": null,
+            "totalMs": {
+              "median": 5.064,
+              "p95": 11.746,
+              "p99": 17.059,
+              "max": 17.65
+            },
+            "overDeadlinePct": 3.922,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.282,
+                "p95": 4.775,
+                "p99": 13.607,
+                "max": 13.946
+              },
+              "layout": {
+                "median": 0.141,
+                "p95": 1.272,
+                "p99": 4.532,
+                "max": 4.583
+              },
+              "draw": {
+                "median": 0.195,
+                "p95": 0.914,
+                "p99": 1.432,
+                "max": 1.489
+              },
+              "sync": {
+                "median": 0.146,
+                "p95": 0.293,
+                "p99": 0.345,
+                "max": 0.386
+              },
+              "gpu": {
+                "median": 2.042,
+                "p95": 2.85,
+                "p99": 5.024,
+                "max": 5.843
+              }
+            },
+            "timelineFrames": 0,
+            "frameMetricsCoveragePct": null,
+            "presentationGapMs": {
+              "median": null,
+              "p95": null,
+              "p99": null,
+              "max": null
+            },
+            "presentationGapsOver25ms": 0,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": null,
+            "timelineAppJankPct": null,
+            "timelineAnyJankPct": null,
+            "timelineLatePct": null,
+            "pssPeakMiB": 0.0,
+            "pssMedianMiB": 0.0,
+            "seenCards": 0,
+            "readyCards": 0,
+            "playingSamples": 0,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 0
+          },
+          "selection-fling-up": {
+            "frames": 1412,
+            "seconds": 11.69,
+            "distancePx": 119611,
+            "totalMs": {
+              "median": 7.694,
+              "p95": 15.761,
+              "p99": 16.845,
+              "max": 17.602
+            },
+            "overDeadlinePct": 0.0,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.295,
+                "p95": 0.509,
+                "p99": 2.699,
+                "max": 6.766
+              },
+              "layout": {
+                "median": 0.151,
+                "p95": 0.215,
+                "p99": 1.509,
+                "max": 3.903
+              },
+              "draw": {
+                "median": 0.2,
+                "p95": 0.673,
+                "p99": 1.31,
+                "max": 3.767
+              },
+              "sync": {
+                "median": 0.133,
+                "p95": 0.208,
+                "p99": 0.292,
+                "max": 0.438
+              },
+              "gpu": {
+                "median": 5.796,
+                "p95": 14.007,
+                "p99": 14.815,
+                "max": 15.394
+              }
+            },
+            "timelineFrames": 0,
+            "frameMetricsCoveragePct": null,
+            "presentationGapMs": {
+              "median": null,
+              "p95": null,
+              "p99": null,
+              "max": null
+            },
+            "presentationGapsOver25ms": 0,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": null,
+            "timelineAppJankPct": null,
+            "timelineAnyJankPct": null,
+            "timelineLatePct": null,
+            "pssPeakMiB": 490.33,
+            "pssMedianMiB": 389.29,
+            "seenCards": 85,
+            "readyCards": 13,
+            "playingSamples": 0,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 55,
+            "samples": 60
+          },
+          "card-drag-down": {
+            "frames": 4165,
+            "seconds": 34.85,
+            "distancePx": 119611,
+            "totalMs": {
+              "median": 5.982,
+              "p95": 8.384,
+              "p99": 13.814,
+              "max": 30.165
+            },
+            "overDeadlinePct": 0.408,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.275,
+                "p95": 0.508,
+                "p99": 2.025,
+                "max": 19.685
+              },
+              "layout": {
+                "median": 0.374,
+                "p95": 1.981,
+                "p99": 2.509,
+                "max": 5.167
+              },
+              "draw": {
+                "median": 0.288,
+                "p95": 0.59,
+                "p99": 0.929,
+                "max": 3.707
+              },
+              "sync": {
+                "median": 0.139,
+                "p95": 0.225,
+                "p99": 0.309,
+                "max": 0.908
+              },
+              "gpu": {
+                "median": 2.344,
+                "p95": 5.602,
+                "p99": 6.226,
+                "max": 8.316
+              }
+            },
+            "timelineFrames": 0,
+            "frameMetricsCoveragePct": null,
+            "presentationGapMs": {
+              "median": null,
+              "p95": null,
+              "p99": null,
+              "max": null
+            },
+            "presentationGapsOver25ms": 0,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": null,
+            "timelineAppJankPct": null,
+            "timelineAnyJankPct": null,
+            "timelineLatePct": null,
+            "pssPeakMiB": 470.06,
+            "pssMedianMiB": 405.08,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 291,
+            "changedGifObjects": 48,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 170
+          },
+          "card-drag-up": {
+            "frames": 3897,
+            "seconds": 32.54,
+            "distancePx": 119611,
+            "totalMs": {
+              "median": 7.373,
+              "p95": 8.541,
+              "p99": 14.56,
+              "max": 22.265
+            },
+            "overDeadlinePct": 0.205,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.286,
+                "p95": 0.538,
+                "p99": 2.593,
+                "max": 10.687
+              },
+              "layout": {
+                "median": 0.448,
+                "p95": 1.741,
+                "p99": 2.815,
+                "max": 6.168
+              },
+              "draw": {
+                "median": 0.279,
+                "p95": 0.574,
+                "p99": 1.018,
+                "max": 2.309
+              },
+              "sync": {
+                "median": 0.145,
+                "p95": 0.232,
+                "p99": 0.326,
+                "max": 0.836
+              },
+              "gpu": {
+                "median": 2.764,
+                "p95": 5.884,
+                "p99": 6.435,
+                "max": 7.807
+              }
+            },
+            "timelineFrames": 0,
+            "frameMetricsCoveragePct": null,
+            "presentationGapMs": {
+              "median": null,
+              "p95": null,
+              "p99": null,
+              "max": null
+            },
+            "presentationGapsOver25ms": 0,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": null,
+            "timelineAppJankPct": null,
+            "timelineAnyJankPct": null,
+            "timelineLatePct": null,
+            "pssPeakMiB": 496.23,
+            "pssMedianMiB": 419.45,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 278,
+            "changedGifObjects": 48,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 159
+          }
+        },
+        "originalUnchanged": true,
+        "apkSha256": "e62350fa5f1e59de930568996d12124d240df1de9bb91b902e945c88ceffee27",
+        "snapshots": [
+          {
+            "phase": "perf-after-finger",
+            "pssMiB": 396.13,
+            "aliveLoaders": 3,
+            "runningLoaders": 1,
+            "knownGifFrameBitmapBytes": 21321520,
+            "pool": {
+              "hits": 2206,
+              "misses": 167,
+              "puts": 2362,
+              "evictions": 149,
+              "currentSize": 15788160,
+              "maxSize": 25681920
+            }
+          },
+          {
+            "phase": "perf-after-fling",
+            "pssMiB": 419.29,
+            "aliveLoaders": 5,
+            "runningLoaders": 1,
+            "knownGifFrameBitmapBytes": 26694464,
+            "pool": {
+              "hits": 2420,
+              "misses": 206,
+              "puts": 2611,
+              "evictions": 186,
+              "currentSize": 8471360,
+              "maxSize": 25681920
+            }
+          },
+          {
+            "phase": "perf-settled",
+            "pssMiB": 470.8,
+            "aliveLoaders": 3,
+            "runningLoaders": 1,
+            "knownGifFrameBitmapBytes": 13603936,
+            "pool": {
+              "hits": 10245,
+              "misses": 438,
+              "puts": 10664,
+              "evictions": 410,
+              "currentSize": 18271632,
+              "maxSize": 25681920
+            }
+          },
+          {
+            "phase": "after-drag",
+            "pssMiB": 347.88,
+            "aliveLoaders": 3,
+            "runningLoaders": 1,
+            "knownGifFrameBitmapBytes": 9545632,
+            "pool": {
+              "hits": 10313,
+              "misses": 438,
+              "puts": 10732,
+              "evictions": 410,
+              "currentSize": 18271632,
+              "maxSize": 25681920
+            }
+          },
+          {
+            "phase": "activity-finished",
+            "pssMiB": 283.66,
+            "aliveLoaders": 3,
+            "runningLoaders": 0,
+            "knownGifFrameBitmapBytes": 13603936,
+            "pool": {
+              "hits": 10343,
+              "misses": 438,
+              "puts": 10762,
+              "evictions": 410,
+              "currentSize": 18271632,
+              "maxSize": 25681920
+            }
+          }
+        ],
+        "beforeEnvironment": {
+          "batteryC": 37.4,
+          "thermalStatus": 0
+        },
+        "afterEnvironment": {
+          "batteryC": 37.9,
+          "thermalStatus": 0
+        },
+        "measurementLimits": [
+          "没有 FrameTimeline，仅窗口 FrameMetrics"
+        ]
+      },
+      "continuous": {
+        "run": "perf-oppo-b1-1015",
+        "policy": "continuous",
+        "model": "PLZ110",
+        "refreshRate": 120.00001,
+        "ok": true,
+        "seen": 98,
+        "mediaReady": 80,
+        "pssPeakMiB": 526.83,
+        "allIncludingScreenshotsPssPeakMiB": 526.83,
+        "nativePeakMiB": 254.65,
+        "javaPeakMiB": 159.02,
+        "memorySampleMs": {
+          "median": 31.26,
+          "p95": 43.771,
+          "p99": 47.172,
+          "max": 51.296
+        },
+        "groups": {
+          "normal-finger-down": {
+            "frames": 3756,
+            "seconds": 38.12,
+            "distancePx": 119611,
+            "totalMs": {
+              "median": 4.642,
+              "p95": 7.365,
+              "p99": 13.699,
+              "max": 23.952
+            },
+            "overDeadlinePct": 0.932,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.275,
+                "p95": 0.535,
+                "p99": 4.491,
+                "max": 17.403
+              },
+              "layout": {
+                "median": 0.16,
+                "p95": 0.276,
+                "p99": 1.427,
+                "max": 7.365
+              },
+              "draw": {
+                "median": 0.207,
+                "p95": 0.466,
+                "p99": 1.282,
+                "max": 3.164
+              },
+              "sync": {
+                "median": 0.12,
+                "p95": 0.21,
+                "p99": 0.286,
+                "max": 2.192
+              },
+              "gpu": {
+                "median": 1.814,
+                "p95": 2.751,
+                "p99": 4.766,
+                "max": 15.625
+              }
+            },
+            "timelineFrames": 0,
+            "frameMetricsCoveragePct": null,
+            "presentationGapMs": {
+              "median": null,
+              "p95": null,
+              "p99": null,
+              "max": null
+            },
+            "presentationGapsOver25ms": 0,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": null,
+            "timelineAppJankPct": null,
+            "timelineAnyJankPct": null,
+            "timelineLatePct": null,
+            "pssPeakMiB": 526.83,
+            "pssMedianMiB": 412.47,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 246,
+            "changedGifObjects": 48,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 216
+          },
+          "normal-finger-up": {
+            "frames": 3805,
+            "seconds": 38.17,
+            "distancePx": 119611,
+            "totalMs": {
+              "median": 4.957,
+              "p95": 7.361,
+              "p99": 13.836,
+              "max": 23.009
+            },
+            "overDeadlinePct": 0.92,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.275,
+                "p95": 0.509,
+                "p99": 3.106,
+                "max": 18.968
+              },
+              "layout": {
+                "median": 0.149,
+                "p95": 0.25,
+                "p99": 1.429,
+                "max": 5.518
+              },
+              "draw": {
+                "median": 0.193,
+                "p95": 0.402,
+                "p99": 1.123,
+                "max": 3.294
+              },
+              "sync": {
+                "median": 0.123,
+                "p95": 0.21,
+                "p99": 0.289,
+                "max": 0.729
+              },
+              "gpu": {
+                "median": 2.053,
+                "p95": 2.971,
+                "p99": 4.556,
+                "max": 15.101
+              }
+            },
+            "timelineFrames": 0,
+            "frameMetricsCoveragePct": null,
+            "presentationGapMs": {
+              "median": null,
+              "p95": null,
+              "p99": null,
+              "max": null
+            },
+            "presentationGapsOver25ms": 0,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": null,
+            "timelineAppJankPct": null,
+            "timelineAnyJankPct": null,
+            "timelineLatePct": null,
+            "pssPeakMiB": 509.98,
+            "pssMedianMiB": 417.87,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 250,
+            "changedGifObjects": 48,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 216
+          },
+          "normal-fling-down-input": {
+            "frames": 48,
+            "seconds": 0.47,
+            "distancePx": null,
+            "totalMs": {
+              "median": 4.672,
+              "p95": 8.857,
+              "p99": 13.908,
+              "max": 15.568
+            },
+            "overDeadlinePct": 2.083,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.257,
+                "p95": 0.57,
+                "p99": 7.191,
+                "max": 12.198
+              },
+              "layout": {
+                "median": 0.146,
+                "p95": 1.136,
+                "p99": 1.338,
+                "max": 1.364
+              },
+              "draw": {
+                "median": 0.184,
+                "p95": 0.423,
+                "p99": 1.043,
+                "max": 1.542
+              },
+              "sync": {
+                "median": 0.117,
+                "p95": 0.206,
+                "p99": 0.26,
+                "max": 0.294
+              },
+              "gpu": {
+                "median": 1.733,
+                "p95": 2.696,
+                "p99": 4.115,
+                "max": 4.563
+              }
+            },
+            "timelineFrames": 0,
+            "frameMetricsCoveragePct": null,
+            "presentationGapMs": {
+              "median": null,
+              "p95": null,
+              "p99": null,
+              "max": null
+            },
+            "presentationGapsOver25ms": 0,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": null,
+            "timelineAppJankPct": null,
+            "timelineAnyJankPct": null,
+            "timelineLatePct": null,
+            "pssPeakMiB": 0.0,
+            "pssMedianMiB": 0.0,
+            "seenCards": 0,
+            "readyCards": 0,
+            "playingSamples": 0,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 0
+          },
+          "normal-fling-down": {
+            "frames": 1395,
+            "seconds": 11.51,
+            "distancePx": 119611,
+            "totalMs": {
+              "median": 7.261,
+              "p95": 8.238,
+              "p99": 8.673,
+              "max": 11.668
+            },
+            "overDeadlinePct": 0.0,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.263,
+                "p95": 0.469,
+                "p99": 1.502,
+                "max": 8.898
+              },
+              "layout": {
+                "median": 0.155,
+                "p95": 0.224,
+                "p99": 2.384,
+                "max": 3.965
+              },
+              "draw": {
+                "median": 0.205,
+                "p95": 0.623,
+                "p99": 1.401,
+                "max": 3.654
+              },
+              "sync": {
+                "median": 0.115,
+                "p95": 0.204,
+                "p99": 0.263,
+                "max": 0.462
+              },
+              "gpu": {
+                "median": 5.518,
+                "p95": 6.726,
+                "p99": 7.146,
+                "max": 8.938
+              }
+            },
+            "timelineFrames": 0,
+            "frameMetricsCoveragePct": null,
+            "presentationGapMs": {
+              "median": null,
+              "p95": null,
+              "p99": null,
+              "max": null
+            },
+            "presentationGapsOver25ms": 0,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": null,
+            "timelineAppJankPct": null,
+            "timelineAnyJankPct": null,
+            "timelineLatePct": null,
+            "pssPeakMiB": 459.62,
+            "pssMedianMiB": 395.67,
+            "seenCards": 86,
+            "readyCards": 69,
+            "playingSamples": 104,
+            "changedGifObjects": 25,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 60
+          },
+          "normal-fling-up-input": {
+            "frames": 48,
+            "seconds": 0.49,
+            "distancePx": null,
+            "totalMs": {
+              "median": 5.273,
+              "p95": 14.879,
+              "p99": 16.981,
+              "max": 17.435
+            },
+            "overDeadlinePct": 6.25,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.213,
+                "p95": 5.867,
+                "p99": 10.099,
+                "max": 11.366
+              },
+              "layout": {
+                "median": 0.136,
+                "p95": 1.33,
+                "p99": 1.486,
+                "max": 1.549
+              },
+              "draw": {
+                "median": 0.193,
+                "p95": 0.751,
+                "p99": 1.607,
+                "max": 1.78
+              },
+              "sync": {
+                "median": 0.117,
+                "p95": 0.246,
+                "p99": 0.369,
+                "max": 0.371
+              },
+              "gpu": {
+                "median": 1.899,
+                "p95": 7.215,
+                "p99": 13.744,
+                "max": 13.892
+              }
+            },
+            "timelineFrames": 0,
+            "frameMetricsCoveragePct": null,
+            "presentationGapMs": {
+              "median": null,
+              "p95": null,
+              "p99": null,
+              "max": null
+            },
+            "presentationGapsOver25ms": 0,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": null,
+            "timelineAppJankPct": null,
+            "timelineAnyJankPct": null,
+            "timelineLatePct": null,
+            "pssPeakMiB": 0.0,
+            "pssMedianMiB": 0.0,
+            "seenCards": 0,
+            "readyCards": 0,
+            "playingSamples": 0,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 0
+          },
+          "normal-fling-up": {
+            "frames": 1329,
+            "seconds": 10.98,
+            "distancePx": 119611,
+            "totalMs": {
+              "median": 7.703,
+              "p95": 16.501,
+              "p99": 17.153,
+              "max": 17.96
+            },
+            "overDeadlinePct": 0.0,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.274,
+                "p95": 0.492,
+                "p99": 2.656,
+                "max": 7.0
+              },
+              "layout": {
+                "median": 0.15,
+                "p95": 0.221,
+                "p99": 2.111,
+                "max": 4.636
+              },
+              "draw": {
+                "median": 0.216,
+                "p95": 0.738,
+                "p99": 1.334,
+                "max": 2.828
+              },
+              "sync": {
+                "median": 0.121,
+                "p95": 0.217,
+                "p99": 0.308,
+                "max": 0.478
+              },
+              "gpu": {
+                "median": 5.677,
+                "p95": 14.498,
+                "p99": 15.208,
+                "max": 15.931
+              }
+            },
+            "timelineFrames": 0,
+            "frameMetricsCoveragePct": null,
+            "presentationGapMs": {
+              "median": null,
+              "p95": null,
+              "p99": null,
+              "max": null
+            },
+            "presentationGapsOver25ms": 0,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": null,
+            "timelineAppJankPct": null,
+            "timelineAnyJankPct": null,
+            "timelineLatePct": null,
+            "pssPeakMiB": 458.66,
+            "pssMedianMiB": 397.44,
+            "seenCards": 89,
+            "readyCards": 72,
+            "playingSamples": 95,
+            "changedGifObjects": 22,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 57
+          },
+          "selection-finger-down": {
+            "frames": 3115,
+            "seconds": 38.13,
+            "distancePx": 119611,
+            "totalMs": {
+              "median": 4.686,
+              "p95": 7.17,
+              "p99": 14.879,
+              "max": 25.879
+            },
+            "overDeadlinePct": 1.22,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.288,
+                "p95": 0.54,
+                "p99": 4.207,
+                "max": 22.142
+              },
+              "layout": {
+                "median": 0.168,
+                "p95": 0.277,
+                "p99": 1.54,
+                "max": 5.367
+              },
+              "draw": {
+                "median": 0.206,
+                "p95": 0.42,
+                "p99": 1.303,
+                "max": 4.002
+              },
+              "sync": {
+                "median": 0.155,
+                "p95": 0.265,
+                "p99": 0.382,
+                "max": 0.862
+              },
+              "gpu": {
+                "median": 2.151,
+                "p95": 2.92,
+                "p99": 4.691,
+                "max": 15.766
+              }
+            },
+            "timelineFrames": 0,
+            "frameMetricsCoveragePct": null,
+            "presentationGapMs": {
+              "median": null,
+              "p95": null,
+              "p99": null,
+              "max": null
+            },
+            "presentationGapsOver25ms": 0,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": null,
+            "timelineAppJankPct": null,
+            "timelineAnyJankPct": null,
+            "timelineLatePct": null,
+            "pssPeakMiB": 487.89,
+            "pssMedianMiB": 407.87,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 250,
+            "changedGifObjects": 48,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 216
+          },
+          "selection-fling-up-input": {
+            "frames": 56,
+            "seconds": 0.57,
+            "distancePx": null,
+            "totalMs": {
+              "median": 4.88,
+              "p95": 18.959,
+              "p99": 21.145,
+              "max": 22.027
+            },
+            "overDeadlinePct": 10.714,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.251,
+                "p95": 15.312,
+                "p99": 17.501,
+                "max": 18.321
+              },
+              "layout": {
+                "median": 0.152,
+                "p95": 1.567,
+                "p99": 2.149,
+                "max": 2.421
+              },
+              "draw": {
+                "median": 0.2,
+                "p95": 0.648,
+                "p99": 1.31,
+                "max": 1.343
+              },
+              "sync": {
+                "median": 0.133,
+                "p95": 0.238,
+                "p99": 0.302,
+                "max": 0.374
+              },
+              "gpu": {
+                "median": 2.082,
+                "p95": 6.235,
+                "p99": 10.466,
+                "max": 10.833
+              }
+            },
+            "timelineFrames": 0,
+            "frameMetricsCoveragePct": null,
+            "presentationGapMs": {
+              "median": null,
+              "p95": null,
+              "p99": null,
+              "max": null
+            },
+            "presentationGapsOver25ms": 0,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": null,
+            "timelineAppJankPct": null,
+            "timelineAnyJankPct": null,
+            "timelineLatePct": null,
+            "pssPeakMiB": 0.0,
+            "pssMedianMiB": 0.0,
+            "seenCards": 0,
+            "readyCards": 0,
+            "playingSamples": 0,
+            "changedGifObjects": 0,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 0
+          },
+          "selection-fling-up": {
+            "frames": 1464,
+            "seconds": 12.17,
+            "distancePx": 119611,
+            "totalMs": {
+              "median": 7.731,
+              "p95": 16.205,
+              "p99": 16.581,
+              "max": 18.097
+            },
+            "overDeadlinePct": 0.0,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.249,
+                "p95": 0.467,
+                "p99": 3.548,
+                "max": 10.026
+              },
+              "layout": {
+                "median": 0.147,
+                "p95": 0.292,
+                "p99": 2.314,
+                "max": 4.443
+              },
+              "draw": {
+                "median": 0.204,
+                "p95": 0.668,
+                "p99": 1.313,
+                "max": 2.524
+              },
+              "sync": {
+                "median": 0.125,
+                "p95": 0.222,
+                "p99": 0.356,
+                "max": 0.559
+              },
+              "gpu": {
+                "median": 6.104,
+                "p95": 8.731,
+                "p99": 9.376,
+                "max": 10.975
+              }
+            },
+            "timelineFrames": 0,
+            "frameMetricsCoveragePct": null,
+            "presentationGapMs": {
+              "median": null,
+              "p95": null,
+              "p99": null,
+              "max": null
+            },
+            "presentationGapsOver25ms": 0,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": null,
+            "timelineAppJankPct": null,
+            "timelineAnyJankPct": null,
+            "timelineLatePct": null,
+            "pssPeakMiB": 491.83,
+            "pssMedianMiB": 438.75,
+            "seenCards": 90,
+            "readyCards": 71,
+            "playingSamples": 105,
+            "changedGifObjects": 22,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 62
+          },
+          "card-drag-down": {
+            "frames": 4641,
+            "seconds": 38.74,
+            "distancePx": 119611,
+            "totalMs": {
+              "median": 6.533,
+              "p95": 8.401,
+              "p99": 15.715,
+              "max": 33.214
+            },
+            "overDeadlinePct": 0.323,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.278,
+                "p95": 0.505,
+                "p99": 2.267,
+                "max": 18.873
+              },
+              "layout": {
+                "median": 0.24,
+                "p95": 1.963,
+                "p99": 2.439,
+                "max": 7.009
+              },
+              "draw": {
+                "median": 0.279,
+                "p95": 0.579,
+                "p99": 0.79,
+                "max": 3.541
+              },
+              "sync": {
+                "median": 0.137,
+                "p95": 0.221,
+                "p99": 0.304,
+                "max": 1.291
+              },
+              "gpu": {
+                "median": 2.426,
+                "p95": 5.804,
+                "p99": 6.472,
+                "max": 9.14
+              }
+            },
+            "timelineFrames": 0,
+            "frameMetricsCoveragePct": null,
+            "presentationGapMs": {
+              "median": null,
+              "p95": null,
+              "p99": null,
+              "max": null
+            },
+            "presentationGapsOver25ms": 0,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": null,
+            "timelineAppJankPct": null,
+            "timelineAnyJankPct": null,
+            "timelineLatePct": null,
+            "pssPeakMiB": 480.78,
+            "pssMedianMiB": 399.31,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 328,
+            "changedGifObjects": 48,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 189
+          },
+          "card-drag-up": {
+            "frames": 4816,
+            "seconds": 40.13,
+            "distancePx": 119611,
+            "totalMs": {
+              "median": 7.697,
+              "p95": 8.54,
+              "p99": 12.766,
+              "max": 22.158
+            },
+            "overDeadlinePct": 0.125,
+            "over50ms": 0,
+            "over100ms": 0,
+            "droppedMetrics": 0,
+            "stageMs": {
+              "unknown": {
+                "median": 0.277,
+                "p95": 0.499,
+                "p99": 1.727,
+                "max": 11.515
+              },
+              "layout": {
+                "median": 0.197,
+                "p95": 1.759,
+                "p99": 2.647,
+                "max": 4.404
+              },
+              "draw": {
+                "median": 0.26,
+                "p95": 0.566,
+                "p99": 0.94,
+                "max": 1.941
+              },
+              "sync": {
+                "median": 0.138,
+                "p95": 0.219,
+                "p99": 0.314,
+                "max": 0.747
+              },
+              "gpu": {
+                "median": 3.723,
+                "p95": 6.171,
+                "p99": 6.612,
+                "max": 8.883
+              }
+            },
+            "timelineFrames": 0,
+            "frameMetricsCoveragePct": null,
+            "presentationGapMs": {
+              "median": null,
+              "p95": null,
+              "p99": null,
+              "max": null
+            },
+            "presentationGapsOver25ms": 0,
+            "presentationGapsOver50ms": 0,
+            "presentedFramesPerSecond": null,
+            "timelineAppJankPct": null,
+            "timelineAnyJankPct": null,
+            "timelineLatePct": null,
+            "pssPeakMiB": 468.54,
+            "pssMedianMiB": 408.46,
+            "seenCards": 98,
+            "readyCards": 80,
+            "playingSamples": 339,
+            "changedGifObjects": 48,
+            "spinnerSamples": 0,
+            "pausedSamples": 0,
+            "samples": 196
+          }
+        },
+        "originalUnchanged": true,
+        "apkSha256": "e62350fa5f1e59de930568996d12124d240df1de9bb91b902e945c88ceffee27",
+        "snapshots": [
+          {
+            "phase": "perf-after-finger",
+            "pssMiB": 409.42,
+            "aliveLoaders": 3,
+            "runningLoaders": 1,
+            "knownGifFrameBitmapBytes": 13603936,
+            "pool": {
+              "hits": 8475,
+              "misses": 215,
+              "puts": 8677,
+              "evictions": 197,
+              "currentSize": 17768304,
+              "maxSize": 25681920
+            }
+          },
+          {
+            "phase": "perf-after-fling",
+            "pssMiB": 360.54,
+            "aliveLoaders": 3,
+            "runningLoaders": 1,
+            "knownGifFrameBitmapBytes": 13856480,
+            "pool": {
+              "hits": 10958,
+              "misses": 301,
+              "puts": 11240,
+              "evictions": 275,
+              "currentSize": 12383520,
+              "maxSize": 25681920
+            }
+          },
+          {
+            "phase": "perf-settled",
+            "pssMiB": 484.87,
+            "aliveLoaders": 3,
+            "runningLoaders": 1,
+            "knownGifFrameBitmapBytes": 13856480,
+            "pool": {
+              "hits": 24227,
+              "misses": 592,
+              "puts": 24800,
+              "evictions": 564,
+              "currentSize": 18019088,
+              "maxSize": 25681920
+            }
+          },
+          {
+            "phase": "after-drag",
+            "pssMiB": 357.29,
+            "aliveLoaders": 3,
+            "runningLoaders": 1,
+            "knownGifFrameBitmapBytes": 13856480,
+            "pool": {
+              "hits": 24269,
+              "misses": 592,
+              "puts": 24842,
+              "evictions": 564,
+              "currentSize": 18019088,
+              "maxSize": 25681920
+            }
+          },
+          {
+            "phase": "activity-finished",
+            "pssMiB": 289.19,
+            "aliveLoaders": 3,
+            "runningLoaders": 0,
+            "knownGifFrameBitmapBytes": 13856480,
+            "pool": {
+              "hits": 24299,
+              "misses": 592,
+              "puts": 24872,
+              "evictions": 564,
+              "currentSize": 18019088,
+              "maxSize": 25681920
+            }
+          }
+        ],
+        "beforeEnvironment": {
+          "batteryC": 36.4,
+          "thermalStatus": 0
+        },
+        "afterEnvironment": {
+          "batteryC": 37.2,
+          "thermalStatus": 0
+        },
+        "measurementLimits": [
+          "没有 FrameTimeline，仅窗口 FrameMetrics"
+        ]
+      }
+    }
+  },
+  "incompleteRuns": {
+    "perf-samsung-a1-1015": "前六区间完整；拖动入口字段名错误，未完成整轮",
+    "perf-meizu-b1-1015": "前六区间完整；拖动入口字段名错误，未完成整轮",
+    "perf-oppo-a1n-1015": "前六区间完整；拖动入口字段名错误，未完成整轮",
+    "perf-oppo-a1-1015": "进入列表前 ADB 断连，无有效性能区间",
+    "perf-oppo-a1r-1015": "进入列表前 ADB 断连，无有效性能区间",
+    "perf-meizu-a3-1015": "冷却补测被 PIN 锁屏阻断，无有效性能区间"
+  },
+  "pending": [
+    "按用户要求暂缓：魅族冷却状态下的惯性呈现复核",
+    "进一步分离惯性阶段的活动解码、分配器保留与图形缓存开销；不得牺牲播放及 UI"
+  ],
+  "notes": [
+    "只切换暂停策略，其余实现和缓存预算相同；不是两个历史完整 APK 的比较",
+    "整体峰值约增加 2～5%，三星和魅族惯性工作阶段的中位数增加明显，不能宣称零内存代价",
+    "六轮完整运行退出后运行 loader 均为 0；未发现 OOM 或媒体加载失败"
+  ],
+  "cleanup": [
+    {
+      "serial": "R5CW20BLNKL",
+      "reference": "perf-samsung-a1-1015",
+      "originalUnchanged": true,
+      "uninstallCode": 0,
+      "uninstallOutput": "Success",
+      "cloneAbsent": true
+    },
+    {
+      "serial": "192.168.100.67:40807",
+      "reference": "perf-meizu-b1-1015",
+      "originalUnchanged": true,
+      "uninstallCode": 0,
+      "uninstallOutput": "Success",
+      "cloneAbsent": true
+    },
+    {
+      "serial": "3B1629006YC00000",
+      "reference": "perf-oppo-a1-1015",
+      "originalUnchanged": true,
+      "uninstallCode": 0,
+      "uninstallOutput": "Success",
+      "cloneAbsent": true
+    }
+  ],
+  "realSelectionSmoke": {
+    "perf-samsung-smoke-1015": {
+      "ok": true,
+      "cards": 25,
+      "phases": 8
+    },
+    "perf-oppo-smoke-1015": {
+      "ok": true,
+      "cards": 25,
+      "phases": 8
+    }
+  }
+}

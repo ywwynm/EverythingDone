@@ -140,6 +140,11 @@ If a tap lands on the wrong item, **do not retry blindly**. Re-screencap,
 identify what was actually hit (record its device-y), and use that as a
 known anchor to re-derive spacing for the intended item.
 
+## 实机冷却与锁屏
+
+- 不要为了性能测试冷却而主动发送 `KEYCODE_SLEEP`。保持设备原有解锁状态，优先停止测试负载、等待温度恢复；不要擅自修改用户锁屏设置。
+- `wm dismiss-keyguard` 不能解除需要 PIN／密码的锁屏。设备要求认证时，请用户在设备上解锁，不索取密码、不猜测或绕过认证。解锁前仍可完成日志分析、原数据校验和隔离包清理。
+
 ## Drawer / transient-UI timing
 
 DrawerLayout and DialogFragment have an auto-dismiss window. If you open

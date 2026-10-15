@@ -11,6 +11,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.graphics.drawable.Animatable
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.media.MediaMetadataRetriever
 import android.text.TextPaint
@@ -41,9 +42,12 @@ import com.bumptech.glide.RequestManager
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.load.resource.bitmap.VideoDecoder
+import com.bumptech.glide.load.resource.gif.GifDrawable
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.target.Target
+import com.bumptech.glide.request.target.DrawableImageViewTarget
+import com.bumptech.glide.request.transition.Transition
 import com.bumptech.glide.signature.ObjectKey
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
@@ -395,61 +399,10 @@ abstract class BaseThingsAdapter(context: Context?) :
         }
     }
 
-    // M2(ADR-0007/0012)：拖动/快滑期间暂停可见封面动图(Animated Image 与 Thing Card Video
-    // Preview)，停下恢复，减轻滚动期 GIF 软解负担；屏外动图由 Glide 的 M1 自动暂停。
-    private val mAnimatedCoverScrollPauseListener = object : RecyclerView.OnScrollListener() {
-        override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-            setVisibleAnimatedCoversRunning(
-                recyclerView, newState == RecyclerView.SCROLL_STATE_IDLE
-            )
-        }
-    }
-
-    private fun setVisibleAnimatedCoversRunning(recyclerView: RecyclerView, running: Boolean) {
-        for (i in 0 until recyclerView.childCount) {
-            val child = recyclerView.getChildAt(i) ?: continue
-            val holder = recyclerView.getChildViewHolder(child) as? BaseThingViewHolder ?: continue
-            setDrawableRunning(
-                holder.ivImageAttachment?.drawable,
-                running,
-                getThingCardMediaDebugInfo(holder.ivImageAttachment),
-                "thumbnail"
-            )
-            setDrawableRunning(
-                holder.ivMediaBackground?.drawable,
-                running,
-                getThingCardMediaDebugInfo(holder.ivMediaBackground),
-                "media-background"
-            )
-        }
-    }
-
-    private fun setDrawableRunning(
-        drawable: Drawable?,
-        running: Boolean,
-        debugInfo: ThingCardMediaDebugInfo?,
-        surface: String
-    ) {
-        val animatable = drawable as? Animatable ?: return
-        val wasRunning = animatable.isRunning
-        if (running) {
-            if (!animatable.isRunning) animatable.start()
-        } else {
-            if (animatable.isRunning) animatable.stop()
-        }
-        logThingCardMediaDebug(
-            debugInfo,
-            "animated-scroll-control surface=$surface requestRunning=$running " +
-                    "wasRunning=$wasRunning nowRunning=${animatable.isRunning} " +
-                    "drawable=${debugDrawableSize(drawable)} scroll=${hostScrollStateName()}"
-        )
-    }
-
     override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
         super.onAttachedToRecyclerView(recyclerView)
         mRecyclerView = recyclerView
         refreshCardWidthFromRecyclerView()
-        recyclerView.addOnScrollListener(mAnimatedCoverScrollPauseListener)
     }
 
     fun setHostRecyclerViewForDelegatedBinding(recyclerView: RecyclerView?) {
@@ -458,7 +411,6 @@ abstract class BaseThingsAdapter(context: Context?) :
     }
 
     override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
-        recyclerView.removeOnScrollListener(mAnimatedCoverScrollPauseListener)
         if (mRecyclerView === recyclerView) {
             mRecyclerView = null
         }
@@ -686,6 +638,39 @@ abstract class BaseThingsAdapter(context: Context?) :
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BaseThingViewHolder {
         return BaseThingViewHolder(mInflater!!.inflate(R.layout.card_thing, parent, false))
+    }
+
+    override fun onViewAttachedToWindow(holder: BaseThingViewHolder) {
+        super.onViewAttachedToWindow(holder)
+        holder.ivImageAttachment?.let { it.drawable?.setVisible(it.isShown, false) }
+        holder.ivMediaBackground?.let { it.drawable?.setVisible(it.isShown, false) }
+    }
+
+    override fun onViewDetachedFromWindow(holder: BaseThingViewHolder) {
+        // 临时缓存保留请求和画面，仅暂停离屏目标；重现时无需重新绑定或解码。
+        holder.ivImageAttachment?.drawable?.setVisible(false, false)
+        holder.ivMediaBackground?.drawable?.setVisible(false, false)
+        super.onViewDetachedFromWindow(holder)
+    }
+
+    override fun onViewRecycled(holder: BaseThingViewHolder) {
+        super.onViewRecycled(holder)
+        // 回收池中的卡片已不再绑定当前条目，必须结束请求，不能只依赖 Drawable 的可见性。
+        // 暂时离屏但仍在 RecyclerView cache 中的 holder 不走这里，保留其重现时的画面。
+        holder.flImageAttachment?.setTag(R.id.tag_thing_card_side_image_bind_token, null)
+        holder.ivImageAttachment?.let { image ->
+            image.setTag(R.id.tag_thing_card_image_load_key, null)
+            image.setTag(R.id.tag_thing_card_image_render_request, null)
+            mImageRequestManager!!.clear(image)
+            image.setImageDrawable(null)
+        }
+        holder.ivMediaBackground?.let { image ->
+            image.setTag(R.id.tag_thing_card_media_background_load_key, null)
+            image.setTag(R.id.tag_thing_card_media_background_render_request, null)
+            image.setTag(R.id.tag_thing_card_media_background_bind_token, null)
+            mImageRequestManager!!.clear(image)
+            image.setImageDrawable(null)
+        }
     }
 
     override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int) {
@@ -1463,10 +1448,12 @@ abstract class BaseThingsAdapter(context: Context?) :
     ) {
         // Animated Image (GIF / animated WebP) thumbnail: load as a Drawable and
         // crop each frame with MediaCropTransformation so it animates while keeping
-        // the user's crop. Skips the baked-bitmap LruCache. See ADR-0007.
+        // the user's crop. The bounded bitmap cache only supplies a temporary first frame.
+        val posterKey = animatedThingCardPosterKey(loadKey, pathName)
+        val poster = getAnimatedThingCardPoster(imageView, posterKey)
         mImageRequestManager!!.clear(imageView)
         imageView.setTag(R.id.tag_thing_card_image_load_key, loadKey)
-        holder.pbLoading!!.visibility = View.VISIBLE
+        holder.pbLoading!!.visibility = View.GONE
         imageView.scaleType = ImageView.ScaleType.CENTER_CROP
         imageView.imageMatrix = null
         val bitmapCrop = getThingCardThumbnailBitmapCrop(crop)
@@ -1488,6 +1475,7 @@ abstract class BaseThingsAdapter(context: Context?) :
             .override(imageW, imageH)
             .transform(MediaCropTransformation(imageW, imageH, bitmapCrop))
             .signature(getAnimatedThingCardMediaCacheSignature(loadKey, pathName))
+            .placeholder(poster)
         // 视频派生 GIF：加载失败时回退到该视频静态帧（同裁切），而非隐藏封面。见 ADR-0012 / followups。
         if (fallbackVideoPath != null) {
             val errorRequest = mImageRequestManager!!
@@ -1502,12 +1490,14 @@ abstract class BaseThingsAdapter(context: Context?) :
             }
             request.error(errorRequest)
         }
-        request
+        var primaryLoadFailed = false
+        val target = request
             .listener(object : RequestListener<Drawable> {
                 override fun onLoadFailed(
                     e: GlideException?, model: Any?, target: Target<Drawable>,
                     isFirstResource: Boolean
                 ): Boolean {
+                    primaryLoadFailed = true
                     logThingCardMediaDebug(
                         getThingCardMediaDebugInfo(imageView),
                         "animated-load failed surface=thumbnail model=${File(pathName).name} " +
@@ -1544,6 +1534,7 @@ abstract class BaseThingsAdapter(context: Context?) :
                                 } loadKey=$loadKey"
                     )
                     if (imageView.getTag(R.id.tag_thing_card_image_load_key) == loadKey) {
+                        cacheAnimatedThingCardPoster(posterKey, resource)
                         holder.pbLoading!!.visibility = View.GONE
                         imageView.scaleType = ImageView.ScaleType.CENTER_CROP
                         imageView.imageMatrix = null
@@ -1563,7 +1554,18 @@ abstract class BaseThingsAdapter(context: Context?) :
                     return false
                 }
             })
-            .into(imageView)
+            .into(ThingCardAnimatedTarget(imageView))
+        if (poster == null && imageView.drawable == null) {
+            val pendingRequest = target.request
+            // 本地缓存重解码通常很快，稍迟显示进度，避免每次返回闪一下加载圈。
+            imageView.postDelayed({
+                if (!primaryLoadFailed && imageView.getTag(R.id.tag_thing_card_image_load_key) == loadKey &&
+                    target.request === pendingRequest && pendingRequest?.isRunning == true &&
+                    imageView.drawable == null) {
+                    holder.pbLoading!!.visibility = View.VISIBLE
+                }
+            }, ANIMATED_COVER_LOADING_DELAY_MS)
+        }
     }
 
     private fun loadThingCardMediaBackground(
@@ -1775,7 +1777,9 @@ abstract class BaseThingsAdapter(context: Context?) :
     ) {
         // Animated Image media background: animate while keeping the crop. Foreground
         // colours use a fixed dark base in media-background mode (not sampled from the
-        // media), so animation does not affect them. Skips the LruCache. See ADR-0007.
+        // media), so animation does not affect them.
+        val posterKey = animatedThingCardPosterKey(loadKey, pathName)
+        val poster = getAnimatedThingCardPoster(imageView, posterKey)
         mImageRequestManager!!.clear(imageView)
         imageView.setTag(R.id.tag_thing_card_media_background_load_key, loadKey)
         imageView.scaleType = ImageView.ScaleType.CENTER_CROP
@@ -1786,6 +1790,7 @@ abstract class BaseThingsAdapter(context: Context?) :
             .override(imageW, imageH)
             .transform(MediaCropTransformation(imageW, imageH, bitmapCrop))
             .signature(getAnimatedThingCardMediaCacheSignature(loadKey, pathName))
+            .placeholder(poster)
         // 视频派生 GIF：加载失败时回退到该视频静态帧（同裁切），而非隐藏媒体背景。见 ADR-0012 / followups。
         if (fallbackVideoPath != null) {
             val errorRequest = mImageRequestManager!!
@@ -1835,13 +1840,46 @@ abstract class BaseThingsAdapter(context: Context?) :
                             R.id.tag_thing_card_media_background_load_key
                         ) == loadKey
                     ) {
+                        cacheAnimatedThingCardPoster(posterKey, resource)
                         imageView.scaleType = ImageView.ScaleType.CENTER_CROP
                         imageView.imageMatrix = null
                     }
                     return false
                 }
             })
-            .into(imageView)
+            .into(ThingCardAnimatedTarget(imageView))
+    }
+
+    /** Glide 设置 Drawable 后再核对可见性，覆盖未附着的 RecyclerView 预取目标。 */
+    private class ThingCardAnimatedTarget(imageView: ImageView) : DrawableImageViewTarget(imageView) {
+        override fun onResourceReady(resource: Drawable, transition: Transition<in Drawable>?) {
+            super.onResourceReady(resource, transition)
+            resource.setVisible(view.isAttachedToWindow && view.isShown, false)
+        }
+    }
+
+    private fun animatedThingCardPosterKey(loadKey: String, pathName: String): String =
+        "animated-poster:${getAnimatedThingCardMediaCacheSignature(loadKey, pathName)}"
+
+    private fun getAnimatedThingCardPoster(imageView: ImageView, key: String): BitmapDrawable? {
+        val cache = getThingCardMediaBitmapCache()
+        val bitmap = cache.get(key) ?: return null
+        if (bitmap.isRecycled) {
+            cache.remove(key)
+            return null
+        }
+        return BitmapDrawable(imageView.resources, bitmap)
+    }
+
+    private fun cacheAnimatedThingCardPoster(key: String, resource: Drawable) {
+        // 与静态封面共用原有上限，不持有 GifDrawable/decoder，不额外解码或改变帧尺寸。
+        if (getThingCardMediaBitmapCache().get(key)?.isRecycled == false) return
+        val bitmap = when (resource) {
+            is GifDrawable -> resource.firstFrame
+            is BitmapDrawable -> resource.bitmap
+            else -> null
+        } ?: return
+        cacheThingCardMediaBitmap(key, bitmap)
     }
 
     private fun isSameThingCardMediaBackgroundSource(
@@ -3743,6 +3781,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         private const val DEFAULT_MEMORY_CLASS_MB = 64
         private const val BYTES_PER_MEGABYTE = 1024 * 1024
         private const val BYTES_PER_ARGB_8888_PIXEL = 4
+        private const val ANIMATED_COVER_LOADING_DELAY_MS = 120L
         private const val THING_CARD_MEDIA_BITMAP_CACHE_MIN_BYTES = 8 * BYTES_PER_MEGABYTE
         private const val THING_CARD_MEDIA_BITMAP_CACHE_MAX_BYTES = 24 * BYTES_PER_MEGABYTE
         private const val DEBUG_VIDEO_COVER_PREVIEW_PREFIX = "[DEBUG-video-cover-preview]"

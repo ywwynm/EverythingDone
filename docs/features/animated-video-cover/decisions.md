@@ -2,6 +2,25 @@
 
 让视频封面也能在 Thing Card 上自动循环播放。术语 **Thing Card Video Preview** 见根目录 `CONTEXT.md`；本特性修订 [ADR-0007](../../adr/0007-animated-image-playback-scoped-per-surface.md) 中"任何视频缩略图都停在单帧"的结论。相关既有特性见 [animated-image-playback](../animated-image-playback/README.md)。
 
+## 2026-10-15：取消暂停后的性能结论边界
+
+用户要求取消暂停后继续进行复杂列表性能对照。三机同 APK、97 卡的完整 A/B 中，普通／选择／长按滑动未出现一致的明显流畅度回归，但惯性阶段工作内存增加，整体峰值约增加 2～5%。不能把功能回归通过扩展为“零内存代价”或“全场景无退化”。魅族异常呈现轨迹仍未确认；用户在冷却补测遇到锁屏后要求“先按已有结果整理”，因此补测暂缓。详见 [性能对照](scroll-performance-comparison-2026-10-15.md)。本轮只增调试测量与记录，不恢复暂停、不压低画质、不追加未经归因和 UI 对照的缓存调整，也不重新发布相同生产实现。
+
+## 2026-10-15：普通滑动持续加载播放与返回回显
+
+- 用户要求普通手指滑动和 fling 也必须显示、播放已加载 GIF。经 `43e0ee2f3`／`d4cc84298` 历史及实机红绿对照，取消首页滚动状态对全局请求的暂停，以及 BaseThingsAdapter 的 M2 可见动画暂停。本条取代下文 D8 中“快滑暂停”的旧决定。
+- 新复现的临时缓存／预取目标在离屏时仍播放：按 holder 附着边界同步 Drawable 可见性，且目标接收异步资源后核对真实附着状态。临时缓存保留请求与画面，正式回收继续 clear；不依赖滚动状态替代目标生命周期。
+- 参考 `1b4c07096` 静态回显缓存，GIF 仅复制已经裁切好的首帧，在同一 8–24 MiB 上限内作为返回时的 placeholder。完整 GIF 继续异步加载；包含实际动图内容身份的 key 保证修改文件、裁切、尺寸或所选视频帧后不复用旧画面。未命中时只将加载圈延迟 120ms，超时仍显示，不隐藏持续等待。
+- 详见 [普通滑动调查](regular-scroll-investigation-2026-10-15.md)。不提高缓存预算、不保留所有 decoder、不降低画质或帧率。
+
+## 2026-10-15：按实测修复分配与回收，不改变播放表现
+
+- 先核对 `c6e275ed4`、`2da3f98df`、`d4cc84298` 等历史，保留逐帧预裁切、原输出尺寸／sRGB、裁切参数、缓存签名、帧率、自动播放与失败回退。
+- 实测 `MediaCropTransformation` 未查询位图池，连续帧产生大量 native 分配。改为使用 Glide 已提供的 BitmapPool，清空旧像素后按同一数学绘制；静态烘焙仍自行创建输出，避免改变其所有权。像素回归覆盖透明、RGB565、Display-P3 及 RGBA_F16 池内容。
+- 实测已进 RecyclerView 回收池的卡片仍持续播放 GIF。BaseThingsAdapter 在 `onViewRecycled` 清除两种封面请求、load key 和异步绑定 token；普通临时离屏 cache 不清空，避免重现时丢失已加载画面。
+- 只修复复用后仍可测到大帧挤满一屏池的反复淘汰。魅族受控对照中两屏池把 PSS 峰值从 1127 MiB 降到 760 MiB、池 miss 分配从约 2423 MiB 降到 620 MiB。采用 Glide 官方 MemorySizeCalculator 的两屏池，继续受默认总预算约束；API 26 前、low-RAM 或会压缩原资源缓存的设备维持默认。`MediaGlideModule.java` 使用项目已有 Java annotationProcessor 注册，不引入新依赖。
+- 对照详见 [内存归因](memory-investigation-2026-10-15.md)。不以停滚后加载、降低尺寸或停止拖动中的 GIF 作为本轮优化。
+
 ## 2026-06-30
 
 ### D1 机制：从视频派生 GIF，喂进现有动图管线（方案 A）

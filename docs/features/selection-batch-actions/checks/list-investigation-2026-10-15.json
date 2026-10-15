@@ -1,0 +1,353 @@
+{
+  "date": "2026-10-15",
+  "productionHead": "c9576c0b049c7693df1ef90ef43692558d10986b",
+  "productionSourceChanged": false,
+  "conclusion": "未复现错删或高视频卡片持续空白；不做猜测修复",
+  "identityRuns": [
+    {
+      "run": "identity-samsung-baseline3-1015",
+      "a": 76,
+      "b": 101,
+      "sourceId": 76,
+      "restoredAIndex": 1,
+      "bIndex": 2,
+      "aExists": false,
+      "bExists": true,
+      "bState": 0,
+      "ok": true,
+      "identityMismatchCount": 0,
+      "originalDataUnchanged": true
+    },
+    {
+      "run": "identity-oppo-baseline2-1015",
+      "a": 8,
+      "b": 33,
+      "sourceId": 8,
+      "restoredAIndex": 1,
+      "bIndex": 2,
+      "aExists": false,
+      "bExists": true,
+      "bState": 0,
+      "ok": true,
+      "identityMismatchCount": 0,
+      "originalDataUnchanged": true
+    },
+    {
+      "run": "identity-meizu-baseline-1015",
+      "a": 8,
+      "b": 33,
+      "sourceId": 8,
+      "restoredAIndex": 1,
+      "bIndex": 2,
+      "aExists": false,
+      "bExists": true,
+      "bState": 0,
+      "ok": true,
+      "identityMismatchCount": 0,
+      "originalDataUnchanged": true
+    },
+    {
+      "run": "identity-samsung-scroll-flow-1015",
+      "a": 254,
+      "b": 279,
+      "sourceId": 254,
+      "restoredAIndex": 1,
+      "bIndex": 2,
+      "aExists": false,
+      "bExists": true,
+      "bState": 0,
+      "ok": true,
+      "identityMismatchCount": 0,
+      "originalDataUnchanged": true
+    },
+    {
+      "run": "identity-oppo-scroll-flow-1015",
+      "a": 114,
+      "b": 139,
+      "sourceId": 114,
+      "restoredAIndex": 1,
+      "bIndex": 2,
+      "aExists": false,
+      "bExists": true,
+      "bState": 0,
+      "ok": true,
+      "identityMismatchCount": 0,
+      "originalDataUnchanged": true
+    },
+    {
+      "run": "identity-meizu-scroll-flow-1015",
+      "a": 80,
+      "b": 105,
+      "sourceId": 80,
+      "restoredAIndex": 1,
+      "bIndex": 2,
+      "aExists": false,
+      "bExists": true,
+      "bState": 0,
+      "ok": true,
+      "identityMismatchCount": 0,
+      "originalDataUnchanged": true
+    }
+  ],
+  "videoRuns": [
+    {
+      "run": "video-meizu-baseline-1015",
+      "rounds": 36,
+      "videoSamples": 16,
+      "gifSamples": 16,
+      "videoHolderCount": 9,
+      "modes": [
+        0,
+        1
+      ],
+      "originalDataUnchanged": true,
+      "pixelCriterion": "卡片主体"
+    },
+    {
+      "run": "video-oppo-baseline2-1015",
+      "rounds": 36,
+      "videoSamples": 27,
+      "gifSamples": 27,
+      "videoHolderCount": 13,
+      "modes": [
+        0,
+        1
+      ],
+      "originalDataUnchanged": true,
+      "pixelCriterion": "卡片主体"
+    },
+    {
+      "run": "video-meizu-background-1015",
+      "rounds": 36,
+      "videoSamples": 25,
+      "gifSamples": 25,
+      "videoHolderCount": 13,
+      "modes": [
+        0,
+        1
+      ],
+      "originalDataUnchanged": true,
+      "pixelCriterion": "卡片主体"
+    },
+    {
+      "run": "video-samsung-background-1015",
+      "rounds": 60,
+      "videoSamples": 51,
+      "gifSamples": 51,
+      "videoHolderCount": 11,
+      "modes": [
+        0,
+        1
+      ],
+      "lateBind": false,
+      "originalDataUnchanged": true,
+      "pixelCriterion": "卡片主体"
+    },
+    {
+      "run": "video-meizu-late2-1015",
+      "rounds": 36,
+      "videoSamples": 20,
+      "gifSamples": 20,
+      "videoHolderCount": 12,
+      "modes": [
+        0,
+        1
+      ],
+      "lateBind": true,
+      "originalDataUnchanged": true,
+      "pixelCriterion": "卡片主体"
+    },
+    {
+      "run": "video-samsung-pattern-1015",
+      "rounds": 60,
+      "videoSamples": 55,
+      "gifSamples": 55,
+      "videoHolderCount": 11,
+      "modes": [
+        0,
+        1
+      ],
+      "lateBind": false,
+      "originalDataUnchanged": true,
+      "pixelCriterion": "主体与视频特征",
+      "minVideoPatternPixelsOf49": 27,
+      "retryCount": 0,
+      "frameIndices": [
+        0,
+        1,
+        2,
+        3,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        20,
+        21,
+        22,
+        23,
+        24
+      ]
+    },
+    {
+      "run": "video-meizu-pattern-1015",
+      "rounds": 60,
+      "videoSamples": 40,
+      "gifSamples": 40,
+      "videoHolderCount": 25,
+      "modes": [
+        0,
+        1
+      ],
+      "lateBind": true,
+      "originalDataUnchanged": true,
+      "pixelCriterion": "主体与视频特征",
+      "minVideoPatternPixelsOf49": 24,
+      "retryCount": 0,
+      "frameIndices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        6,
+        7,
+        8,
+        10,
+        11,
+        12,
+        13,
+        14,
+        16,
+        17,
+        19,
+        24,
+        25,
+        26
+      ]
+    }
+  ],
+  "completeVideoGestureCount": 324,
+  "strictVideoGestureCount": 120,
+  "strictGifSampleCount": 95,
+  "excludedRuns": [
+    {
+      "run": "identity-samsung-baseline-1015",
+      "classification": "测试驱动或环境问题，不能计作产品缺陷",
+      "reason": "测试未等待卡片入场完成"
+    },
+    {
+      "run": "identity-samsung-baseline2-1015",
+      "classification": "测试驱动或环境问题，不能计作产品缺陷",
+      "reason": "测试把弹窗局部坐标误作屏幕坐标"
+    },
+    {
+      "run": "identity-oppo-baseline-1015",
+      "classification": "测试驱动或环境问题，不能计作产品缺陷",
+      "reason": "系统安装确认页等待超时，没有进入测试"
+    },
+    {
+      "run": "video-samsung-baseline-1015",
+      "classification": "测试驱动或环境问题，不能计作产品缺陷",
+      "reason": "媒体权限窗口阻断"
+    },
+    {
+      "run": "video-samsung-baseline2-1015",
+      "classification": "测试驱动或环境问题，不能计作产品缺陷",
+      "reason": "媒体权限窗口阻断"
+    },
+    {
+      "run": "video-oppo-baseline-1015",
+      "classification": "测试驱动或环境问题，不能计作产品缺陷",
+      "reason": "测试手势起点落在卡片间隙"
+    },
+    {
+      "run": "video-samsung-baseline3-1015",
+      "classification": "测试驱动或环境问题，不能计作产品缺陷",
+      "reason": "命名文件夹弹窗及键盘遮挡"
+    },
+    {
+      "run": "video-samsung-baseline4-1015",
+      "classification": "测试驱动或环境问题，不能计作产品缺陷",
+      "reason": "命名弹窗消散残影与键盘遮挡"
+    },
+    {
+      "run": "video-meizu-late-1015",
+      "classification": "测试驱动或环境问题，不能计作产品缺陷",
+      "reason": "首次定位布局尚未提交到屏幕，测试使用了新坐标与旧画面"
+    },
+    {
+      "run": "video-oppo-background-1015",
+      "classification": "测试驱动或环境问题，不能计作产品缺陷",
+      "reason": "USB 断连，之后触摸输入被拒绝；重连后原应用哈希一致"
+    },
+    {
+      "run": "video-oppo-late-1015",
+      "classification": "测试驱动或环境问题，不能计作产品缺陷",
+      "reason": "系统拒绝注入首次触摸事件，未形成完整手势"
+    },
+    {
+      "run": "video-oppo-pixels-1015",
+      "classification": "测试驱动或环境问题，不能计作产品缺陷",
+      "reason": "初始媒体检查通过，但系统拒绝首轮 ACTION_DOWN"
+    },
+    {
+      "run": "video-samsung-pixels-1015",
+      "classification": "测试驱动或环境问题，不能计作产品缺陷",
+      "reason": "GIF 实际显示；裁切后采样仅剩黄蓝两色，颜色数判据误报"
+    },
+    {
+      "run": "video-meizu-pixels-1015",
+      "classification": "测试驱动或环境问题，不能计作产品缺陷",
+      "reason": "GIF 实际显示；裁切后采样仅剩黄蓝两色，颜色数判据误报"
+    }
+  ],
+  "cleanup": [
+    {
+      "serial": "R5CW20BLNKL",
+      "reference": "identity-samsung-baseline-1015",
+      "hashVerified": true,
+      "originalUnchanged": true,
+      "fileCount": 15,
+      "uninstallCode": 0,
+      "uninstallOutput": "Success",
+      "cloneAbsent": true
+    },
+    {
+      "serial": "3B1629006YC00000",
+      "reference": "identity-oppo-baseline-1015",
+      "hashVerified": true,
+      "originalUnchanged": true,
+      "fileCount": 14,
+      "uninstallCode": 0,
+      "uninstallOutput": "Success",
+      "cloneAbsent": true
+    },
+    {
+      "serial": "192.168.100.67:40807",
+      "reference": "identity-meizu-baseline-1015",
+      "hashVerified": true,
+      "originalUnchanged": true,
+      "fileCount": 13,
+      "uninstallCode": 0,
+      "uninstallOutput": "Success",
+      "cloneAbsent": true
+    }
+  ],
+  "limits": [
+    "所有破坏性操作仅用独立包和虚构数据，没有执行物理碰一碰握手",
+    "没有用户原始 A/B、原视频/GIF 或当时的完整时序与设置",
+    "没有卓易通可用复现环境，Android 通过不等于卓易通正常",
+    "媒体像素在手势结束后检查，不证明滚动中的每一帧正确",
+    "OPPO 后续背景封面补测被系统输入拒绝阻断，未计作通过"
+  ],
+  "rawArtifacts": "tmp/selection-transition-20261013/<run>/"
+}

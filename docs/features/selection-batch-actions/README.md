@@ -8,6 +8,7 @@
 
 - [媒体与子控件恢复的证据和回归](appearance-recovery-2026-10-13.md)
 - [普通工具栏全部操作的接入与三机验证](toolbar-removal-2026-10-15.md)
+- [完成／恢复／删除后的身份排查：三机六轮未复现错删](identity-investigation-2026-10-15.md)
 - [批量转场顺序的证据与回归](transition-2026-10-13.md)
 - [使用与动画要求](preferences.md)
 - [隔离数据的实机回归方法](checks/README.md)

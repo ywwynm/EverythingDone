@@ -1,0 +1,524 @@
+[
+  {
+    "run": "regular-oppo-final-1015",
+    "setup": {
+      "serial": "3B1629006YC00000",
+      "arguments": [
+        "scenario=complex",
+        "gesture=both",
+        "items=96",
+        "passes=2",
+        "cold_load=true",
+        "memory_audit=true",
+        "memory_gc=false",
+        "lifecycle_assert=true"
+      ],
+      "apkSha256": "fef50aace86f1aa4def9aaa9998bb39b60d62f415cba2b87fdb52d9b154067a2"
+    },
+    "ok": true,
+    "error": null,
+    "summary": {
+      "items": 97,
+      "mediaItems": 80,
+      "memoryClassMb": 256,
+      "largeMemoryClassMb": 512,
+      "lowRamDevice": false,
+      "maxJavaHeapBytes": 268435456,
+      "screenshotEvery": 1,
+      "sourceId": 97,
+      "sourceView": 131956263,
+      "samples": 366,
+      "samplesWithMovement": 364,
+      "seenCardCount": 96,
+      "loadedMediaCount": 80,
+      "unseenIds": [],
+      "mediaNeverShownIds": [],
+      "suspectSamples": 0,
+      "holderCount": 9,
+      "transparentNonSourceSamples": 0,
+      "recycledSourceSamples": 63,
+      "failedRequestSamples": 0,
+      "sourcePlaceholderSamples": 5,
+      "visibleSourceSamples": 0,
+      "sourceRestoredAfterCancel": true
+    },
+    "originalUnchanged": true,
+    "observedGifIds": 48,
+    "gifIdsWithChangingFrames": 48,
+    "transparentRows": 0,
+    "transparentOriginalDragViewRows": 0,
+    "observedFailureLogLines": 0,
+    "memoryByPass": [
+      {
+        "pass": 0,
+        "samples": 183,
+        "durationMs": 47908,
+        "pssKb": {
+          "first": 492305,
+          "max": 511416,
+          "last": 449567
+        },
+        "nativeAllocatedBytes": {
+          "first": 247406976,
+          "max": 265190944,
+          "last": 225615040
+        },
+        "javaUsedBytes": {
+          "first": 126097552,
+          "max": 144866144,
+          "last": 104581696
+        },
+        "activeResources": {
+          "first": 1,
+          "max": 7,
+          "last": 5
+        },
+        "glideCacheBytes": {
+          "first": 13605696,
+          "max": 25556670,
+          "last": 22678286
+        },
+        "bitmapPoolBytes": {
+          "first": 21163200,
+          "max": 25233344,
+          "last": 13960448
+        },
+        "peakPssBreakdownKb": {
+          "summary.code": "42184",
+          "summary.stack": "1912",
+          "summary.graphics": "68876",
+          "summary.java-heap": "121132",
+          "summary.native-heap": "250748",
+          "summary.system": "20392",
+          "summary.total-pss": "511416",
+          "summary.private-other": "6172",
+          "summary.total-swap": "2940"
+        }
+      },
+      {
+        "pass": 1,
+        "samples": 183,
+        "durationMs": 47841,
+        "pssKb": {
+          "first": 450203,
+          "max": 522857,
+          "last": 393564
+        },
+        "nativeAllocatedBytes": {
+          "first": 225829728,
+          "max": 271854928,
+          "last": 190607848
+        },
+        "javaUsedBytes": {
+          "first": 105171520,
+          "max": 150068992,
+          "last": 61998272
+        },
+        "activeResources": {
+          "first": 5,
+          "max": 8,
+          "last": 5
+        },
+        "glideCacheBytes": {
+          "first": 22678286,
+          "max": 25424046,
+          "last": 20854814
+        },
+        "bitmapPoolBytes": {
+          "first": 13960448,
+          "max": 24421696,
+          "last": 18271632
+        },
+        "peakPssBreakdownKb": {
+          "summary.code": "42156",
+          "summary.stack": "1912",
+          "summary.graphics": "74892",
+          "summary.java-heap": "118848",
+          "summary.native-heap": "258128",
+          "summary.system": "20573",
+          "summary.total-pss": "522857",
+          "summary.private-other": "6348",
+          "summary.total-swap": "2940"
+        }
+      }
+    ],
+    "regular": {
+      "samples": 527,
+      "states": [
+        307,
+        126,
+        94
+      ],
+      "paused": [
+        0,
+        0,
+        0
+      ],
+      "gifShown": [
+        525,
+        210,
+        162
+      ],
+      "spinner": [
+        0,
+        0,
+        0
+      ],
+      "distinctReady": 12,
+      "playingDuringDrag": 10,
+      "playingDuringFling": 14,
+      "stoppedWhileHeld": [],
+      "bitmapCachePeakBytes": 24980800,
+      "bitmapCacheMaxBytes": 25165824
+    },
+    "runningLoadersAfterFinish": 0
+  },
+  {
+    "run": "regular-samsung-final-1015",
+    "setup": {
+      "serial": "R5CW20BLNKL",
+      "arguments": [
+        "scenario=complex",
+        "gesture=both",
+        "items=96",
+        "passes=2",
+        "cold_load=true",
+        "memory_audit=true",
+        "memory_gc=false",
+        "lifecycle_assert=true"
+      ],
+      "apkSha256": "fef50aace86f1aa4def9aaa9998bb39b60d62f415cba2b87fdb52d9b154067a2"
+    },
+    "ok": true,
+    "error": null,
+    "summary": {
+      "items": 97,
+      "mediaItems": 80,
+      "memoryClassMb": 256,
+      "largeMemoryClassMb": 512,
+      "lowRamDevice": false,
+      "maxJavaHeapBytes": 268435456,
+      "screenshotEvery": 1,
+      "sourceId": 249,
+      "sourceView": 135573702,
+      "samples": 385,
+      "samplesWithMovement": 384,
+      "seenCardCount": 96,
+      "loadedMediaCount": 80,
+      "unseenIds": [],
+      "mediaNeverShownIds": [],
+      "suspectSamples": 0,
+      "holderCount": 9,
+      "transparentNonSourceSamples": 0,
+      "recycledSourceSamples": 59,
+      "failedRequestSamples": 0,
+      "sourcePlaceholderSamples": 4,
+      "visibleSourceSamples": 0,
+      "sourceRestoredAfterCancel": true
+    },
+    "originalUnchanged": true,
+    "observedGifIds": 48,
+    "gifIdsWithChangingFrames": 48,
+    "transparentRows": 0,
+    "transparentOriginalDragViewRows": 0,
+    "observedFailureLogLines": 0,
+    "memoryByPass": [
+      {
+        "pass": 0,
+        "samples": 193,
+        "durationMs": 57829,
+        "pssKb": {
+          "first": 800992,
+          "max": 893157,
+          "last": 774985
+        },
+        "nativeAllocatedBytes": {
+          "first": 209729736,
+          "max": 306178600,
+          "last": 228237616
+        },
+        "javaUsedBytes": {
+          "first": 63069776,
+          "max": 91880912,
+          "last": 82749632
+        },
+        "activeResources": {
+          "first": 1,
+          "max": 7,
+          "last": 5
+        },
+        "glideCacheBytes": {
+          "first": 20117079,
+          "max": 35133245,
+          "last": 30662230
+        },
+        "bitmapPoolBytes": {
+          "first": 14699040,
+          "max": 32773440,
+          "last": 18511440
+        },
+        "peakPssBreakdownKb": {
+          "summary.code": "41452",
+          "summary.stack": "1760",
+          "summary.graphics": "332868",
+          "summary.java-heap": "82336",
+          "summary.native-heap": "280128",
+          "summary.system": "18749",
+          "summary.total-pss": "893157",
+          "summary.private-other": "135864",
+          "summary.total-swap": "8156"
+        }
+      },
+      {
+        "pass": 1,
+        "samples": 192,
+        "durationMs": 57812,
+        "pssKb": {
+          "first": 793053,
+          "max": 898921,
+          "last": 841913
+        },
+        "nativeAllocatedBytes": {
+          "first": 228278608,
+          "max": 306326968,
+          "last": 253699856
+        },
+        "javaUsedBytes": {
+          "first": 82983104,
+          "max": 111064944,
+          "last": 75012304
+        },
+        "activeResources": {
+          "first": 5,
+          "max": 8,
+          "last": 5
+        },
+        "glideCacheBytes": {
+          "first": 30662230,
+          "max": 34698295,
+          "last": 27225806
+        },
+        "bitmapPoolBytes": {
+          "first": 18511440,
+          "max": 36529080,
+          "last": 22200000
+        },
+        "peakPssBreakdownKb": {
+          "summary.code": "41456",
+          "summary.stack": "1760",
+          "summary.graphics": "323308",
+          "summary.java-heap": "89476",
+          "summary.native-heap": "288264",
+          "summary.system": "18833",
+          "summary.total-pss": "898921",
+          "summary.private-other": "135824",
+          "summary.total-swap": "8156"
+        }
+      }
+    ],
+    "regular": {
+      "samples": 532,
+      "states": [
+        288,
+        123,
+        121
+      ],
+      "paused": [
+        0,
+        0,
+        0
+      ],
+      "gifShown": [
+        502,
+        203,
+        193
+      ],
+      "spinner": [
+        0,
+        0,
+        0
+      ],
+      "distinctReady": 10,
+      "playingDuringDrag": 10,
+      "playingDuringFling": 12,
+      "stoppedWhileHeld": [],
+      "bitmapCachePeakBytes": 24632640,
+      "bitmapCacheMaxBytes": 25165824
+    },
+    "runningLoadersAfterFinish": 0
+  },
+  {
+    "run": "regular-meizu-final-1015",
+    "setup": {
+      "serial": "192.168.100.67:40807",
+      "arguments": [
+        "scenario=complex",
+        "gesture=both",
+        "items=96",
+        "passes=2",
+        "cold_load=true",
+        "memory_audit=true",
+        "memory_gc=false",
+        "lifecycle_assert=true"
+      ],
+      "apkSha256": "fef50aace86f1aa4def9aaa9998bb39b60d62f415cba2b87fdb52d9b154067a2"
+    },
+    "ok": true,
+    "error": null,
+    "summary": {
+      "items": 97,
+      "mediaItems": 80,
+      "memoryClassMb": 256,
+      "largeMemoryClassMb": 512,
+      "lowRamDevice": false,
+      "maxJavaHeapBytes": 268435456,
+      "screenshotEvery": 1,
+      "sourceId": 101,
+      "sourceView": 233680746,
+      "samples": 364,
+      "samplesWithMovement": 363,
+      "seenCardCount": 96,
+      "loadedMediaCount": 80,
+      "unseenIds": [],
+      "mediaNeverShownIds": [],
+      "suspectSamples": 0,
+      "holderCount": 9,
+      "transparentNonSourceSamples": 0,
+      "recycledSourceSamples": 87,
+      "failedRequestSamples": 0,
+      "sourcePlaceholderSamples": 5,
+      "visibleSourceSamples": 0,
+      "sourceRestoredAfterCancel": true
+    },
+    "originalUnchanged": true,
+    "observedGifIds": 48,
+    "gifIdsWithChangingFrames": 48,
+    "transparentRows": 0,
+    "transparentOriginalDragViewRows": 0,
+    "observedFailureLogLines": 0,
+    "memoryByPass": [
+      {
+        "pass": 0,
+        "samples": 184,
+        "durationMs": 55678,
+        "pssKb": {
+          "first": 855326,
+          "max": 857206,
+          "last": 741423
+        },
+        "nativeAllocatedBytes": {
+          "first": 291146912,
+          "max": 291553088,
+          "last": 232745136
+        },
+        "javaUsedBytes": {
+          "first": 144162928,
+          "max": 144162928,
+          "last": 69065920
+        },
+        "activeResources": {
+          "first": 2,
+          "max": 7,
+          "last": 5
+        },
+        "glideCacheBytes": {
+          "first": 14046798,
+          "max": 34665461,
+          "last": 27920014
+        },
+        "bitmapPoolBytes": {
+          "first": 20896480,
+          "max": 33776352,
+          "last": 18036576
+        },
+        "peakPssBreakdownKb": {
+          "summary.code": "53144",
+          "summary.stack": "2068",
+          "summary.graphics": "355484",
+          "summary.java-heap": "128040",
+          "summary.native-heap": "293208",
+          "summary.system": "18446",
+          "summary.total-pss": "857206",
+          "summary.private-other": "6816",
+          "summary.total-swap": "23420"
+        }
+      },
+      {
+        "pass": 1,
+        "samples": 180,
+        "durationMs": 56001,
+        "pssKb": {
+          "first": 724667,
+          "max": 853118,
+          "last": 708290
+        },
+        "nativeAllocatedBytes": {
+          "first": 222329824,
+          "max": 291446288,
+          "last": 208246352
+        },
+        "javaUsedBytes": {
+          "first": 33130928,
+          "max": 111082512,
+          "last": 54447296
+        },
+        "activeResources": {
+          "first": 5,
+          "max": 8,
+          "last": 5
+        },
+        "glideCacheBytes": {
+          "first": 27920014,
+          "max": 34705813,
+          "last": 24678398
+        },
+        "bitmapPoolBytes": {
+          "first": 16870176,
+          "max": 40691360,
+          "last": 19604704
+        },
+        "peakPssBreakdownKb": {
+          "summary.code": "53148",
+          "summary.stack": "2080",
+          "summary.graphics": "388352",
+          "summary.java-heap": "97840",
+          "summary.native-heap": "286240",
+          "summary.system": "18726",
+          "summary.total-pss": "853118",
+          "summary.private-other": "6732",
+          "summary.total-swap": "23420"
+        }
+      }
+    ],
+    "regular": {
+      "samples": 512,
+      "states": [
+        269,
+        116,
+        127
+      ],
+      "paused": [
+        0,
+        0,
+        0
+      ],
+      "gifShown": [
+        481,
+        258,
+        250
+      ],
+      "spinner": [
+        0,
+        0,
+        0
+      ],
+      "distinctReady": 12,
+      "playingDuringDrag": 14,
+      "playingDuringFling": 14,
+      "stoppedWhileHeld": [],
+      "bitmapCachePeakBytes": 24554080,
+      "bitmapCacheMaxBytes": 25165824
+    },
+    "runningLoadersAfterFinish": 0
+  }
+]

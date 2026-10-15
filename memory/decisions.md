@@ -2,6 +2,10 @@
 
 Global startup decision index only. Feature-specific decisions live in `docs/features/<kebab-case-feature-slug>/decisions.md`.
 
+## 2026-10-15 - 实机冷却保留原有解锁状态
+
+性能验证不再以主动熄屏作为冷却手段，避免触发 PIN 锁屏中断后续测量；遇到认证只请用户在设备解锁。操作规则记于 `.agents/rules/adb.md`，本次具体测量记录在 `docs/features/animated-video-cover/scroll-performance-comparison-2026-10-15.md`。
+
 ## 2026-10-13 - 既有深色配色由应用自行处理，避免厂商二次反色
 
 魅族 Flyme 会在标准 `forceDarkAllowed=false` 之外改写 Canvas 颜色，造成原生选择卡片与动画颜色不连续，软件截图也受影响。已通过该设备框架代码及像素对照确认 `Application.mzNightModeUseOf()` 返回 0 可声明应用自理配色；`App` 保留此回调名，不调用隐藏 API、不按机型切动画方案。继续遵守用户的跟随系统／固定浅色／固定深色设置。证据和回归见 `docs/features/selection-batch-actions/transition-2026-10-13.md`。

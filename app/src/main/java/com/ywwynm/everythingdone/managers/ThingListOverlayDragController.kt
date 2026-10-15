@@ -1357,6 +1357,7 @@ class ThingListOverlayDragController(
     }
 
     private fun restoreSourceView(current: Session) {
+        if (!isSourcePlaceholderView(current.sourceView, current.source)) return
         current.sourceView.animate().cancel()
         current.sourceView.setTag(R.id.tag_thing_card_moving_scale_recovery_token, null)
         current.sourceView.visibility = View.VISIBLE
@@ -1448,9 +1449,7 @@ class ThingListOverlayDragController(
     }
 
     private fun isSourcePlaceholderView(view: View, source: DragSource): Boolean {
-        if (view === session?.sourceView && session?.source?.stableId == source.stableId) {
-            return true
-        }
+        // 跨列表拖动时，最初的源 View 可能已复用给其它记事；占位只属于当前绑定的源项。
         return view.getTag(R.id.tag_thing_card_bound_stable_id) == source.stableId
     }
 

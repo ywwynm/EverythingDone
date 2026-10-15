@@ -1,6 +1,8 @@
 package com.ywwynm.everythingdone.helpers
 
 import android.graphics.Bitmap
+import android.graphics.ColorSpace
+import android.os.Build
 import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool
 import com.bumptech.glide.load.resource.bitmap.BitmapTransformation
 import java.security.MessageDigest
@@ -30,9 +32,17 @@ class MediaCropTransformation(
         outWidth: Int,
         outHeight: Int
     ): Bitmap {
-        return MediaCropBitmapRenderer.renderCrop(
-            toTransform, targetWidth, targetHeight, crop
-        ) ?: toTransform
+        if (targetWidth <= 0 || targetHeight <= 0 || toTransform.isRecycled ||
+            toTransform.width <= 0 || toTransform.height <= 0) return toTransform
+
+        // 每帧由 Glide 归还到池中；get 会清空旧像素，透明 GIF 不会残留上一帧。
+        val output = pool.get(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // 池也可能收过广色域图片，保持原 createBitmap 路径的 sRGB 输出。
+            output.setColorSpace(ColorSpace.get(ColorSpace.Named.SRGB))
+        }
+        MediaCropBitmapRenderer.renderCropInto(toTransform, output, crop)
+        return output
     }
 
     override fun updateDiskCacheKey(messageDigest: MessageDigest) {

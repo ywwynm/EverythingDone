@@ -8,10 +8,15 @@
 
 ## 结论
 
-机制与架构定级见 [ADR-0012](../../adr/0012-thing-card-video-preview-derived-animated-image.md)（修订 [ADR-0007](../../adr/0007-animated-image-playback-scoped-per-surface.md)）。核心：派生 GIF（Square `gifencoder`）→ 既有 `GifDrawable` + `MediaCropTransformation` + Glide 生命周期；Lazy 生成 + `cacheDir` 1GB LRU 持久缓存；一个默认开的 Cover Autoplay 开关统一管控全部应用内 Thing Card 封面面。
+机制与架构定级见 [ADR-0012](../../adr/0012-thing-card-video-preview-derived-animated-image.md)（修订 [ADR-0007](../../adr/0007-animated-image-playback-scoped-per-surface.md)）。核心：原生 NDK 编码器生成 GIF，交给 `GifDrawable`、`MediaCropTransformation` 与 Glide 加载；按需生成，缓存目录保留 1GB LRU；一个默认开启的 Cover Autoplay 开关统一管理应用内卡片封面播放。
 
 ## 文档
 
+- [取消暂停的性能对照](scroll-performance-comparison-2026-10-15.md) — 三机完整同 APK A/B；有阶段性内存增加，魅族异常惯性轨迹按用户要求暂缓复核，不能宣称零退化。
+- [普通滑动与 GIF 离屏回显](regular-scroll-investigation-2026-10-15.md) — 真实 DRAGGING／SETTLING、预取生命周期和有界首帧回显。
+- [复杂媒体列表内存归因与修复](memory-investigation-2026-10-15.md) — 分配栈、回收池持有者、像素基线、生命周期与三机回归。
+- [复杂列表持续拖动空白复现与修复](complex-drag-investigation-2026-10-15.md) — 已定位到拖动源 View 复用后的占位身份判断，含拖动过程中采样和内存检查。
+- [高视频卡片滚动空白的三机排查](blank-card-investigation-2026-10-15.md)
 - [decisions.md](decisions.md) — 各项设计决定与理由（D1–D9）
 - [plan.md](plan.md) — 设计概览、各界面行为与验收标准
 - [execution.md](execution.md) — 分阶段实现/验证清单

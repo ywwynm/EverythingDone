@@ -162,6 +162,8 @@ Reach for screencap only when an actual pixel comparison is required.
 
 ## Debugging and exception handling
 
+- 2026-10-15：作实现或优化决定前，先检索相关提交日志与历史取舍。某种看似直接的方案可能曾因兼容性、功能或 UI 问题被排除；须复核原限制，不只凭当前代码推断。
+
 Do not add silent exception catches to hide newly observed runtime crashes.
 For RecyclerView/layout crashes and similar framework errors, fix the caller
 state/update path so the error disappears; if an error still happens, it should
