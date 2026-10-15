@@ -129,6 +129,7 @@ Feature-specific project documentation is organized under `docs/features/<kebab-
 - `dark-mode`: `docs/features/dark-mode/decisions.md`
 - `detail-color-sampling`: `docs/features/detail-color-sampling/decisions.md`
 - `detail-attachment-media-appearance`: `docs/features/detail-attachment-media-appearance/decisions.md`
+- 详情页顶部按钮明暗：`docs/features/detail-actionbar-contrast/decisions.md`
 - `doing-thing-organize`: `docs/features/doing-thing-organize/decisions.md`
 - `home-contextual-toolbar`: `docs/features/home-contextual-toolbar/decisions.md`
 - `home-empty-state`: `docs/features/home-empty-state/decisions.md`

@@ -4,6 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <instrumentation android:name=".detail.DetailToolbarContrastProbe"
+        android:targetPackage="${applicationId}" android:label="详情顶栏滚动配色回归" />
     <instrumentation android:name=".listvalidation.ListIdentityProbe"
         android:targetPackage="${applicationId}" android:label="隔离数据的完成恢复删除身份回归" />
     <instrumentation android:name=".views.particledismiss.DoingBackgroundRegressionProbe"

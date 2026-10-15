@@ -216,6 +216,7 @@ visually on real hardware (e.g. HDR rendering, which an emulator cannot show).
 - `dark-mode`: `docs/features/dark-mode/preferences.md`
 - `debug-update-channel`: `docs/features/debug-update-channel/preferences.md`
 - `detail-attachment-media-appearance`: `docs/features/detail-attachment-media-appearance/preferences.md`
+- 详情页顶部按钮明暗：`docs/features/detail-actionbar-contrast/preferences.md`
 - `detail-color-sampling`: `docs/features/detail-color-sampling/preferences.md`
 - `kotlin-migration`: `docs/features/kotlin-migration/preferences.md`
 - `localization`: `docs/features/localization/preferences.md`

@@ -1,0 +1,42 @@
+{
+  "failures": 0,
+  "samples": [
+    {
+      "name": "visual-white",
+      "passed": true,
+      "colors": {
+        "ib_back": true,
+        "act_add_attachment": true,
+        "act_check_list": true,
+        "act_change_color": true,
+        "overflow": true
+      }
+    },
+    {
+      "name": "visual-black",
+      "passed": true,
+      "colors": {
+        "ib_back": false,
+        "act_add_attachment": false,
+        "act_check_list": false,
+        "act_change_color": false,
+        "overflow": false
+      }
+    },
+    {
+      "name": "visual-split",
+      "passed": true,
+      "colors": {
+        "ib_back": true,
+        "act_add_attachment": false,
+        "act_check_list": false,
+        "act_change_color": false,
+        "overflow": false
+      }
+    }
+  ],
+  "timings": [],
+  "fixture_rows_removed": 3,
+  "existing_notes": 0,
+  "orientation": 1
+}

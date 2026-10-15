@@ -1,0 +1,20 @@
+[
+  {
+    "suite": "com.ywwynm.everythingdone.adapters.ImageAttachmentGifLifecycleSourceTest",
+    "tests": 5,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "suite": "com.ywwynm.everythingdone.helpers.MediaOverlayContrastTest",
+    "tests": 12,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "suite": "com.ywwynm.everythingdone.views.particledismiss.ParticleBatchFourTest",
+    "tests": 18,
+    "failures": 0,
+    "errors": 0
+  }
+]

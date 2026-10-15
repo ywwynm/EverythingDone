@@ -51,4 +51,74 @@ class MediaOverlayContrastTest {
         assertEquals(0.0, result.whiteCoverage, 0.0)
         assertTrue(result.dark)
     }
+
+    @Test fun `滚动经过细碎黑白纹理时保持原色而明显变化立即切换`() {
+        fun split(white: Int) = MediaOverlayContrast.choose(
+            List(white) { MediaOverlayContrast.Sample(gray(255)) } +
+                List(100 - white) { MediaOverlayContrast.Sample(gray(0)) })
+        var current = false
+        for (white in listOf(49, 51, 50, 52, 49, 51)) {
+            current = split(white).withHysteresis(current)
+            assertFalse(current)
+        }
+        current = split(60).withHysteresis(current)
+        assertTrue(current)
+        for (white in listOf(51, 49, 50, 48, 51)) {
+            current = split(white).withHysteresis(current)
+            assertTrue(current)
+        }
+        assertFalse(split(40).withHysteresis(current))
+        assertTrue(split(51).withHysteresis(null))
+    }
+
+    @Test fun `均匀中灰临界区域双向稳定且大幅明暗变化无需等待`() {
+        fun uniform(value: Int) = MediaOverlayContrast.choose(listOf(MediaOverlayContrast.Sample(gray(value))))
+        assertFalse(uniform(114).withHysteresis(false))
+        assertTrue(uniform(113).withHysteresis(true))
+        assertTrue(uniform(160).withHysteresis(false))
+        assertFalse(uniform(80).withHysteresis(true))
+    }
+
+    @Test fun `半透明媒体和操作栏覆盖后的颜色决定可辨认程度`() {
+        val whiteMediaOnDarkNote = MediaOverlayContrast.composite(gray(255), gray(20), 196)
+        assertTrue(MediaOverlayContrast.choose(listOf(MediaOverlayContrast.Sample(whiteMediaOnDarkNote))).dark)
+        val opaqueDarkToolbar = MediaOverlayContrast.composite(gray(20), whiteMediaOnDarkNote, 255)
+        assertFalse(MediaOverlayContrast.choose(listOf(MediaOverlayContrast.Sample(opaqueDarkToolbar))).dark)
+        assertEquals(gray(20), MediaOverlayContrast.composite(gray(255), gray(20), 0))
+    }
+
+    @Test fun `按钮等权使大图形不能压过其余按钮`() {
+        val result = MediaOverlayContrast.chooseEqualGroups(listOf(
+            List(128) { MediaOverlayContrast.Sample(gray(255)) },
+            listOf(MediaOverlayContrast.Sample(gray(0))),
+            listOf(MediaOverlayContrast.Sample(gray(0)))))
+        assertFalse(result.dark)
+        assertEquals(2.0 / 3, result.whiteCoverage, 1e-12)
+        assertEquals(1.0 / 3, result.blackCoverage, 1e-12)
+    }
+
+    @Test fun `增加一个按钮的采样密度不改变共同结果`() {
+        val bright = listOf(MediaOverlayContrast.Sample(gray(220)),
+            MediaOverlayContrast.Sample(gray(50), weight = .25))
+        val dark = listOf(MediaOverlayContrast.Sample(gray(32)))
+        val first = MediaOverlayContrast.chooseEqualGroups(listOf(bright, dark))
+        val denser = MediaOverlayContrast.chooseEqualGroups(listOf(List(32) { bright }.flatten(), dark))
+        assertEquals(first.dark, denser.dark)
+        assertEquals(first.blackCoverage, denser.blackCoverage, 1e-12)
+        assertEquals(first.whiteCoverage, denser.whiteCoverage, 1e-12)
+        assertEquals(first.logContrastAdvantage, denser.logContrastAdvantage, 1e-12)
+    }
+
+    @Test fun `透明与空按钮不增加权重且共同结果保留切换余量`() {
+        val white = listOf(MediaOverlayContrast.Sample(gray(255)))
+        val black = listOf(MediaOverlayContrast.Sample(gray(0)))
+        val invisible = List(128) { MediaOverlayContrast.Sample(gray(255), alpha = 0) }
+        val balanced = MediaOverlayContrast.chooseEqualGroups(listOf(white, black, invisible, emptyList()))
+        assertEquals(.5, balanced.blackCoverage, 1e-12)
+        assertEquals(.5, balanced.whiteCoverage, 1e-12)
+        assertTrue(balanced.withHysteresis(true))
+        assertFalse(balanced.withHysteresis(false))
+        assertTrue(MediaOverlayContrast.chooseEqualGroups(listOf(white, white, black)).withHysteresis(false))
+        assertFalse(MediaOverlayContrast.chooseEqualGroups(listOf(white, black, black)).withHysteresis(true))
+    }
 }

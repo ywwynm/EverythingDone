@@ -65,7 +65,7 @@ class GradientRippleDrawable(
     private val cornerRadiusPx: Float = 0f,
     private val fixedRadiusPx: Float = -1f,
     private val centered: Boolean = false,
-    private val peakAlphaOverride: Float = -1f
+    private var peakAlphaOverride: Float = -1f
 ) : Drawable() {
 
     private var background: ThingBackground = background
@@ -149,6 +149,12 @@ class GradientRippleDrawable(
         background = bg
         cachedShader = null
         invalidateSelf()
+    }
+
+    /** 顶栏黑白切换时同时更新强度，保留按下位置、扩散进度及淡出动画。 */
+    fun updateAdaptiveColor(color: Int) {
+        peakAlphaOverride = (color ushr 24) / 255f
+        updateBackground(ThingBackground.pure(color or 0xff000000.toInt()))
     }
 
     /** detach / RecyclerView 复用时调用，停止动画并复位，避免残影与多余的 vsync 回调。 */

@@ -1,0 +1,15 @@
+{
+  "debugUpdateCode": 202610150800,
+  "apkUrl": "http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202610150800.apk",
+  "metadataUrl": "http://120.25.194.207/everythingdone-updates/debug/latest.json",
+  "sha256": "fc916a48399ffbfc8e45ae848ddbe2e1823543f095428f2b4c72e2b2f2c04839",
+  "sizeBytes": 30953133,
+  "publishedAt": "2026-10-15T08:00:10.069997400Z",
+  "metadataMatched": true,
+  "localApkMatched": true,
+  "downloadMatched": true,
+  "installedDevices": ["3B1629006YC00000", "R5CW20BLNKL"],
+  "installedAtLocal": "2026-10-15 16:01:42 Asia/Shanghai",
+  "versionCode": 43,
+  "versionName": "2.0.0"
+}

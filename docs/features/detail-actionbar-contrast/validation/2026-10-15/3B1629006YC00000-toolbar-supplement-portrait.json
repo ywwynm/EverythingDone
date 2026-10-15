@@ -1,0 +1,86 @@
+{
+  "failures": 0,
+  "samples": [
+    {
+      "name": "visual-white",
+      "passed": true,
+      "colors": {
+        "ib_back": true,
+        "act_add_attachment": true,
+        "act_check_list": true,
+        "act_change_color": true,
+        "overflow": true
+      }
+    },
+    {
+      "name": "visual-black",
+      "passed": true,
+      "colors": {
+        "ib_back": false,
+        "act_add_attachment": false,
+        "act_check_list": false,
+        "act_change_color": false,
+        "overflow": false
+      }
+    },
+    {
+      "name": "visual-split",
+      "passed": true,
+      "colors": {
+        "ib_back": true,
+        "act_add_attachment": false,
+        "act_check_list": false,
+        "act_change_color": false,
+        "overflow": false
+      }
+    },
+    {
+      "name": "animated.gif-frames-advance",
+      "passed": true,
+      "colors": {
+        "ib_back": false,
+        "act_add_attachment": false,
+        "act_check_list": false,
+        "act_change_color": false,
+        "overflow": true
+      }
+    },
+    {
+      "name": "animated.gif-playing-keeps-static-colors",
+      "passed": true,
+      "colors": {
+        "ib_back": false,
+        "act_add_attachment": false,
+        "act_check_list": false,
+        "act_change_color": false,
+        "overflow": true
+      }
+    },
+    {
+      "name": "video.mp4-frames-advance",
+      "passed": true,
+      "colors": {
+        "ib_back": false,
+        "act_add_attachment": false,
+        "act_check_list": false,
+        "act_change_color": false,
+        "overflow": true
+      }
+    },
+    {
+      "name": "video.mp4-playing-keeps-static-colors",
+      "passed": true,
+      "colors": {
+        "ib_back": false,
+        "act_add_attachment": false,
+        "act_check_list": false,
+        "act_change_color": false,
+        "overflow": true
+      }
+    }
+  ],
+  "timings": [],
+  "fixture_rows_removed": 5,
+  "existing_notes": 0,
+  "orientation": 1
+}

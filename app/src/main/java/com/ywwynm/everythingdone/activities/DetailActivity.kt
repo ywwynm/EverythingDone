@@ -55,8 +55,8 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
-import androidx.appcompat.widget.ActionMenuView
 import androidx.appcompat.widget.Toolbar
+import com.ywwynm.everythingdone.helpers.DetailToolbarContrast
 import androidx.recyclerview.widget.ItemTouchHelper
 import android.text.Editable
 import android.text.Spannable
@@ -257,6 +257,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     private var mIbBack: ImageButton? = null
     private var mActionBarShadow: View? = null
     private var mImageCover: View? = null
+    private var mToolbarContrast: DetailToolbarContrast? = null
 
     private var mImageAttachmentAdapter: ImageAttachmentAdapter? = null
 
@@ -920,6 +921,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
         mDetailList = f(R.id.sv_detail)
         mDetailContent = DetailContentLayout(mDetailList!!)
+        mToolbarContrast = DetailToolbarContrast(mFlRoot!!, mActionbar!!, mDetailList!!,
+            mImageCover!!, ::getAccentBackground)
         mAttachmentPlaybackController = DetailAttachmentPlaybackController(mDetailList!!)
         mEtTitle = mDetailContent.view(R.id.et_title)
         mEtContent = mDetailContent.view(R.id.et_content)
@@ -1591,12 +1594,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             }
         }
         updateUndoRedoActionButtonState()
-        val menuAccentBg = getAccentBackground()
-        tintMenuIcons(
-            if (menuAccentBg != null) BackgroundUtil.isLight(menuAccentBg)
-            else BackgroundUtil.isLight(getAccentColor())
-        )
-        applyDetailToolbarIconRipples()
+        mToolbarContrast?.refresh()
         return true
     }
 
@@ -2690,6 +2688,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         mDetailCropPreviewLoader?.close()
         mDetailCropPreviewLoader = null
         mAttachmentPlaybackController?.dispose()
+        mToolbarContrast?.dispose()
         stopChecklistDragAutoScroll()
         super.onDestroy()
         if (mThing == null) {
@@ -3273,72 +3272,6 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
      */
     private var mChangeBackgroundTo: ThingBackground? = null
 
-    /**
-     * 详情顶栏已铺记事色，图标按钮（返回 ib_back + 菜单项 + overflow）的触摸 ripple 改为按记事色
-     * 明暗自适应（浅底偏黑、深底偏白），居中、固定半径，并去掉系统自带那层。菜单重建 / 改色后重调。
-     */
-    private fun applyDetailToolbarIconRipples() {
-        val toolbar = mActionbar ?: return
-        val adaptive = BackgroundUtil.adaptiveRippleColor(getAccentBackground())
-        val rgb = ThingBackground.pure(adaptive or 0xFF000000.toInt())
-        val peak = ((adaptive ushr 24) and 0xFF) / 255f
-        val radiusPx = resources.displayMetrics.density * 21f
-        toolbar.post {
-            for (i in 0 until toolbar.childCount) {
-                when (val child = toolbar.getChildAt(i)) {
-                    is ActionMenuView -> for (j in 0 until child.childCount) {
-                        child.getChildAt(j).apply {
-                            background = null
-                            foreground = GradientRippleDrawable(
-                                rgb, shapeOval = false, fixedRadiusPx = radiusPx,
-                                centered = true, peakAlphaOverride = peak
-                            )
-                        }
-                    }
-                    is ImageButton -> child.apply {
-                        background = null
-                        foreground = GradientRippleDrawable(
-                            rgb, shapeOval = false, fixedRadiusPx = radiusPx,
-                            centered = true, peakAlphaOverride = peak
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    private fun tintMenuIcons(lightAccent: Boolean) {
-        if (mActionbar == null) return
-
-        var overflow: Drawable? = mActionbar!!.overflowIcon
-        if (overflow != null) {
-            overflow = overflow.mutate()
-            if (lightAccent) {
-                overflow.setColorFilter(Color.BLACK, PorterDuff.Mode.SRC_IN)
-            } else {
-                overflow.clearColorFilter()
-            }
-            mActionbar!!.overflowIcon = overflow
-        }
-
-        val menu: Menu = mActionbar!!.menu ?: return
-        val tint: ColorStateList? = if (lightAccent)
-            ColorStateList.valueOf(Color.BLACK)
-        else null
-        for (i in 0 until menu.size) {
-            val item: MenuItem = menu[i]
-            var icon: Drawable = item.icon ?: continue
-            icon = icon.mutate()
-            if (lightAccent) {
-                icon.setColorFilter(Color.BLACK, PorterDuff.Mode.SRC_IN)
-            } else {
-                icon.clearColorFilter()
-            }
-            item.icon = icon
-            item.iconTintList = tint
-        }
-    }
-
     private fun applyForegroundColors(color: Int) {
         // 前景明暗以完整背景为准：accent 渐变（accent+accent2）代表色偏亮会被误判为浅色，
         // isLight(ThingBackground) 已对其特判为深色背景 → 前景走白。color 仍保留原值用于
@@ -3420,15 +3353,11 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         val iconTint: ColorStateList? = if (lightAccent)
             ColorStateList.valueOf(Color.BLACK)
         else null
-        if (mIbBack != null) {
-            ImageViewCompat.setImageTintList(mIbBack!!, iconTint)
-        }
         val ivIconTypeInfo: ImageView? = mDetailContent.view(R.id.iv_icon_type_info)
         if (ivIconTypeInfo != null) {
             ImageViewCompat.setImageTintList(ivIconTypeInfo, iconTint)
         }
-        tintMenuIcons(lightAccent)
-        applyDetailToolbarIconRipples()
+        mToolbarContrast?.refresh()
 
         val lightBg = light
         mFlRoot!!.post {

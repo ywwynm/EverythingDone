@@ -1,0 +1,119 @@
+[
+  {
+    "run": "toolbar-first",
+    "device": "3B1629006YC00000",
+    "scene": "toolbar-first-landscape",
+    "checks": 28,
+    "failures": 0,
+    "existing": 0,
+    "removed": 9
+  },
+  {
+    "run": "toolbar-first",
+    "device": "3B1629006YC00000",
+    "scene": "toolbar-first-portrait",
+    "checks": 32,
+    "failures": 0,
+    "existing": 2,
+    "removed": 9
+  },
+  {
+    "run": "toolbar-first",
+    "device": "R5CW20BLNKL",
+    "scene": "toolbar-first-landscape",
+    "checks": 28,
+    "failures": 0,
+    "existing": 0,
+    "removed": 9
+  },
+  {
+    "run": "toolbar-first",
+    "device": "R5CW20BLNKL",
+    "scene": "toolbar-first-portrait",
+    "checks": 32,
+    "failures": 0,
+    "existing": 2,
+    "removed": 9
+  },
+  {
+    "run": "toolbar-supplement",
+    "device": "3B1629006YC00000",
+    "scene": "toolbar-supplement-landscape",
+    "checks": 7,
+    "failures": 0,
+    "existing": 0,
+    "removed": 5
+  },
+  {
+    "run": "toolbar-supplement",
+    "device": "3B1629006YC00000",
+    "scene": "toolbar-supplement-portrait",
+    "checks": 7,
+    "failures": 0,
+    "existing": 0,
+    "removed": 5
+  },
+  {
+    "run": "toolbar-supplement",
+    "device": "R5CW20BLNKL",
+    "scene": "toolbar-supplement-landscape",
+    "checks": 7,
+    "failures": 0,
+    "existing": 0,
+    "removed": 5
+  },
+  {
+    "run": "toolbar-supplement",
+    "device": "R5CW20BLNKL",
+    "scene": "toolbar-supplement-portrait",
+    "checks": 7,
+    "failures": 0,
+    "existing": 0,
+    "removed": 5
+  },
+  {
+    "run": "toolbar-visual",
+    "device": "3B1629006YC00000",
+    "scene": "toolbar-visual-landscape",
+    "checks": 3,
+    "failures": 0,
+    "existing": 0,
+    "removed": 3
+  },
+  {
+    "run": "toolbar-visual",
+    "device": "3B1629006YC00000",
+    "scene": "toolbar-visual-portrait",
+    "checks": 3,
+    "failures": 0,
+    "existing": 0,
+    "removed": 3
+  },
+  {
+    "run": "toolbar-visual",
+    "device": "R5CW20BLNKL",
+    "scene": "toolbar-visual-portrait",
+    "checks": 3,
+    "failures": 0,
+    "existing": 0,
+    "removed": 3
+  },
+  {
+    "run": "toolbar-visible",
+    "device": "3B1629006YC00000",
+    "scene": "toolbar-visible-landscape",
+    "checks": 3,
+    "failures": 0,
+    "existing": 0,
+    "removed": 3
+  },
+  {
+    "run": "toolbar-visible",
+    "device": "3B1629006YC00000",
+    "scene": "toolbar-visible-portrait",
+    "checks": 3,
+    "failures": 0,
+    "existing": 0,
+    "removed": 3
+  }
+]

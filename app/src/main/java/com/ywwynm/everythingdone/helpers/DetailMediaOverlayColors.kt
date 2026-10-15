@@ -34,7 +34,8 @@ import kotlin.math.roundToInt
  * 小图和图形点集有界缓存；每个图形最多 256 个点，播放期间没有定时任务。
  */
 class DetailMediaOverlayColors(private val tile: ViewGroup, private val image: ImageView) {
-    private data class Raster(val width: Int, val height: Int, val pixels: IntArray) {
+    /** 只读静态取样；与 Glide 位图独立，顶栏可复用而无需再次解码。 */
+    class Raster internal constructor(val width: Int, val height: Int, internal val pixels: IntArray) {
         val transparent = pixels.any { it ushr 24 != 255 }
         fun at(x: Float, y: Float): Int = pixels[
             (y * height).toInt().coerceIn(0, height - 1) * width +
@@ -49,6 +50,7 @@ class DetailMediaOverlayColors(private val tile: ViewGroup, private val image: I
         val density: Int, val pixels: IntArray)
     private var key: String? = null
     private var raster: Raster? = null
+    val staticRaster: Raster? get() = raster.takeIf { mediaReady != 0L }
     private var target: CustomTarget<Bitmap>? = null
     private var crop: MediaCropBitmapRenderer.Crop? = null
     private var source = ""
@@ -120,6 +122,7 @@ class DetailMediaOverlayColors(private val tile: ViewGroup, private val image: I
     fun onMediaReady(identity: String, bitmap: Bitmap? = null) {
         if (key != identity) return
         if (mediaReady == 0L) mediaReady = SystemClock.uptimeMillis()
+        image.postInvalidateOnAnimation()
         if (raster != null || captureJob != null || bitmap == null || bitmap.isRecycled ||
             bitmap.config == Bitmap.Config.HARDWARE) return
         // 显示缓存先就绪时直接取得独立小副本，避免 HDR 原图或视频再次解码。
@@ -184,6 +187,7 @@ class DetailMediaOverlayColors(private val tile: ViewGroup, private val image: I
                     revision++
                     cancelTarget()
                     schedule()
+                    image.postInvalidateOnAnimation()
                 }
             }
         }

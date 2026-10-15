@@ -10,7 +10,16 @@ import kotlin.math.pow
 object MediaOverlayContrast {
     data class Sample(val background: Int, val underInk: Int = background,
                       val alpha: Int = 196, val weight: Double = 1.0)
-    data class Result(val dark: Boolean, val whiteCoverage: Double, val blackCoverage: Double)
+    data class Result(val dark: Boolean, val whiteCoverage: Double, val blackCoverage: Double,
+                      val logContrastAdvantage: Double = 0.0) {
+        /** 滚动临界区域保持原色；覆盖率差 6% 或同等覆盖下对比度差 12% 才换色。 */
+        fun withHysteresis(previousDark: Boolean?): Boolean {
+            if (previousDark == null || previousDark == dark) return dark
+            val coverage = blackCoverage - whiteCoverage
+            if (abs(coverage) > 1e-9) return if (abs(coverage) >= .06) dark else previousDark
+            return if (abs(logContrastAdvantage) >= ln(1.12)) dark else previousDark
+        }
+    }
 
     private val linear = DoubleArray(256) { index ->
         val c = index / 255.0
@@ -35,6 +44,14 @@ object MediaOverlayContrast {
         return (255 shl 24) or (channel(16) shl 16) or (channel(8) shl 8) or channel(0)
     }
 
+    /** 每组对应一个按钮，有效样点内部归一化后共同评分，图形大小不改变按钮权重。 */
+    fun chooseEqualGroups(groups: List<List<Sample>>, minimumContrast: Double = 3.0): Result =
+        choose(groups.flatMap { group ->
+            val visible = group.filter { it.alpha > 0 && it.weight > 0.0 }
+            val total = visible.sumOf { it.weight }
+            if (total > 0.0) visible.map { it.copy(weight = it.weight / total) } else emptyList()
+        }, minimumContrast)
+
     fun choose(samples: List<Sample>, minimumContrast: Double = 3.0): Result {
         var whiteCoverage = 0.0
         var blackCoverage = 0.0
@@ -56,6 +73,7 @@ object MediaOverlayContrast {
         val difference = (blackCoverage - whiteCoverage) / total
         val dark = if (abs(difference) > 1e-9) difference > 0.0
             else (blackLog - whiteLog) / total > 1e-9
-        return Result(dark, whiteCoverage / total, blackCoverage / total)
+        return Result(dark, whiteCoverage / total, blackCoverage / total,
+            (blackLog - whiteLog) / total)
     }
 }
