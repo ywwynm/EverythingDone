@@ -239,10 +239,11 @@ _Avoid_: 把它当成 GIF/视频的文件属性、把范围扩大到附件查看
 
 **Detail Autoplay**:
 用户偏好:详情附件网格里的动态内容(Animated Image、Motion Photo、Thing Card Video Preview)以何种方式自动 Animated Playback。它有四档——关闭自动播放 / 逐一播放 / 同时播放一次 / 同时循环播放,默认同时循环播放;全部档位只对当前在滚动视口内的附件生效。它与 **Cover Autoplay** 互相独立,不作用于 Thing Card 面与全屏预览。
+「逐一」按当前可见附件的索引依次播放一轮；播完且仍可见不再排队，离开后返回可重播。该语义适用于统一 RecyclerView 的回收布局，不依赖全量附件同时 attach。
 _Avoid_: 把它当成 Cover Autoplay 的子项或总开关、当成布尔开关、把范围扩大到 Thing Card 面或全屏预览
 
 **Detail Static Representative Frame**:
-详情附件网格里一个动态附件"不播放时"应当显示的那一帧:Animated Image 是首帧,视频是 Thing Card Video Frame,Motion Photo 是其高画质静态主图。播放一次结束、滚出视口、以及关闭自动播放档下,显示的都是它。
+详情附件网格里一个动态附件处于静态状态时应当显示的那一帧:Animated Image 是首帧,视频是 Thing Card Video Frame,Motion Photo 是其高画质静态主图。等待播放、播放一次结束以及关闭自动播放档下显示它；循环档暂时离开视口只暂停当前 GIF，不切回静态代表帧。
 _Avoid_: 与"派生 GIF 的第 0 帧"划等号(对 Motion Photo 不成立)、让它停在播放结束时的尾帧
 
 **Motion Photo**:

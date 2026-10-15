@@ -157,6 +157,10 @@ class DetailAttachmentPlaybackController(
 
     fun shouldPlay(position: Int): Boolean = playing.contains(position)
 
+    /** 循环档离屏只暂停解码，资源仍用 GIF；「一次」结束和关闭档才回静态代表帧。 */
+    fun usesAnimatedResource(position: Int): Boolean =
+        DetailAutoplayMode.loops(mode) || shouldPlay(position)
+
     /** 只有「同时循环播放」档是无限循环；长按手动播放永远只播一轮。 */
     fun shouldLoop(position: Int): Boolean =
         DetailAutoplayMode.loops(mode) && !manual.contains(position)
@@ -179,6 +183,7 @@ class DetailAttachmentPlaybackController(
         if (!visible.contains(position)) return
         if (playing.contains(position)) return
         startForVisible(position)
+        pumpQueue()
     }
 
     /** 由适配器在 GifDrawable 播完约定轮数时回调：回静态代表帧，并推进逐一队列。 */
@@ -216,25 +221,20 @@ class DetailAttachmentPlaybackController(
             val now = if (visible.contains(position)) fraction > LEAVE_FRACTION else fraction >= ENTER_FRACTION
             if (now) nowVisible.add(position)
         }
-        // 回收的项已不在 childCount 中，必须显式从播放集合移除。
-        (visible - nowVisible).forEach { onLeaveViewport(it) }
-        (nowVisible - visible).forEach { onEnterViewport(it) }
-    }
-
-    private fun onEnterViewport(position: Int) {
-        visible.add(position)
-        startForVisible(position)
-    }
-
-    private fun onLeaveViewport(position: Int) {
-        visible.remove(position)
-        queue.remove(position)
-        manual.remove(position)
-        stopPlaying(position)
-        if (sequentialPlaying == position) {
+        val leaving = visible - nowVisible
+        val entering = nowVisible - visible
+        // 快速滚动会在同一帧回收多项。先提交整批可见性和队列，再推进一次，
+        // 否则移除当前播放项时会依次启动本批已经离屏、但尚未移除的候选。
+        visible.clear()
+        visible.addAll(nowVisible)
+        queue.removeAll(leaving)
+        manual.removeAll(leaving)
+        if (sequentialPlaying in leaving) {
             sequentialPlaying = -1
-            pumpQueue()
         }
+        leaving.forEach(::stopPlaying)
+        entering.sorted().forEach(::startForVisible)
+        pumpQueue()
     }
 
     private fun startForVisible(position: Int) {
@@ -244,7 +244,6 @@ class DetailAttachmentPlaybackController(
         adapter?.refreshPlayback(position)
         if (DetailAutoplayMode.sequential(mode)) {
             queue.add(position)
-            pumpQueue()
         } else {
             if (adapter?.isPlayableNow(position) != true) return
             startPlaying(position)
@@ -289,6 +288,7 @@ class DetailAttachmentPlaybackController(
         sequentialPlaying = -1
         wasPlaying.forEach { adapter?.refreshPlayback(it) }
         visible.sorted().forEach { startForVisible(it) }
+        pumpQueue()
     }
 
     private fun visibleFractionOf(child: View): Float {

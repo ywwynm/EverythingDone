@@ -10,6 +10,7 @@ import android.graphics.Canvas
 import android.graphics.PorterDuff
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.util.LruCache
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -52,6 +53,7 @@ import java.util.concurrent.Executors
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.max
+import kotlin.math.sqrt
 
 /**
  * Created by ywwynm on 2015/9/23.
@@ -72,6 +74,8 @@ open class ImageAttachmentAdapter(
 
     private companion object {
         const val MAX_TRANSITION_SNAPSHOT_PIXELS = 1_048_576L
+        // 重载占位只需短暂覆盖解码等待；缩略副本避免少数通栏图挤掉整个页面。
+        const val MAX_CACHED_POSTER_PIXELS = 65_536L
     }
 
     private var mEditable: Boolean = editable
@@ -108,6 +112,16 @@ open class ImageAttachmentAdapter(
 
     /** Detail Autoplay 的调度器；为空时（如未接入的界面）一律停在静态代表帧。 */
     private var mPlaybackController: DetailAttachmentPlaybackController? = null
+
+    // 只保存独立帧位图，不持有 GIF/decoder。生命周期随详情 Adapter，最多 8 MiB，
+    // 小堆设备进一步按堆上限缩减；淘汰时由 GC 回收，不能 recycle 仍作为占位图的位图。
+    private val mMediaPosters by lazy {
+        object : LruCache<String, Bitmap>(
+            minOf(8L * 1024 * 1024, Runtime.getRuntime().maxMemory() / 32).toInt().coerceAtLeast(1)
+        ) {
+            override fun sizeOf(key: String, value: Bitmap): Int = value.allocationByteCount
+        }
+    }
 
     /** 当前记事颜色：图片/视频附件容器与编辑/删除按钮的触摸 ripple 用它。 */
     private var mAccentBackground: ThingBackground = App.defaultAccentBackground
@@ -271,7 +285,8 @@ open class ImageAttachmentAdapter(
      *
      * 静态代表帧（不播时显示的那一帧）按内容分别是：Animated Image 的首帧、视频的
      * Thing Card Video Frame、Motion Photo 的**高画质静态主图**——最后一条是 Motion Photo
-     * 独有的，它的派生 GIF 首帧来自内嵌视频起点，不是主图，所以停播时必须真的切回主图。
+     * 独有的，它的派生 GIF 首帧来自内嵌视频起点，不是主图，因此关闭／播放一次结束时切回
+     * 主图。循环档的视口暂停只停 GIF，不更换资源。
      */
     private fun bindAttachmentImage(holder: ImageViewHolder, position: Int) {
         val typePathName = mItems?.getOrNull(position) ?: return
@@ -296,6 +311,8 @@ open class ImageAttachmentAdapter(
         val controller = mPlaybackController
         // 分享截图期间一律冻结到静态代表帧，否则截图会抓到任意一帧。
         val play = !mTakingScreenshot && controller?.shouldPlay(position) == true
+        val useAnimatedResource = !mTakingScreenshot &&
+            controller?.usesAnimatedResource(position) == true
         val loop = play && controller?.shouldLoop(position) == true
 
         // 视频 / Motion Photo 播的是派生 GIF：就绪才播，未就绪先显示静态代表帧并后台请求。
@@ -307,7 +324,7 @@ open class ImageAttachmentAdapter(
             } else {
                 MotionPhotoCoverHelper.getReadyGif(context, pathName)
             }
-            if (play && ready != null) {
+            if (useAnimatedResource && ready != null) {
                 derivedGifPath = ready.absolutePath
             } else if (ready == null && controller?.wantsDerivedPreview(position) == true) {
                 requestDerivedGif(
@@ -316,7 +333,7 @@ open class ImageAttachmentAdapter(
             }
         }
 
-        val animatedPlayback = derivedGifPath != null || (play && animated)
+        val animatedPlayback = derivedGifPath != null || (useAnimatedResource && animated)
         val loadSource = derivedGifPath ?: pathName
 
         // 所有显示模式都记录完整请求身份。拖拽排序或播放调度只要没有改变实际资源，就只更新
@@ -328,7 +345,15 @@ open class ImageAttachmentAdapter(
         } else {
             "$pathName|${size[0]}|${size[1]}|${videoFrameMs ?: -1L}|default"
         }
-        val loadKey = baseLoadKey + playbackKeySuffix(animatedPlayback, derivedGifPath)
+        val resourceFile = File(loadSource)
+        val loadKey = baseLoadKey + playbackKeySuffix(animatedPlayback, derivedGifPath) +
+            "|${resourceFile.length()}|${resourceFile.lastModified()}"
+        // 解码身份区分静图与派生 GIF；占位则关联原附件。同一附件离屏后切换播放模式，
+        // 新类别尚未加载时仍可借用另一类别的独立帧，避免重新进入时露出记事底色。
+        val sourceFile = File(pathName)
+        val posterBaseKey = "$baseLoadKey|${sourceFile.length()}|${sourceFile.lastModified()}"
+        val posterKey = "$posterBaseKey|$animatedPlayback"
+        val alternatePosterKey = "$posterBaseKey|${!animatedPlayback}"
         holder.overlayColors.bind(baseLoadKey, pathName, videoCandidate, videoFrameMs,
             size[0], size[1], presentation?.crop?.let(::getDetailAttachmentBitmapCrop))
         if (customized && presentation != null) {
@@ -345,8 +370,11 @@ open class ImageAttachmentAdapter(
             holder.pbLoading!!.visibility = View.GONE
             imageView.scaleType = ImageView.ScaleType.CENTER_CROP
             imageView.imageMatrix = null
+            imageView.drawable?.let {
+                cacheMediaPoster(imageView, posterKey, it)
+            }
             applyGifPlaybackState(
-                imageView, imageView.drawable, position, animatedPlayback, loop
+                imageView, imageView.drawable, position, play && animatedPlayback, loop
             )
             updateOverlayVisibility(holder)
             return
@@ -363,7 +391,8 @@ open class ImageAttachmentAdapter(
         val sameAttachment =
             imageView.getTag(R.id.tag_detail_attachment_bound_source) == typePathName
         val transitionPlaceholder =
-            if (sameAttachment) createTransitionPlaceholder(imageView) else null
+            (if (sameAttachment) createTransitionPlaceholder(imageView) else null) ?:
+                getMediaPoster(imageView, posterKey) ?: getMediaPoster(imageView, alternatePosterKey)
         imageView.setTag(R.id.tag_detail_attachment_bound_source, typePathName)
         imageView.setTag(R.id.tag_detail_attachment_image_request_key, loadKey)
         imageView.setTag(R.id.tag_detail_attachment_image_load_key, null)
@@ -371,7 +400,9 @@ open class ImageAttachmentAdapter(
         stopExistingGif(imageView)
 
         var request = Glide.with(imageView.context)
-            .load(loadSource)
+            // 本地 GIF 用 File 模型走 Glide 的文件映射。String 路径走 StreamGifDecoder，
+            // 会把整文件扩容读入 byte[] 后再复制；多个大 GIF 并发会耗尽 Java 堆。
+            .load(if (animatedPlayback && resourceFile.isAbsolute) resourceFile else loadSource)
             .disallowHardwareConfig()
         if (mTakingScreenshot) {
             // 离屏导出不会收到窗口 pre-draw，不能让 Glide 等待 ImageView 的布局回调。
@@ -465,6 +496,7 @@ open class ImageAttachmentAdapter(
                             imageView.setImageBitmap(bakedBitmap)
                             imageView.scaleType = ImageView.ScaleType.CENTER_CROP
                             imageView.imageMatrix = null
+                            cacheMediaPoster(imageView, posterKey, imageView.drawable)
                             return true
                         }
                         imageView.scaleType = ImageView.ScaleType.CENTER_CROP
@@ -485,10 +517,12 @@ open class ImageAttachmentAdapter(
                         // 请求完成时可能已离屏或重排。按此刻的位置决定播放，并接管 target，
                         // 防止 Glide 在本回调之后无条件 start() 使离屏资源重新播放。
                         imageView.setImageDrawable(resource)
+                        cacheMediaPoster(imageView, posterKey, resource)
                         applyGifPlaybackState(imageView, resource, current, playNow,
                             mPlaybackController?.shouldLoop(current) == true)
                         return true
                     }
+                    cacheMediaPoster(imageView, posterKey, resource)
                     if (playNow) notifyPlaybackUnavailable(imageView, typePathName)
                     return false
                 }
@@ -634,25 +668,68 @@ open class ImageAttachmentAdapter(
         }
     }
 
+    private fun getMediaPoster(imageView: ImageView, posterKey: String): Drawable? =
+        mMediaPosters.get(posterKey)?.takeUnless { it.isRecycled }?.let {
+            BitmapDrawable(imageView.resources, it)
+        }
+
+    private fun cacheMediaPoster(imageView: ImageView, posterKey: String, resource: Drawable?) {
+        if (mMediaPosters.get(posterKey) != null) return
+        val firstFrame = when (resource) {
+            is GifDrawable -> resource.firstFrame
+            is BitmapDrawable -> resource.bitmap
+            else -> return
+        }
+        val maxPixels = minOf(MAX_CACHED_POSTER_PIXELS, mMediaPosters.maxSize() / 4L)
+        val copy = if (firstFrame != null) {
+            if (firstFrame.isRecycled) return
+            val size = transitionSnapshotSize(firstFrame.width, firstFrame.height, maxPixels)
+            // Glide 启播后会将首帧还给位图池，缓存必须持有自己的副本。
+            if (size[0] == firstFrame.width && size[1] == firstFrame.height) {
+                firstFrame.copy(Bitmap.Config.ARGB_8888, false)
+            } else {
+                Bitmap.createScaledBitmap(firstFrame, size[0], size[1], true)
+            }
+        } else {
+            // 命中已播过的 Glide 内存资源时首帧可能已释放；复制当前实际画面。
+            (createTransitionPlaceholder(imageView, maxPixels) as? BitmapDrawable)?.bitmap
+        } ?: return
+        if (copy.allocationByteCount > mMediaPosters.maxSize()) {
+            copy.recycle()
+            return
+        }
+        mMediaPosters.put(posterKey, copy)
+    }
+
+    private fun transitionSnapshotSize(width: Int, height: Int, maxPixels: Long): IntArray {
+        val scale = minOf(1.0, sqrt(maxPixels.coerceAtLeast(1).toDouble() / width / height))
+        return intArrayOf((width * scale).toInt().coerceAtLeast(1),
+            (height * scale).toInt().coerceAtLeast(1))
+    }
+
     /**
      * 为同一附件的静/动资源切换复制当前 ImageView 的最终显示结果。
      *
-     * 不能把当前 Drawable 本身当 placeholder：Glide 清理旧请求后可能立即回收它。详情缩略图尺寸
-     * 很小；若异常布局超过像素预算则放弃快照，优先保证内存安全。
+     * 不能把当前 Drawable 本身当 placeholder：Glide 清理旧请求后可能立即回收它。
+     * 高分辨率通栏媒体按像素预算缩小快照，避免因尺寸过大直接丢失占位。
      */
-    private fun createTransitionPlaceholder(imageView: ImageView): Drawable? {
+    private fun createTransitionPlaceholder(
+        imageView: ImageView, maxPixels: Long = MAX_TRANSITION_SNAPSHOT_PIXELS
+    ): Drawable? {
         if (imageView.drawable == null) return null
         val width = imageView.width
         val height = imageView.height
         if (width <= 0 || height <= 0) return null
-        if (width.toLong() * height.toLong() > MAX_TRANSITION_SNAPSHOT_PIXELS) return null
+        val size = transitionSnapshotSize(width, height, maxPixels)
         val bitmap = try {
-            Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            Bitmap.createBitmap(size[0], size[1], Bitmap.Config.ARGB_8888)
         } catch (_: RuntimeException) {
             return null
         }
         return try {
-            imageView.draw(Canvas(bitmap))
+            val canvas = Canvas(bitmap)
+            canvas.scale(size[0].toFloat() / width, size[1].toFloat() / height)
+            imageView.draw(canvas)
             BitmapDrawable(imageView.resources, bitmap)
         } catch (_: RuntimeException) {
             bitmap.recycle()

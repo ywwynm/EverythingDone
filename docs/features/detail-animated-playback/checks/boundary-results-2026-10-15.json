@@ -1,0 +1,6836 @@
+{
+  "caveat": "未独立复现持续循环交界露底；已复现并修复切换播放模式后重新进入的跨静动占位缺口。窗口采样非物理屏幕每次刷新。",
+  "source": "12 个动态附件，其中 3 个约 32–35 MB 派生 GIF 与 9 个约 10–16 MB 独立文件副本；4 张静态图穿插，另有 17 张静态图与 80 段正文。",
+  "positiveControl": "首次加载阶段确实捕获到背景色和加载指示器；原有模式切换空白的实际窗口截图同样保留在 tmp。",
+  "runs": {
+    "boundary-window-oppo": {
+      "run": "boundary-window-oppo",
+      "passed": true,
+      "captureComplete": true,
+      "result": {
+        "ok": true,
+        "samples": 64130,
+        "events": [
+          {
+            "name": "fixture-media",
+            "complex": true,
+            "derivedVideoBytes": 34143205,
+            "derivedMotionBytes": 34143205,
+            "dynamicFileBytes": [
+              4481998,
+              4486810,
+              34143205,
+              10410687,
+              15943839,
+              12862653,
+              10410687,
+              15943839,
+              12862653,
+              10410687,
+              15943839,
+              12862653
+            ]
+          },
+          {
+            "name": "boundary-loop-0",
+            "start": 145154089,
+            "end": 145199096,
+            "wraps": {
+              "0": 12,
+              "1": 12,
+              "2": 12,
+              "3": 0,
+              "4": 12,
+              "5": 12,
+              "6": 12,
+              "7": 0,
+              "8": 0,
+              "9": 0,
+              "10": 0,
+              "11": 0,
+              "12": 0,
+              "13": 0,
+              "14": 0,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-loop-6",
+            "start": 145199868,
+            "end": 145244873,
+            "wraps": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 13,
+              "7": 0,
+              "8": 12,
+              "9": 12,
+              "10": 12,
+              "11": 0,
+              "12": 12,
+              "13": 12,
+              "14": 0,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-loop-10",
+            "start": 145245711,
+            "end": 145290727,
+            "wraps": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 0,
+              "10": 13,
+              "11": 0,
+              "12": 12,
+              "13": 12,
+              "14": 12,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-sequential-completed",
+            "passed": true
+          }
+        ],
+        "originalUnchanged": true,
+        "apkSha256": "fde41d804cbc3cbd8ed8580fcfdec714b6245e0c69ad9b49ac4d51b0523c3adf",
+        "runtimeFailures": {
+          "FATAL EXCEPTION": 0,
+          "OutOfMemoryError": 0,
+          "Cannot draw recycled": 0,
+          "Cannot start a recycled": 0
+        },
+        "artifactPullRetried": true,
+        "hashReadRetried": true
+      },
+      "stages": {
+        "boundary-positioning-0": {
+          "durationMs": 512,
+          "samples": 240,
+          "blank": 0,
+          "windowCaptures": 29,
+          "copyStatus": {
+            "0": 29
+          },
+          "successfulWindowCaptures": 29,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 13.5,
+          "maxCaptureGapMs": 118,
+          "medianCopyLatencyMs": 3,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 232,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-loop-0": {
+          "durationMs": 44992,
+          "samples": 22144,
+          "blank": 0,
+          "windowCaptures": 2768,
+          "copyStatus": {
+            "0": 2768
+          },
+          "successfulWindowCaptures": 2768,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 16,
+          "maxCaptureGapMs": 94,
+          "medianCopyLatencyMs": 3.0,
+          "wraps": {
+            "6": 12,
+            "2": 12,
+            "1": 12,
+            "4": 12,
+            "0": 12,
+            "5": 12
+          },
+          "completions": {},
+          "windowMediaSamples": 22144,
+          "boundaryWindowMediaSamples": 1368,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-positioning-6": {
+          "durationMs": 748,
+          "samples": 144,
+          "blank": 22,
+          "windowCaptures": 17,
+          "copyStatus": {
+            "0": 17
+          },
+          "successfulWindowCaptures": 17,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 25.5,
+          "maxCaptureGapMs": 173,
+          "medianCopyLatencyMs": 3,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 136,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.98046875,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 2,
+          "backgroundOver10Pct": [
+            {
+              "seq": 2800,
+              "pos": 8,
+              "frame": -2,
+              "fraction": 0.98046875
+            },
+            {
+              "seq": 2800,
+              "pos": 9,
+              "frame": -2,
+              "fraction": 0.98046875
+            },
+            {
+              "seq": 2800,
+              "pos": 10,
+              "frame": -2,
+              "fraction": 0.98046875
+            },
+            {
+              "seq": 2800,
+              "pos": 12,
+              "frame": -2,
+              "fraction": 0.98046875
+            },
+            {
+              "seq": 2800,
+              "pos": 13,
+              "frame": -2,
+              "fraction": 0.98046875
+            },
+            {
+              "seq": 2801,
+              "pos": 8,
+              "frame": -2,
+              "fraction": 0.98046875
+            },
+            {
+              "seq": 2801,
+              "pos": 9,
+              "frame": -2,
+              "fraction": 0.98046875
+            },
+            {
+              "seq": 2801,
+              "pos": 10,
+              "frame": -2,
+              "fraction": 0.98046875
+            },
+            {
+              "seq": 2801,
+              "pos": 12,
+              "frame": -2,
+              "fraction": 0.98046875
+            },
+            {
+              "seq": 2801,
+              "pos": 13,
+              "frame": -2,
+              "fraction": 0.98046875
+            },
+            {
+              "seq": 2802,
+              "pos": 8,
+              "frame": -1,
+              "fraction": 0.98046875
+            },
+            {
+              "seq": 2802,
+              "pos": 9,
+              "frame": -2,
+              "fraction": 0.98046875
+            },
+            {
+              "seq": 2802,
+              "pos": 10,
+              "frame": -2,
+              "fraction": 0.98046875
+            },
+            {
+              "seq": 2802,
+              "pos": 12,
+              "frame": -1,
+              "fraction": 0.98046875
+            },
+            {
+              "seq": 2802,
+              "pos": 13,
+              "frame": -1,
+              "fraction": 0.98046875
+            },
+            {
+              "seq": 2803,
+              "pos": 9,
+              "frame": -1,
+              "fraction": 0.98046875
+            },
+            {
+              "seq": 2803,
+              "pos": 10,
+              "frame": -1,
+              "fraction": 0.98046875
+            }
+          ]
+        },
+        "boundary-loop-6": {
+          "durationMs": 44997,
+          "samples": 21584,
+          "blank": 0,
+          "windowCaptures": 2698,
+          "copyStatus": {
+            "0": 2698
+          },
+          "successfulWindowCaptures": 2698,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17,
+          "maxCaptureGapMs": 132,
+          "medianCopyLatencyMs": 4.0,
+          "wraps": {
+            "6": 13,
+            "10": 12,
+            "12": 12,
+            "8": 12,
+            "13": 12,
+            "9": 12
+          },
+          "completions": {},
+          "windowMediaSamples": 21584,
+          "boundaryWindowMediaSamples": 1387,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-positioning-10": {
+          "durationMs": 815,
+          "samples": 116,
+          "blank": 2,
+          "windowCaptures": 19,
+          "copyStatus": {
+            "0": 19
+          },
+          "successfulWindowCaptures": 19,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 32.0,
+          "maxCaptureGapMs": 164,
+          "medianCopyLatencyMs": 3,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 116,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.97265625,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 1,
+          "backgroundOver10Pct": [
+            {
+              "seq": 5515,
+              "pos": 14,
+              "frame": -2,
+              "fraction": 0.97265625
+            },
+            {
+              "seq": 5516,
+              "pos": 14,
+              "frame": -1,
+              "fraction": 0.97265625
+            }
+          ]
+        },
+        "boundary-loop-10": {
+          "durationMs": 44996,
+          "samples": 16194,
+          "blank": 0,
+          "windowCaptures": 2699,
+          "copyStatus": {
+            "0": 2699
+          },
+          "successfulWindowCaptures": 2699,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17.0,
+          "maxCaptureGapMs": 103,
+          "medianCopyLatencyMs": 2,
+          "wraps": {
+            "10": 13,
+            "12": 12,
+            "13": 12,
+            "14": 12
+          },
+          "completions": {},
+          "windowMediaSamples": 16194,
+          "boundaryWindowMediaSamples": 931,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-mode-switch": {
+          "durationMs": 668,
+          "samples": 76,
+          "blank": 12,
+          "windowCaptures": 8,
+          "copyStatus": {
+            "0": 8
+          },
+          "successfulWindowCaptures": 8,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 70,
+          "maxCaptureGapMs": 326,
+          "medianCopyLatencyMs": 4.5,
+          "wraps": {},
+          "completions": {
+            "12": 1,
+            "13": 1,
+            "14": 1
+          },
+          "windowMediaSamples": 60,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 6,
+          "maxBackgroundFraction": 0.97265625,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 1,
+          "backgroundOver10Pct": [
+            {
+              "seq": 8234,
+              "pos": 4,
+              "frame": -2,
+              "fraction": 0.97265625
+            },
+            {
+              "seq": 8234,
+              "pos": 5,
+              "frame": -2,
+              "fraction": 0.97265625
+            },
+            {
+              "seq": 8234,
+              "pos": 6,
+              "frame": -2,
+              "fraction": 0.97265625
+            },
+            {
+              "seq": 8235,
+              "pos": 6,
+              "frame": -2,
+              "fraction": 0.97265625
+            },
+            {
+              "seq": 8236,
+              "pos": 6,
+              "frame": -2,
+              "fraction": 0.96875
+            }
+          ]
+        },
+        "boundary-sequential-completion": {
+          "durationMs": 18301,
+          "samples": 3632,
+          "blank": 0,
+          "windowCaptures": 454,
+          "copyStatus": {
+            "0": 454
+          },
+          "successfulWindowCaptures": 454,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 34,
+          "maxCaptureGapMs": 100,
+          "medianCopyLatencyMs": 3.0,
+          "wraps": {},
+          "completions": {
+            "0": 1,
+            "1": 1,
+            "2": 1,
+            "4": 1,
+            "5": 1,
+            "6": 1
+          },
+          "windowMediaSamples": 3632,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 45,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        }
+      },
+      "gestures": {
+        "count": 0,
+        "ime": 0,
+        "settling": 0,
+        "medianMs": null
+      }
+    },
+    "boundary-window-samsung": {
+      "run": "boundary-window-samsung",
+      "passed": true,
+      "captureComplete": true,
+      "result": {
+        "ok": true,
+        "samples": 67020,
+        "events": [
+          {
+            "name": "fixture-media",
+            "complex": true,
+            "derivedVideoBytes": 35240637,
+            "derivedMotionBytes": 35240637,
+            "dynamicFileBytes": [
+              4481998,
+              4486810,
+              35240637,
+              10410687,
+              15943839,
+              12862653,
+              10410687,
+              15943839,
+              12862653,
+              10410687,
+              15943839,
+              12862653
+            ]
+          },
+          {
+            "name": "boundary-loop-0",
+            "start": 337099465,
+            "end": 337144466,
+            "wraps": {
+              "0": 12,
+              "1": 12,
+              "2": 12,
+              "3": 0,
+              "4": 12,
+              "5": 12,
+              "6": 12,
+              "7": 0,
+              "8": 0,
+              "9": 0,
+              "10": 0,
+              "11": 0,
+              "12": 0,
+              "13": 0,
+              "14": 0,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-loop-6",
+            "start": 337145242,
+            "end": 337190245,
+            "wraps": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 13,
+              "7": 0,
+              "8": 12,
+              "9": 12,
+              "10": 12,
+              "11": 0,
+              "12": 12,
+              "13": 12,
+              "14": 0,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-loop-10",
+            "start": 337191107,
+            "end": 337236122,
+            "wraps": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 0,
+              "10": 13,
+              "11": 0,
+              "12": 12,
+              "13": 12,
+              "14": 12,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-sequential-completed",
+            "passed": true
+          }
+        ],
+        "originalUnchanged": true,
+        "apkSha256": "fde41d804cbc3cbd8ed8580fcfdec714b6245e0c69ad9b49ac4d51b0523c3adf",
+        "runtimeFailures": {
+          "FATAL EXCEPTION": 0,
+          "OutOfMemoryError": 0,
+          "Cannot draw recycled": 0,
+          "Cannot start a recycled": 0
+        }
+      },
+      "stages": {
+        "boundary-positioning-0": {
+          "durationMs": 546,
+          "samples": 360,
+          "blank": 0,
+          "windowCaptures": 44,
+          "copyStatus": {
+            "0": 44
+          },
+          "successfulWindowCaptures": 44,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 8,
+          "maxCaptureGapMs": 101,
+          "medianCopyLatencyMs": 2.0,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 352,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-loop-0": {
+          "durationMs": 44994,
+          "samples": 22264,
+          "blank": 0,
+          "windowCaptures": 2783,
+          "copyStatus": {
+            "0": 2783
+          },
+          "successfulWindowCaptures": 2783,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17.0,
+          "maxCaptureGapMs": 84,
+          "medianCopyLatencyMs": 3,
+          "wraps": {
+            "6": 12,
+            "0": 12,
+            "4": 12,
+            "1": 12,
+            "5": 12,
+            "2": 12
+          },
+          "completions": {},
+          "windowMediaSamples": 22264,
+          "boundaryWindowMediaSamples": 1368,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-positioning-6": {
+          "durationMs": 759,
+          "samples": 96,
+          "blank": 21,
+          "windowCaptures": 11,
+          "copyStatus": {
+            "0": 11
+          },
+          "successfulWindowCaptures": 11,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 65.0,
+          "maxCaptureGapMs": 196,
+          "medianCopyLatencyMs": 5,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 88,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.9921875,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 3,
+          "backgroundOver10Pct": [
+            {
+              "seq": 2830,
+              "pos": 8,
+              "frame": -2,
+              "fraction": 0.9921875
+            },
+            {
+              "seq": 2830,
+              "pos": 9,
+              "frame": -2,
+              "fraction": 0.9921875
+            },
+            {
+              "seq": 2830,
+              "pos": 10,
+              "frame": -2,
+              "fraction": 0.9921875
+            },
+            {
+              "seq": 2830,
+              "pos": 12,
+              "frame": -2,
+              "fraction": 0.9921875
+            },
+            {
+              "seq": 2830,
+              "pos": 13,
+              "frame": -2,
+              "fraction": 0.9921875
+            },
+            {
+              "seq": 2831,
+              "pos": 8,
+              "frame": -2,
+              "fraction": 0.9921875
+            },
+            {
+              "seq": 2831,
+              "pos": 9,
+              "frame": -1,
+              "fraction": 0.9921875
+            },
+            {
+              "seq": 2831,
+              "pos": 10,
+              "frame": -2,
+              "fraction": 0.9921875
+            },
+            {
+              "seq": 2831,
+              "pos": 12,
+              "frame": -2,
+              "fraction": 0.9921875
+            },
+            {
+              "seq": 2831,
+              "pos": 13,
+              "frame": -2,
+              "fraction": 0.9921875
+            },
+            {
+              "seq": 2832,
+              "pos": 8,
+              "frame": -1,
+              "fraction": 0.9921875
+            },
+            {
+              "seq": 2832,
+              "pos": 10,
+              "frame": -1,
+              "fraction": 0.9921875
+            },
+            {
+              "seq": 2832,
+              "pos": 12,
+              "frame": -2,
+              "fraction": 0.9921875
+            },
+            {
+              "seq": 2832,
+              "pos": 13,
+              "frame": -2,
+              "fraction": 0.9921875
+            },
+            {
+              "seq": 2833,
+              "pos": 12,
+              "frame": -1,
+              "fraction": 0.98828125
+            },
+            {
+              "seq": 2833,
+              "pos": 13,
+              "frame": -1,
+              "fraction": 0.98828125
+            }
+          ]
+        },
+        "boundary-loop-6": {
+          "durationMs": 44971,
+          "samples": 24176,
+          "blank": 0,
+          "windowCaptures": 3022,
+          "copyStatus": {
+            "0": 3022
+          },
+          "successfulWindowCaptures": 3022,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17,
+          "maxCaptureGapMs": 125,
+          "medianCopyLatencyMs": 3.0,
+          "wraps": {
+            "6": 13,
+            "10": 12,
+            "8": 12,
+            "9": 12,
+            "12": 12,
+            "13": 12
+          },
+          "completions": {},
+          "windowMediaSamples": 24176,
+          "boundaryWindowMediaSamples": 1575,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.00390625,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-positioning-10": {
+          "durationMs": 842,
+          "samples": 140,
+          "blank": 2,
+          "windowCaptures": 23,
+          "copyStatus": {
+            "0": 23
+          },
+          "successfulWindowCaptures": 23,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 21.0,
+          "maxCaptureGapMs": 173,
+          "medianCopyLatencyMs": 3,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 140,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.984375,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 1,
+          "backgroundOver10Pct": [
+            {
+              "seq": 5863,
+              "pos": 14,
+              "frame": -2,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 5864,
+              "pos": 14,
+              "frame": -1,
+              "fraction": 0.984375
+            }
+          ]
+        },
+        "boundary-loop-10": {
+          "durationMs": 45013,
+          "samples": 16308,
+          "blank": 0,
+          "windowCaptures": 2718,
+          "copyStatus": {
+            "0": 2718
+          },
+          "successfulWindowCaptures": 2718,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17,
+          "maxCaptureGapMs": 101,
+          "medianCopyLatencyMs": 3.0,
+          "wraps": {
+            "10": 13,
+            "12": 12,
+            "13": 12,
+            "14": 12
+          },
+          "completions": {},
+          "windowMediaSamples": 16308,
+          "boundaryWindowMediaSamples": 937,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.00390625,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-mode-switch": {
+          "durationMs": 903,
+          "samples": 52,
+          "blank": 10,
+          "windowCaptures": 6,
+          "copyStatus": {
+            "0": 6
+          },
+          "successfulWindowCaptures": 6,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 155,
+          "maxCaptureGapMs": 382,
+          "medianCopyLatencyMs": 12.5,
+          "wraps": {},
+          "completions": {
+            "12": 1,
+            "13": 1,
+            "14": 1
+          },
+          "windowMediaSamples": 44,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 6,
+          "maxBackgroundFraction": 0.984375,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 2,
+          "backgroundOver10Pct": [
+            {
+              "seq": 8605,
+              "pos": 5,
+              "frame": -2,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 8605,
+              "pos": 6,
+              "frame": -2,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 8606,
+              "pos": 6,
+              "frame": -2,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 8607,
+              "pos": 6,
+              "frame": -2,
+              "fraction": 0.984375
+            }
+          ]
+        },
+        "boundary-sequential-completion": {
+          "durationMs": 18383,
+          "samples": 3624,
+          "blank": 0,
+          "windowCaptures": 453,
+          "copyStatus": {
+            "0": 453
+          },
+          "successfulWindowCaptures": 453,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 40.0,
+          "maxCaptureGapMs": 192,
+          "medianCopyLatencyMs": 3,
+          "wraps": {},
+          "completions": {
+            "0": 1,
+            "1": 1,
+            "2": 1,
+            "4": 1,
+            "5": 1,
+            "6": 1
+          },
+          "windowMediaSamples": 3624,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 44,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        }
+      },
+      "gestures": {
+        "count": 0,
+        "ime": 0,
+        "settling": 0,
+        "medianMs": null
+      }
+    },
+    "boundary-window-meizu": {
+      "run": "boundary-window-meizu",
+      "passed": true,
+      "captureComplete": true,
+      "result": {
+        "ok": true,
+        "samples": 76092,
+        "events": [
+          {
+            "name": "fixture-media",
+            "complex": true,
+            "derivedVideoBytes": 32030470,
+            "derivedMotionBytes": 32507177,
+            "dynamicFileBytes": [
+              4481998,
+              4486810,
+              32030470,
+              10410687,
+              15943839,
+              12862653,
+              10410687,
+              15943839,
+              12862653,
+              10410687,
+              15943839,
+              12862653
+            ]
+          },
+          {
+            "name": "boundary-loop-0",
+            "start": 2390075165,
+            "end": 2390120177,
+            "wraps": {
+              "0": 13,
+              "1": 13,
+              "2": 13,
+              "3": 0,
+              "4": 12,
+              "5": 12,
+              "6": 12,
+              "7": 0,
+              "8": 0,
+              "9": 0,
+              "10": 0,
+              "11": 0,
+              "12": 0,
+              "13": 0,
+              "14": 0,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-loop-6",
+            "start": 2390121127,
+            "end": 2390166133,
+            "wraps": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 12,
+              "7": 0,
+              "8": 12,
+              "9": 11,
+              "10": 12,
+              "11": 0,
+              "12": 12,
+              "13": 11,
+              "14": 0,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-loop-10",
+            "start": 2390166939,
+            "end": 2390211949,
+            "wraps": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 0,
+              "10": 12,
+              "11": 0,
+              "12": 12,
+              "13": 12,
+              "14": 12,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-sequential-completed",
+            "passed": true
+          }
+        ],
+        "originalUnchanged": true,
+        "apkSha256": "fde41d804cbc3cbd8ed8580fcfdec714b6245e0c69ad9b49ac4d51b0523c3adf",
+        "runtimeFailures": {
+          "FATAL EXCEPTION": 0,
+          "OutOfMemoryError": 0,
+          "Cannot draw recycled": 0,
+          "Cannot start a recycled": 0
+        }
+      },
+      "stages": {
+        "boundary-positioning-0": {
+          "durationMs": 645,
+          "samples": 300,
+          "blank": 0,
+          "windowCaptures": 29,
+          "copyStatus": {
+            "0": 29
+          },
+          "successfulWindowCaptures": 29,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17.0,
+          "maxCaptureGapMs": 147,
+          "medianCopyLatencyMs": 3,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 232,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-loop-0": {
+          "durationMs": 45005,
+          "samples": 27110,
+          "blank": 0,
+          "windowCaptures": 2703,
+          "copyStatus": {
+            "0": 2703
+          },
+          "successfulWindowCaptures": 2703,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17.0,
+          "maxCaptureGapMs": 104,
+          "medianCopyLatencyMs": 4,
+          "wraps": {
+            "0": 13,
+            "2": 13,
+            "1": 13,
+            "6": 12,
+            "4": 12,
+            "5": 12
+          },
+          "completions": {},
+          "windowMediaSamples": 21624,
+          "boundaryWindowMediaSamples": 1425,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-positioning-6": {
+          "durationMs": 928,
+          "samples": 290,
+          "blank": 21,
+          "windowCaptures": 28,
+          "copyStatus": {
+            "0": 28
+          },
+          "successfulWindowCaptures": 28,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17,
+          "maxCaptureGapMs": 182,
+          "medianCopyLatencyMs": 4.0,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 224,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 1.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 1,
+          "backgroundOver10Pct": [
+            {
+              "seq": 2735,
+              "pos": 10,
+              "frame": -2,
+              "fraction": 1.0
+            },
+            {
+              "seq": 2735,
+              "pos": 12,
+              "frame": -2,
+              "fraction": 1.0
+            },
+            {
+              "seq": 2735,
+              "pos": 13,
+              "frame": -2,
+              "fraction": 1.0
+            },
+            {
+              "seq": 2736,
+              "pos": 10,
+              "frame": -2,
+              "fraction": 0.98828125
+            },
+            {
+              "seq": 2736,
+              "pos": 12,
+              "frame": -2,
+              "fraction": 0.98828125
+            },
+            {
+              "seq": 2736,
+              "pos": 13,
+              "frame": -2,
+              "fraction": 0.98828125
+            },
+            {
+              "seq": 2737,
+              "pos": 10,
+              "frame": -2,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 2737,
+              "pos": 12,
+              "frame": -2,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 2737,
+              "pos": 13,
+              "frame": -2,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 2738,
+              "pos": 10,
+              "frame": -1,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 2738,
+              "pos": 12,
+              "frame": -1,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 2738,
+              "pos": 13,
+              "frame": -1,
+              "fraction": 0.984375
+            }
+          ]
+        },
+        "boundary-loop-6": {
+          "durationMs": 44997,
+          "samples": 27050,
+          "blank": 0,
+          "windowCaptures": 2697,
+          "copyStatus": {
+            "0": 2697
+          },
+          "successfulWindowCaptures": 2697,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17.0,
+          "maxCaptureGapMs": 163,
+          "medianCopyLatencyMs": 4,
+          "wraps": {
+            "6": 12,
+            "10": 12,
+            "8": 12,
+            "9": 11,
+            "12": 12,
+            "13": 11
+          },
+          "completions": {},
+          "windowMediaSamples": 21576,
+          "boundaryWindowMediaSamples": 1324,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-positioning-10": {
+          "durationMs": 780,
+          "samples": 166,
+          "blank": 0,
+          "windowCaptures": 26,
+          "copyStatus": {
+            "0": 26
+          },
+          "successfulWindowCaptures": 26,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 18,
+          "maxCaptureGapMs": 269,
+          "medianCopyLatencyMs": 3.0,
+          "wraps": {
+            "13": 1
+          },
+          "completions": {},
+          "windowMediaSamples": 158,
+          "boundaryWindowMediaSamples": 8,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-loop-10": {
+          "durationMs": 45003,
+          "samples": 16194,
+          "blank": 0,
+          "windowCaptures": 2691,
+          "copyStatus": {
+            "0": 2691
+          },
+          "successfulWindowCaptures": 2691,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17.0,
+          "maxCaptureGapMs": 163,
+          "medianCopyLatencyMs": 4,
+          "wraps": {
+            "10": 12,
+            "12": 12,
+            "14": 12,
+            "13": 12
+          },
+          "completions": {},
+          "windowMediaSamples": 16146,
+          "boundaryWindowMediaSamples": 911,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-mode-switch": {
+          "durationMs": 914,
+          "samples": 172,
+          "blank": 33,
+          "windowCaptures": 16,
+          "copyStatus": {
+            "0": 16
+          },
+          "successfulWindowCaptures": 16,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 18,
+          "maxCaptureGapMs": 350,
+          "medianCopyLatencyMs": 5.0,
+          "wraps": {},
+          "completions": {
+            "12": 1,
+            "13": 1,
+            "14": 1
+          },
+          "windowMediaSamples": 124,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 3,
+          "maxBackgroundFraction": 0.9921875,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 1,
+          "backgroundOver10Pct": [
+            {
+              "seq": 8178,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.98828125
+            },
+            {
+              "seq": 8178,
+              "pos": 4,
+              "frame": -2,
+              "fraction": 0.98828125
+            },
+            {
+              "seq": 8178,
+              "pos": 5,
+              "frame": -2,
+              "fraction": 0.98828125
+            },
+            {
+              "seq": 8178,
+              "pos": 6,
+              "frame": -2,
+              "fraction": 0.98828125
+            },
+            {
+              "seq": 8179,
+              "pos": 6,
+              "frame": -2,
+              "fraction": 0.98828125
+            },
+            {
+              "seq": 8180,
+              "pos": 6,
+              "frame": -2,
+              "fraction": 0.9921875
+            }
+          ]
+        },
+        "boundary-sequential-completion": {
+          "durationMs": 20347,
+          "samples": 4810,
+          "blank": 0,
+          "windowCaptures": 449,
+          "copyStatus": {
+            "0": 449
+          },
+          "successfulWindowCaptures": 449,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 34.0,
+          "maxCaptureGapMs": 1580,
+          "medianCopyLatencyMs": 6,
+          "wraps": {},
+          "completions": {
+            "0": 1,
+            "1": 1,
+            "2": 1,
+            "4": 1,
+            "5": 1,
+            "6": 1
+          },
+          "windowMediaSamples": 3592,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 46,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        }
+      },
+      "gestures": {
+        "count": 0,
+        "ime": 0,
+        "settling": 0,
+        "medianMs": null
+      }
+    },
+    "boundary-fullspan-ime-oppo": {
+      "run": "boundary-fullspan-ime-oppo",
+      "passed": false,
+      "captureComplete": true,
+      "result": {
+        "ok": true,
+        "samples": 38273,
+        "events": [
+          {
+            "name": "fixture-media",
+            "complex": true,
+            "derivedVideoBytes": 34143205,
+            "derivedMotionBytes": 34143205,
+            "dynamicFileBytes": [
+              4481998,
+              4486810,
+              34143205,
+              10410687,
+              15943839,
+              12862653,
+              10410687,
+              15943839,
+              12862653,
+              10410687,
+              15943839,
+              12862653
+            ]
+          },
+          {
+            "name": "boundary-loop-0",
+            "start": 145582517,
+            "end": 145607527,
+            "wraps": {
+              "0": 6,
+              "1": 6,
+              "2": 6,
+              "3": 0,
+              "4": 6,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 0,
+              "10": 0,
+              "11": 0,
+              "12": 0,
+              "13": 0,
+              "14": 0,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-loop-6",
+            "start": 145608333,
+            "end": 145633336,
+            "wraps": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 6,
+              "6": 6,
+              "7": 0,
+              "8": 6,
+              "9": 6,
+              "10": 6,
+              "11": 0,
+              "12": 6,
+              "13": 0,
+              "14": 0,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-loop-10",
+            "start": 145634019,
+            "end": 145659026,
+            "wraps": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 7,
+              "10": 6,
+              "11": 0,
+              "12": 7,
+              "13": 6,
+              "14": 6,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-ime-fast-covered",
+            "passed": true
+          },
+          {
+            "name": "boundary-fullspan-ime-entry",
+            "width": 1216,
+            "height": 912,
+            "passed": true
+          },
+          {
+            "name": "boundary-sequential-completed",
+            "passed": true
+          }
+        ],
+        "originalUnchanged": true,
+        "apkSha256": "69abf8ef850ae319bd32bc379ab4f0af3c0055ecd943a3110d0c3b26a8fa69a6",
+        "runtimeFailures": {
+          "FATAL EXCEPTION": 0,
+          "OutOfMemoryError": 0,
+          "Cannot draw recycled": 0,
+          "Cannot start a recycled": 0
+        }
+      },
+      "stages": {
+        "boundary-positioning-0": {
+          "durationMs": 525,
+          "samples": 140,
+          "blank": 0,
+          "windowCaptures": 19,
+          "copyStatus": {
+            "0": 19
+          },
+          "successfulWindowCaptures": 19,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 16.0,
+          "maxCaptureGapMs": 166,
+          "medianCopyLatencyMs": 2,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 133,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-loop-0": {
+          "durationMs": 24993,
+          "samples": 10388,
+          "blank": 0,
+          "windowCaptures": 1484,
+          "copyStatus": {
+            "0": 1484
+          },
+          "successfulWindowCaptures": 1484,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17,
+          "maxCaptureGapMs": 117,
+          "medianCopyLatencyMs": 3.0,
+          "wraps": {
+            "1": 6,
+            "4": 6,
+            "2": 6,
+            "0": 6
+          },
+          "completions": {},
+          "windowMediaSamples": 10388,
+          "boundaryWindowMediaSamples": 456,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-positioning-6": {
+          "durationMs": 749,
+          "samples": 87,
+          "blank": 13,
+          "windowCaptures": 10,
+          "copyStatus": {
+            "0": 10
+          },
+          "successfulWindowCaptures": 10,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 34,
+          "maxCaptureGapMs": 263,
+          "medianCopyLatencyMs": 4.5,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 79,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.9765625,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 2,
+          "backgroundOver10Pct": [
+            {
+              "seq": 1506,
+              "pos": 8,
+              "frame": -2,
+              "fraction": 0.9765625
+            },
+            {
+              "seq": 1506,
+              "pos": 9,
+              "frame": -2,
+              "fraction": 0.9765625
+            },
+            {
+              "seq": 1506,
+              "pos": 10,
+              "frame": -2,
+              "fraction": 0.9765625
+            },
+            {
+              "seq": 1506,
+              "pos": 12,
+              "frame": -2,
+              "fraction": 0.9765625
+            },
+            {
+              "seq": 1507,
+              "pos": 8,
+              "frame": -1,
+              "fraction": 0.9765625
+            },
+            {
+              "seq": 1507,
+              "pos": 9,
+              "frame": -1,
+              "fraction": 0.9765625
+            },
+            {
+              "seq": 1507,
+              "pos": 10,
+              "frame": -1,
+              "fraction": 0.9765625
+            },
+            {
+              "seq": 1507,
+              "pos": 12,
+              "frame": -2,
+              "fraction": 0.9765625
+            },
+            {
+              "seq": 1508,
+              "pos": 12,
+              "frame": -1,
+              "fraction": 0.9765625
+            }
+          ]
+        },
+        "boundary-loop-6": {
+          "durationMs": 24990,
+          "samples": 11968,
+          "blank": 0,
+          "windowCaptures": 1496,
+          "copyStatus": {
+            "0": 1496
+          },
+          "successfulWindowCaptures": 1496,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17,
+          "maxCaptureGapMs": 129,
+          "medianCopyLatencyMs": 3.0,
+          "wraps": {
+            "6": 6,
+            "10": 6,
+            "5": 6,
+            "8": 6,
+            "9": 6,
+            "12": 6
+          },
+          "completions": {},
+          "windowMediaSamples": 11968,
+          "boundaryWindowMediaSamples": 684,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.00390625,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-positioning-10": {
+          "durationMs": 665,
+          "samples": 64,
+          "blank": 7,
+          "windowCaptures": 8,
+          "copyStatus": {
+            "0": 8
+          },
+          "successfulWindowCaptures": 8,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 105,
+          "maxCaptureGapMs": 239,
+          "medianCopyLatencyMs": 6.0,
+          "wraps": {
+            "10": 1
+          },
+          "completions": {},
+          "windowMediaSamples": 57,
+          "boundaryWindowMediaSamples": 3,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.9765625,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 2,
+          "backgroundOver10Pct": [
+            {
+              "seq": 3012,
+              "pos": 13,
+              "frame": -2,
+              "fraction": 0.9765625
+            },
+            {
+              "seq": 3012,
+              "pos": 14,
+              "frame": -2,
+              "fraction": 0.9765625
+            },
+            {
+              "seq": 3013,
+              "pos": 13,
+              "frame": -2,
+              "fraction": 0.9765625
+            },
+            {
+              "seq": 3013,
+              "pos": 14,
+              "frame": -1,
+              "fraction": 0.9765625
+            },
+            {
+              "seq": 3014,
+              "pos": 13,
+              "frame": -1,
+              "fraction": 0.9765625
+            }
+          ]
+        },
+        "boundary-loop-10": {
+          "durationMs": 24977,
+          "samples": 10381,
+          "blank": 0,
+          "windowCaptures": 1483,
+          "copyStatus": {
+            "0": 1483
+          },
+          "successfulWindowCaptures": 1483,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17.0,
+          "maxCaptureGapMs": 99,
+          "medianCopyLatencyMs": 4,
+          "wraps": {
+            "9": 7,
+            "12": 7,
+            "14": 6,
+            "13": 6,
+            "10": 6
+          },
+          "completions": {},
+          "windowMediaSamples": 10381,
+          "boundaryWindowMediaSamples": 602,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.00390625,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-mode-switch": {
+          "durationMs": 0,
+          "samples": 7,
+          "blank": 0,
+          "windowCaptures": 1,
+          "copyStatus": {
+            "0": 1
+          },
+          "successfulWindowCaptures": 1,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": null,
+          "maxCaptureGapMs": 0,
+          "medianCopyLatencyMs": 18,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 7,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-open-keyboard": {
+          "durationMs": 1,
+          "samples": 7,
+          "blank": 0,
+          "windowCaptures": 1,
+          "copyStatus": {
+            "0": 1
+          },
+          "successfulWindowCaptures": 1,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": null,
+          "maxCaptureGapMs": 0,
+          "medianCopyLatencyMs": 12,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 7,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-ime-fast-return": {
+          "durationMs": 2000,
+          "samples": 796,
+          "blank": 29,
+          "windowCaptures": 224,
+          "copyStatus": {
+            "0": 224
+          },
+          "successfulWindowCaptures": 224,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 8,
+          "maxCaptureGapMs": 44,
+          "medianCopyLatencyMs": 2.0,
+          "wraps": {
+            "8": 1
+          },
+          "completions": {},
+          "windowMediaSamples": 673,
+          "boundaryWindowMediaSamples": 5,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 1.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": [
+            {
+              "seq": 4524,
+              "pos": 1,
+              "frame": -2,
+              "fraction": 0.83984375
+            },
+            {
+              "seq": 4524,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.8203125
+            },
+            {
+              "seq": 4525,
+              "pos": 1,
+              "frame": -2,
+              "fraction": 0.89453125
+            },
+            {
+              "seq": 4525,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.8828125
+            },
+            {
+              "seq": 4526,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 1.0
+            },
+            {
+              "seq": 4526,
+              "pos": 1,
+              "frame": -2,
+              "fraction": 0.48046875
+            },
+            {
+              "seq": 4526,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.46484375
+            },
+            {
+              "seq": 4527,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.9921875
+            },
+            {
+              "seq": 4527,
+              "pos": 1,
+              "frame": -2,
+              "fraction": 0.9453125
+            },
+            {
+              "seq": 4528,
+              "pos": 1,
+              "frame": -2,
+              "fraction": 0.890625
+            }
+          ]
+        },
+        "boundary-ime-fast-fling": {
+          "durationMs": 7236,
+          "samples": 3721,
+          "blank": 0,
+          "windowCaptures": 630,
+          "copyStatus": {
+            "0": 630
+          },
+          "successfulWindowCaptures": 630,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 9,
+          "maxCaptureGapMs": 117,
+          "medianCopyLatencyMs": 4.0,
+          "wraps": {},
+          "completions": {
+            "0": 3,
+            "13": 15,
+            "12": 5,
+            "8": 5,
+            "5": 10,
+            "4": 5,
+            "1": 7,
+            "9": 9
+          },
+          "windowMediaSamples": 2051,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 418,
+          "maxBackgroundFraction": 0.0078125,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-sequential-positioning": {
+          "durationMs": 422,
+          "samples": 18,
+          "blank": 0,
+          "windowCaptures": 5,
+          "copyStatus": {
+            "0": 5
+          },
+          "successfulWindowCaptures": 5,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 42.0,
+          "maxCaptureGapMs": 331,
+          "medianCopyLatencyMs": 2,
+          "wraps": {},
+          "completions": {
+            "1": 1
+          },
+          "windowMediaSamples": 15,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 4,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-sequential-completion": {
+          "durationMs": 9167,
+          "samples": 696,
+          "blank": 0,
+          "windowCaptures": 231,
+          "copyStatus": {
+            "0": 231
+          },
+          "successfulWindowCaptures": 231,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 41.0,
+          "maxCaptureGapMs": 75,
+          "medianCopyLatencyMs": 3,
+          "wraps": {},
+          "completions": {
+            "0": 1,
+            "1": 1,
+            "2": 1
+          },
+          "windowMediaSamples": 693,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 20,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        }
+      },
+      "gestures": {
+        "count": 74,
+        "ime": 74,
+        "settling": 51,
+        "medianMs": 79.0
+      }
+    },
+    "boundary-fullspan-ime-samsung": {
+      "run": "boundary-fullspan-ime-samsung",
+      "passed": false,
+      "captureComplete": true,
+      "result": {
+        "ok": true,
+        "samples": 42365,
+        "events": [
+          {
+            "name": "fixture-media",
+            "complex": true,
+            "derivedVideoBytes": 35240637,
+            "derivedMotionBytes": 35240637,
+            "dynamicFileBytes": [
+              4481998,
+              4486810,
+              35240637,
+              10410687,
+              15943839,
+              12862653,
+              10410687,
+              15943839,
+              12862653,
+              10410687,
+              15943839,
+              12862653
+            ]
+          },
+          {
+            "name": "boundary-loop-0",
+            "start": 337541077,
+            "end": 337566094,
+            "wraps": {
+              "0": 6,
+              "1": 7,
+              "2": 6,
+              "3": 0,
+              "4": 7,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 0,
+              "10": 0,
+              "11": 0,
+              "12": 0,
+              "13": 0,
+              "14": 0,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-loop-6",
+            "start": 337566898,
+            "end": 337591914,
+            "wraps": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 7,
+              "6": 7,
+              "7": 0,
+              "8": 7,
+              "9": 7,
+              "10": 7,
+              "11": 0,
+              "12": 7,
+              "13": 0,
+              "14": 0,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-loop-10",
+            "start": 337592662,
+            "end": 337617673,
+            "wraps": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 7,
+              "10": 7,
+              "11": 0,
+              "12": 7,
+              "13": 7,
+              "14": 7,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-ime-fast-covered",
+            "passed": true
+          },
+          {
+            "name": "boundary-fullspan-ime-entry",
+            "width": 1440,
+            "height": 1080,
+            "passed": true
+          },
+          {
+            "name": "boundary-sequential-completed",
+            "passed": true
+          }
+        ],
+        "originalUnchanged": true,
+        "apkSha256": "69abf8ef850ae319bd32bc379ab4f0af3c0055ecd943a3110d0c3b26a8fa69a6",
+        "runtimeFailures": {
+          "FATAL EXCEPTION": 0,
+          "OutOfMemoryError": 0,
+          "Cannot draw recycled": 0,
+          "Cannot start a recycled": 0
+        }
+      },
+      "stages": {
+        "boundary-positioning-0": {
+          "durationMs": 603,
+          "samples": 182,
+          "blank": 0,
+          "windowCaptures": 26,
+          "copyStatus": {
+            "0": 26
+          },
+          "successfulWindowCaptures": 26,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 18,
+          "maxCaptureGapMs": 91,
+          "medianCopyLatencyMs": 3.5,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 182,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-loop-0": {
+          "durationMs": 25010,
+          "samples": 10948,
+          "blank": 0,
+          "windowCaptures": 1564,
+          "copyStatus": {
+            "0": 1564
+          },
+          "successfulWindowCaptures": 1564,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17,
+          "maxCaptureGapMs": 107,
+          "medianCopyLatencyMs": 3.0,
+          "wraps": {
+            "4": 7,
+            "1": 7,
+            "2": 6,
+            "0": 6
+          },
+          "completions": {},
+          "windowMediaSamples": 10948,
+          "boundaryWindowMediaSamples": 526,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-positioning-6": {
+          "durationMs": 784,
+          "samples": 151,
+          "blank": 9,
+          "windowCaptures": 18,
+          "copyStatus": {
+            "0": 18
+          },
+          "successfulWindowCaptures": 18,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 26,
+          "maxCaptureGapMs": 154,
+          "medianCopyLatencyMs": 4.0,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 143,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.984375,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 2,
+          "backgroundOver10Pct": [
+            {
+              "seq": 1593,
+              "pos": 9,
+              "frame": -1,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 1593,
+              "pos": 10,
+              "frame": -2,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 1593,
+              "pos": 12,
+              "frame": -2,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 1594,
+              "pos": 10,
+              "frame": -1,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 1594,
+              "pos": 12,
+              "frame": -1,
+              "fraction": 0.984375
+            }
+          ]
+        },
+        "boundary-loop-6": {
+          "durationMs": 25013,
+          "samples": 13712,
+          "blank": 0,
+          "windowCaptures": 1714,
+          "copyStatus": {
+            "0": 1714
+          },
+          "successfulWindowCaptures": 1714,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 16,
+          "maxCaptureGapMs": 92,
+          "medianCopyLatencyMs": 3.0,
+          "wraps": {
+            "6": 7,
+            "10": 7,
+            "8": 7,
+            "12": 7,
+            "5": 7,
+            "9": 7
+          },
+          "completions": {},
+          "windowMediaSamples": 13712,
+          "boundaryWindowMediaSamples": 947,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-positioning-10": {
+          "durationMs": 714,
+          "samples": 147,
+          "blank": 4,
+          "windowCaptures": 20,
+          "copyStatus": {
+            "0": 20
+          },
+          "successfulWindowCaptures": 20,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 35,
+          "maxCaptureGapMs": 120,
+          "medianCopyLatencyMs": 3.0,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 140,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.984375,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 1,
+          "backgroundOver10Pct": [
+            {
+              "seq": 3324,
+              "pos": 13,
+              "frame": -1,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 3324,
+              "pos": 14,
+              "frame": -1,
+              "fraction": 0.984375
+            }
+          ]
+        },
+        "boundary-loop-10": {
+          "durationMs": 24986,
+          "samples": 11557,
+          "blank": 0,
+          "windowCaptures": 1651,
+          "copyStatus": {
+            "0": 1651
+          },
+          "successfulWindowCaptures": 1651,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 16.0,
+          "maxCaptureGapMs": 90,
+          "medianCopyLatencyMs": 3,
+          "wraps": {
+            "10": 7,
+            "12": 7,
+            "9": 7,
+            "14": 7,
+            "13": 7
+          },
+          "completions": {},
+          "windowMediaSamples": 11557,
+          "boundaryWindowMediaSamples": 743,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-mode-switch": {
+          "durationMs": 1,
+          "samples": 7,
+          "blank": 0,
+          "windowCaptures": 1,
+          "copyStatus": {
+            "0": 1
+          },
+          "successfulWindowCaptures": 1,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": null,
+          "maxCaptureGapMs": 0,
+          "medianCopyLatencyMs": 28,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 7,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-open-keyboard": {
+          "durationMs": 1,
+          "samples": 7,
+          "blank": 0,
+          "windowCaptures": 1,
+          "copyStatus": {
+            "0": 1
+          },
+          "successfulWindowCaptures": 1,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": null,
+          "maxCaptureGapMs": 0,
+          "medianCopyLatencyMs": 29,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 7,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-ime-fast-return": {
+          "durationMs": 2178,
+          "samples": 763,
+          "blank": 42,
+          "windowCaptures": 204,
+          "copyStatus": {
+            "0": 204
+          },
+          "successfulWindowCaptures": 204,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 8,
+          "maxCaptureGapMs": 100,
+          "medianCopyLatencyMs": 2.0,
+          "wraps": {},
+          "completions": {
+            "9": 1
+          },
+          "windowMediaSamples": 642,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 9,
+          "maxBackgroundFraction": 0.98828125,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 2,
+          "backgroundOver10Pct": [
+            {
+              "seq": 5023,
+              "pos": 1,
+              "frame": -2,
+              "fraction": 0.796875
+            },
+            {
+              "seq": 5023,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.74609375
+            },
+            {
+              "seq": 5024,
+              "pos": 1,
+              "frame": -2,
+              "fraction": 0.96484375
+            },
+            {
+              "seq": 5024,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.9375
+            },
+            {
+              "seq": 5025,
+              "pos": 1,
+              "frame": -2,
+              "fraction": 0.96484375
+            },
+            {
+              "seq": 5025,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.94921875
+            },
+            {
+              "seq": 5026,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.93359375
+            },
+            {
+              "seq": 5027,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.953125
+            },
+            {
+              "seq": 5028,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.9453125
+            },
+            {
+              "seq": 5029,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 5029,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.94921875
+            },
+            {
+              "seq": 5030,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.98828125
+            },
+            {
+              "seq": 5030,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.88671875
+            },
+            {
+              "seq": 5031,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 5031,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.90234375
+            },
+            {
+              "seq": 5032,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 5032,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.91015625
+            },
+            {
+              "seq": 5033,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.9609375
+            },
+            {
+              "seq": 5033,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.91796875
+            },
+            {
+              "seq": 5034,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 5034,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.90625
+            },
+            {
+              "seq": 5035,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 5036,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            }
+          ]
+        },
+        "boundary-ime-fast-fling": {
+          "durationMs": 7760,
+          "samples": 4168,
+          "blank": 0,
+          "windowCaptures": 704,
+          "copyStatus": {
+            "0": 704
+          },
+          "successfulWindowCaptures": 704,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 9,
+          "maxCaptureGapMs": 72,
+          "medianCopyLatencyMs": 4.0,
+          "wraps": {
+            "4": 5
+          },
+          "completions": {
+            "1": 8,
+            "4": 14,
+            "8": 13,
+            "9": 7,
+            "5": 9,
+            "0": 6,
+            "12": 7,
+            "13": 1
+          },
+          "windowMediaSamples": 2652,
+          "boundaryWindowMediaSamples": 48,
+          "completionWindowMediaSamples": 625,
+          "maxBackgroundFraction": 0.01171875,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-sequential-positioning": {
+          "durationMs": 455,
+          "samples": 24,
+          "blank": 0,
+          "windowCaptures": 5,
+          "copyStatus": {
+            "0": 5
+          },
+          "successfulWindowCaptures": 5,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 31.5,
+          "maxCaptureGapMs": 380,
+          "medianCopyLatencyMs": 12,
+          "wraps": {},
+          "completions": {
+            "1": 1
+          },
+          "windowMediaSamples": 15,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 4,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-sequential-completion": {
+          "durationMs": 9169,
+          "samples": 699,
+          "blank": 0,
+          "windowCaptures": 229,
+          "copyStatus": {
+            "0": 229
+          },
+          "successfulWindowCaptures": 229,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 41.0,
+          "maxCaptureGapMs": 74,
+          "medianCopyLatencyMs": 3,
+          "wraps": {},
+          "completions": {
+            "0": 1,
+            "1": 1,
+            "2": 1
+          },
+          "windowMediaSamples": 687,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 22,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        }
+      },
+      "gestures": {
+        "count": 74,
+        "ime": 74,
+        "settling": 52,
+        "medianMs": 84.0
+      }
+    },
+    "boundary-fullspan-ime-meizu": {
+      "run": "boundary-fullspan-ime-meizu",
+      "passed": false,
+      "captureComplete": false,
+      "result": {
+        "ok": true,
+        "samples": 43529,
+        "events": [
+          {
+            "name": "fixture-media",
+            "complex": true,
+            "derivedVideoBytes": 32030470,
+            "derivedMotionBytes": 32507177,
+            "dynamicFileBytes": [
+              4481998,
+              4486810,
+              32030470,
+              10410687,
+              15943839,
+              12862653,
+              10410687,
+              15943839,
+              12862653,
+              10410687,
+              15943839,
+              12862653
+            ]
+          },
+          {
+            "name": "boundary-loop-0",
+            "start": 2390509901,
+            "end": 2390534909,
+            "wraps": {
+              "0": 7,
+              "1": 7,
+              "2": 7,
+              "3": 0,
+              "4": 6,
+              "5": 6,
+              "6": 6,
+              "7": 0,
+              "8": 0,
+              "9": 0,
+              "10": 0,
+              "11": 0,
+              "12": 0,
+              "13": 0,
+              "14": 0,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-loop-6",
+            "start": 2390536099,
+            "end": 2390561103,
+            "wraps": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 7,
+              "6": 7,
+              "7": 0,
+              "8": 6,
+              "9": 6,
+              "10": 7,
+              "11": 0,
+              "12": 6,
+              "13": 0,
+              "14": 0,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-loop-10",
+            "start": 2390561779,
+            "end": 2390586784,
+            "wraps": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 7,
+              "10": 7,
+              "11": 0,
+              "12": 7,
+              "13": 6,
+              "14": 7,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-ime-fast-covered",
+            "passed": true
+          },
+          {
+            "name": "boundary-fullspan-ime-entry",
+            "width": 1368,
+            "height": 1026,
+            "passed": true
+          },
+          {
+            "name": "boundary-sequential-completed",
+            "passed": true
+          }
+        ],
+        "originalUnchanged": true,
+        "apkSha256": "69abf8ef850ae319bd32bc379ab4f0af3c0055ecd943a3110d0c3b26a8fa69a6",
+        "runtimeFailures": {
+          "FATAL EXCEPTION": 0,
+          "OutOfMemoryError": 0,
+          "Cannot draw recycled": 0,
+          "Cannot start a recycled": 0
+        }
+      },
+      "stages": {
+        "boundary-positioning-0": {
+          "durationMs": 527,
+          "samples": 133,
+          "blank": 0,
+          "windowCaptures": 18,
+          "copyStatus": {
+            "0": 18
+          },
+          "successfulWindowCaptures": 18,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17,
+          "maxCaptureGapMs": 154,
+          "medianCopyLatencyMs": 4.0,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 126,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-loop-0": {
+          "durationMs": 25001,
+          "samples": 10493,
+          "blank": 0,
+          "windowCaptures": 1491,
+          "copyStatus": {
+            "0": 1491
+          },
+          "successfulWindowCaptures": 1491,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17.0,
+          "maxCaptureGapMs": 140,
+          "medianCopyLatencyMs": 4,
+          "wraps": {
+            "0": 7,
+            "2": 7,
+            "1": 7,
+            "6": 6,
+            "4": 6,
+            "5": 6
+          },
+          "completions": {},
+          "windowMediaSamples": 10437,
+          "boundaryWindowMediaSamples": 741,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.00390625,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-positioning-6": {
+          "durationMs": 1177,
+          "samples": 307,
+          "blank": 39,
+          "windowCaptures": 29,
+          "copyStatus": {
+            "0": 29
+          },
+          "successfulWindowCaptures": 29,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17.0,
+          "maxCaptureGapMs": 233,
+          "medianCopyLatencyMs": 4,
+          "wraps": {
+            "6": 1
+          },
+          "completions": {},
+          "windowMediaSamples": 231,
+          "boundaryWindowMediaSamples": 5,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.99609375,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 2,
+          "backgroundOver10Pct": [
+            {
+              "seq": 1512,
+              "pos": 8,
+              "frame": -2,
+              "fraction": 0.99609375
+            },
+            {
+              "seq": 1512,
+              "pos": 9,
+              "frame": -2,
+              "fraction": 0.99609375
+            },
+            {
+              "seq": 1512,
+              "pos": 10,
+              "frame": -2,
+              "fraction": 0.99609375
+            },
+            {
+              "seq": 1512,
+              "pos": 12,
+              "frame": -2,
+              "fraction": 0.99609375
+            },
+            {
+              "seq": 1513,
+              "pos": 8,
+              "frame": -2,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 1513,
+              "pos": 9,
+              "frame": -2,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 1513,
+              "pos": 10,
+              "frame": -2,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 1513,
+              "pos": 12,
+              "frame": -2,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 1514,
+              "pos": 8,
+              "frame": -2,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 1514,
+              "pos": 9,
+              "frame": -2,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 1514,
+              "pos": 10,
+              "frame": -2,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 1514,
+              "pos": 12,
+              "frame": -2,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 1515,
+              "pos": 8,
+              "frame": -1,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 1515,
+              "pos": 9,
+              "frame": -2,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 1515,
+              "pos": 10,
+              "frame": -2,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 1515,
+              "pos": 12,
+              "frame": -2,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 1516,
+              "pos": 9,
+              "frame": -1,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 1516,
+              "pos": 10,
+              "frame": -2,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 1516,
+              "pos": 12,
+              "frame": -2,
+              "fraction": 0.984375
+            }
+          ]
+        },
+        "boundary-loop-6": {
+          "durationMs": 24986,
+          "samples": 14870,
+          "blank": 0,
+          "windowCaptures": 1479,
+          "copyStatus": {
+            "0": 1479
+          },
+          "successfulWindowCaptures": 1479,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17.0,
+          "maxCaptureGapMs": 142,
+          "medianCopyLatencyMs": 4,
+          "wraps": {
+            "5": 7,
+            "6": 7,
+            "10": 7,
+            "8": 6,
+            "9": 6,
+            "12": 6
+          },
+          "completions": {},
+          "windowMediaSamples": 11832,
+          "boundaryWindowMediaSamples": 727,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-positioning-10": {
+          "durationMs": 664,
+          "samples": 227,
+          "blank": 0,
+          "windowCaptures": 31,
+          "copyStatus": {
+            "0": 31
+          },
+          "successfulWindowCaptures": 31,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17.0,
+          "maxCaptureGapMs": 149,
+          "medianCopyLatencyMs": 4,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 218,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-loop-10": {
+          "durationMs": 24986,
+          "samples": 10437,
+          "blank": 0,
+          "windowCaptures": 1483,
+          "copyStatus": {
+            "0": 1483
+          },
+          "successfulWindowCaptures": 1483,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17.0,
+          "maxCaptureGapMs": 120,
+          "medianCopyLatencyMs": 4,
+          "wraps": {
+            "9": 7,
+            "12": 7,
+            "10": 7,
+            "14": 7,
+            "13": 6
+          },
+          "completions": {},
+          "windowMediaSamples": 10381,
+          "boundaryWindowMediaSamples": 618,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-mode-switch": {
+          "durationMs": 1,
+          "samples": 7,
+          "blank": 0,
+          "windowCaptures": 1,
+          "copyStatus": {
+            "0": 1
+          },
+          "successfulWindowCaptures": 1,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": null,
+          "maxCaptureGapMs": 0,
+          "medianCopyLatencyMs": 27,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 7,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-open-keyboard": {
+          "durationMs": 0,
+          "samples": 7,
+          "blank": 0,
+          "windowCaptures": 1,
+          "copyStatus": {
+            "0": 1
+          },
+          "successfulWindowCaptures": 1,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": null,
+          "maxCaptureGapMs": 0,
+          "medianCopyLatencyMs": 18,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 7,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-ime-fast-return": {
+          "durationMs": 2077,
+          "samples": 1130,
+          "blank": 71,
+          "windowCaptures": 201,
+          "copyStatus": {
+            "0": 186,
+            "3": 15
+          },
+          "successfulWindowCaptures": 186,
+          "missedWindowCaptures": 15,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 8.0,
+          "maxCaptureGapMs": 126,
+          "medianCopyLatencyMs": 3,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 592,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.9921875,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 1,
+          "backgroundOver10Pct": [
+            {
+              "seq": 4547,
+              "pos": 5,
+              "frame": -2,
+              "fraction": 0.76171875
+            },
+            {
+              "seq": 4550,
+              "pos": 1,
+              "frame": -2,
+              "fraction": 0.69921875
+            },
+            {
+              "seq": 4550,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.66796875
+            },
+            {
+              "seq": 4551,
+              "pos": 1,
+              "frame": -2,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 4551,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 4552,
+              "pos": 1,
+              "frame": -2,
+              "fraction": 0.83984375
+            },
+            {
+              "seq": 4552,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.82421875
+            },
+            {
+              "seq": 4553,
+              "pos": 1,
+              "frame": -2,
+              "fraction": 0.98828125
+            },
+            {
+              "seq": 4553,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.98828125
+            },
+            {
+              "seq": 4554,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.65625
+            },
+            {
+              "seq": 4554,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.65234375
+            },
+            {
+              "seq": 4555,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 4555,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.890625
+            },
+            {
+              "seq": 4556,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.9921875
+            },
+            {
+              "seq": 4556,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.828125
+            },
+            {
+              "seq": 4557,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 4557,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.94921875
+            },
+            {
+              "seq": 4558,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 4558,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.97265625
+            },
+            {
+              "seq": 4559,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 4559,
+              "pos": 2,
+              "frame": -2,
+              "fraction": 0.9765625
+            },
+            {
+              "seq": 4561,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 4562,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 4563,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 4564,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 4565,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 4566,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 4567,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 4568,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 4569,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 4570,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 4571,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 4572,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 4573,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 4575,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 4576,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 4577,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 4578,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 4579,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 4580,
+              "pos": 0,
+              "frame": -2,
+              "fraction": 0.96875
+            }
+          ]
+        },
+        "boundary-ime-fast-fling": {
+          "durationMs": 7503,
+          "samples": 4503,
+          "blank": 0,
+          "windowCaptures": 619,
+          "copyStatus": {
+            "0": 541,
+            "3": 78
+          },
+          "successfulWindowCaptures": 541,
+          "missedWindowCaptures": 78,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 9.0,
+          "maxCaptureGapMs": 129,
+          "medianCopyLatencyMs": 5,
+          "wraps": {},
+          "completions": {
+            "1": 5,
+            "12": 6,
+            "4": 7,
+            "0": 3,
+            "8": 2,
+            "13": 10,
+            "5": 9,
+            "9": 3
+          },
+          "windowMediaSamples": 2113,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 363,
+          "maxBackgroundFraction": 0.01171875,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-sequential-positioning": {
+          "durationMs": 455,
+          "samples": 25,
+          "blank": 0,
+          "windowCaptures": 4,
+          "copyStatus": {
+            "0": 4
+          },
+          "successfulWindowCaptures": 4,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 38,
+          "maxCaptureGapMs": 395,
+          "medianCopyLatencyMs": 4.0,
+          "wraps": {},
+          "completions": {
+            "1": 1
+          },
+          "windowMediaSamples": 12,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 3,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-sequential-completion": {
+          "durationMs": 10393,
+          "samples": 1390,
+          "blank": 0,
+          "windowCaptures": 238,
+          "copyStatus": {
+            "0": 238
+          },
+          "successfulWindowCaptures": 238,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 40,
+          "maxCaptureGapMs": 1590,
+          "medianCopyLatencyMs": 5.0,
+          "wraps": {},
+          "completions": {
+            "0": 1,
+            "1": 1,
+            "2": 1
+          },
+          "windowMediaSamples": 714,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 25,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        }
+      },
+      "gestures": {
+        "count": 74,
+        "ime": 74,
+        "settling": 51,
+        "medianMs": 81.0
+      }
+    },
+    "boundary-fullspan-fixed-oppo": {
+      "run": "boundary-fullspan-fixed-oppo",
+      "passed": true,
+      "captureComplete": true,
+      "result": {
+        "ok": true,
+        "samples": 38190,
+        "events": [
+          {
+            "name": "fixture-media",
+            "complex": true,
+            "derivedVideoBytes": 34143205,
+            "derivedMotionBytes": 34143205,
+            "dynamicFileBytes": [
+              4481998,
+              4486810,
+              34143205,
+              10410687,
+              15943839,
+              12862653,
+              10410687,
+              15943839,
+              12862653,
+              10410687,
+              15943839,
+              12862653
+            ]
+          },
+          {
+            "name": "boundary-loop-0",
+            "start": 145955524,
+            "end": 145980535,
+            "wraps": {
+              "0": 6,
+              "1": 6,
+              "2": 6,
+              "3": 0,
+              "4": 6,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 0,
+              "10": 0,
+              "11": 0,
+              "12": 0,
+              "13": 0,
+              "14": 0,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-loop-6",
+            "start": 145981378,
+            "end": 146006387,
+            "wraps": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 6,
+              "6": 6,
+              "7": 0,
+              "8": 6,
+              "9": 6,
+              "10": 6,
+              "11": 0,
+              "12": 6,
+              "13": 0,
+              "14": 0,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-loop-10",
+            "start": 146007088,
+            "end": 146032094,
+            "wraps": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 7,
+              "10": 6,
+              "11": 0,
+              "12": 7,
+              "13": 6,
+              "14": 6,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-ime-fast-covered",
+            "passed": true
+          },
+          {
+            "name": "boundary-fullspan-ime-entry",
+            "width": 1216,
+            "height": 912,
+            "passed": true
+          },
+          {
+            "name": "boundary-sequential-completed",
+            "passed": true
+          }
+        ],
+        "originalUnchanged": true,
+        "apkSha256": "7f0362a1a3af9ee43027bfd3b0f62df43c545ee4a03789ce52c52985fdae3494",
+        "runtimeFailures": {
+          "FATAL EXCEPTION": 0,
+          "OutOfMemoryError": 0,
+          "Cannot draw recycled": 0,
+          "Cannot start a recycled": 0
+        }
+      },
+      "stages": {
+        "boundary-positioning-0": {
+          "durationMs": 516,
+          "samples": 112,
+          "blank": 0,
+          "windowCaptures": 16,
+          "copyStatus": {
+            "0": 16
+          },
+          "successfulWindowCaptures": 16,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 31,
+          "maxCaptureGapMs": 125,
+          "medianCopyLatencyMs": 2.5,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 112,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-loop-0": {
+          "durationMs": 25000,
+          "samples": 10458,
+          "blank": 0,
+          "windowCaptures": 1494,
+          "copyStatus": {
+            "0": 1494
+          },
+          "successfulWindowCaptures": 1494,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17,
+          "maxCaptureGapMs": 118,
+          "medianCopyLatencyMs": 3.0,
+          "wraps": {
+            "4": 6,
+            "2": 6,
+            "0": 6,
+            "1": 6
+          },
+          "completions": {},
+          "windowMediaSamples": 10458,
+          "boundaryWindowMediaSamples": 456,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-positioning-6": {
+          "durationMs": 750,
+          "samples": 55,
+          "blank": 12,
+          "windowCaptures": 6,
+          "copyStatus": {
+            "0": 6
+          },
+          "successfulWindowCaptures": 6,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 167,
+          "maxCaptureGapMs": 237,
+          "medianCopyLatencyMs": 4.5,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 47,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.9765625,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 3,
+          "backgroundOver10Pct": [
+            {
+              "seq": 1513,
+              "pos": 8,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 1513,
+              "pos": 9,
+              "frame": -2,
+              "fraction": 0.97265625
+            },
+            {
+              "seq": 1513,
+              "pos": 10,
+              "frame": -2,
+              "fraction": 0.97265625
+            },
+            {
+              "seq": 1513,
+              "pos": 12,
+              "frame": -1,
+              "fraction": 0.97265625
+            },
+            {
+              "seq": 1514,
+              "pos": 8,
+              "frame": -1,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 1514,
+              "pos": 9,
+              "frame": -1,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 1514,
+              "pos": 10,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 1515,
+              "pos": 10,
+              "frame": -1,
+              "fraction": 0.9765625
+            }
+          ]
+        },
+        "boundary-loop-6": {
+          "durationMs": 24979,
+          "samples": 11904,
+          "blank": 0,
+          "windowCaptures": 1488,
+          "copyStatus": {
+            "0": 1488
+          },
+          "successfulWindowCaptures": 1488,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17,
+          "maxCaptureGapMs": 112,
+          "medianCopyLatencyMs": 4.0,
+          "wraps": {
+            "6": 6,
+            "10": 6,
+            "12": 6,
+            "8": 6,
+            "5": 6,
+            "9": 6
+          },
+          "completions": {},
+          "windowMediaSamples": 11904,
+          "boundaryWindowMediaSamples": 684,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.00390625,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-positioning-10": {
+          "durationMs": 664,
+          "samples": 92,
+          "blank": 6,
+          "windowCaptures": 12,
+          "copyStatus": {
+            "0": 12
+          },
+          "successfulWindowCaptures": 12,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 33,
+          "maxCaptureGapMs": 147,
+          "medianCopyLatencyMs": 3.5,
+          "wraps": {
+            "10": 1
+          },
+          "completions": {},
+          "windowMediaSamples": 85,
+          "boundaryWindowMediaSamples": 7,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.96875,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 1,
+          "backgroundOver10Pct": [
+            {
+              "seq": 3007,
+              "pos": 13,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 3007,
+              "pos": 14,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 3008,
+              "pos": 13,
+              "frame": -1,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 3008,
+              "pos": 14,
+              "frame": -1,
+              "fraction": 0.96875
+            }
+          ]
+        },
+        "boundary-loop-10": {
+          "durationMs": 24975,
+          "samples": 10416,
+          "blank": 0,
+          "windowCaptures": 1488,
+          "copyStatus": {
+            "0": 1488
+          },
+          "successfulWindowCaptures": 1488,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17,
+          "maxCaptureGapMs": 114,
+          "medianCopyLatencyMs": 4.0,
+          "wraps": {
+            "12": 7,
+            "9": 7,
+            "14": 6,
+            "13": 6,
+            "10": 6
+          },
+          "completions": {},
+          "windowMediaSamples": 10416,
+          "boundaryWindowMediaSamples": 598,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.00390625,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-mode-switch": {
+          "durationMs": 0,
+          "samples": 7,
+          "blank": 0,
+          "windowCaptures": 1,
+          "copyStatus": {
+            "0": 1
+          },
+          "successfulWindowCaptures": 1,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": null,
+          "maxCaptureGapMs": 0,
+          "medianCopyLatencyMs": 21,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 7,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-open-keyboard": {
+          "durationMs": 0,
+          "samples": 7,
+          "blank": 0,
+          "windowCaptures": 1,
+          "copyStatus": {
+            "0": 1
+          },
+          "successfulWindowCaptures": 1,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": null,
+          "maxCaptureGapMs": 0,
+          "medianCopyLatencyMs": 17,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 7,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-ime-fast-return": {
+          "durationMs": 2041,
+          "samples": 804,
+          "blank": 0,
+          "windowCaptures": 228,
+          "copyStatus": {
+            "0": 228
+          },
+          "successfulWindowCaptures": 228,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 8,
+          "maxCaptureGapMs": 40,
+          "medianCopyLatencyMs": 3.0,
+          "wraps": {},
+          "completions": {
+            "5": 1
+          },
+          "windowMediaSamples": 687,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 6,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-ime-fast-fling": {
+          "durationMs": 7243,
+          "samples": 3615,
+          "blank": 0,
+          "windowCaptures": 615,
+          "copyStatus": {
+            "0": 615
+          },
+          "successfulWindowCaptures": 615,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 9.0,
+          "maxCaptureGapMs": 151,
+          "medianCopyLatencyMs": 4,
+          "wraps": {},
+          "completions": {
+            "8": 6,
+            "13": 10,
+            "12": 6,
+            "9": 9,
+            "4": 4,
+            "1": 6,
+            "5": 7,
+            "0": 2
+          },
+          "windowMediaSamples": 2006,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 370,
+          "maxBackgroundFraction": 0.0078125,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-sequential-positioning": {
+          "durationMs": 421,
+          "samples": 21,
+          "blank": 0,
+          "windowCaptures": 6,
+          "copyStatus": {
+            "0": 6
+          },
+          "successfulWindowCaptures": 6,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 16,
+          "maxCaptureGapMs": 338,
+          "medianCopyLatencyMs": 2.0,
+          "wraps": {},
+          "completions": {
+            "1": 1
+          },
+          "windowMediaSamples": 18,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 5,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-sequential-completion": {
+          "durationMs": 9153,
+          "samples": 699,
+          "blank": 0,
+          "windowCaptures": 232,
+          "copyStatus": {
+            "0": 232
+          },
+          "successfulWindowCaptures": 232,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 41,
+          "maxCaptureGapMs": 72,
+          "medianCopyLatencyMs": 4.0,
+          "wraps": {},
+          "completions": {
+            "0": 1,
+            "1": 1,
+            "2": 1
+          },
+          "windowMediaSamples": 696,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 20,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        }
+      },
+      "gestures": {
+        "count": 74,
+        "ime": 74,
+        "settling": 51,
+        "medianMs": 80.0
+      }
+    },
+    "boundary-fullspan-fixed-samsung": {
+      "run": "boundary-fullspan-fixed-samsung",
+      "passed": true,
+      "captureComplete": true,
+      "result": {
+        "ok": true,
+        "samples": 42746,
+        "events": [
+          {
+            "name": "fixture-media",
+            "complex": true,
+            "derivedVideoBytes": 35240637,
+            "derivedMotionBytes": 35240637,
+            "dynamicFileBytes": [
+              4481998,
+              4486810,
+              35240637,
+              10410687,
+              15943839,
+              12862653,
+              10410687,
+              15943839,
+              12862653,
+              10410687,
+              15943839,
+              12862653
+            ]
+          },
+          {
+            "name": "boundary-loop-0",
+            "start": 337914426,
+            "end": 337939434,
+            "wraps": {
+              "0": 6,
+              "1": 6,
+              "2": 6,
+              "3": 0,
+              "4": 6,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 0,
+              "10": 0,
+              "11": 0,
+              "12": 0,
+              "13": 0,
+              "14": 0,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-loop-6",
+            "start": 337940405,
+            "end": 337965413,
+            "wraps": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 7,
+              "6": 7,
+              "7": 0,
+              "8": 7,
+              "9": 7,
+              "10": 7,
+              "11": 0,
+              "12": 7,
+              "13": 0,
+              "14": 0,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-loop-10",
+            "start": 337966210,
+            "end": 337991222,
+            "wraps": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 7,
+              "10": 7,
+              "11": 0,
+              "12": 7,
+              "13": 6,
+              "14": 7,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-ime-fast-covered",
+            "passed": true
+          },
+          {
+            "name": "boundary-fullspan-ime-entry",
+            "width": 1440,
+            "height": 1080,
+            "passed": true
+          },
+          {
+            "name": "boundary-sequential-completed",
+            "passed": true
+          }
+        ],
+        "originalUnchanged": true,
+        "apkSha256": "7f0362a1a3af9ee43027bfd3b0f62df43c545ee4a03789ce52c52985fdae3494",
+        "runtimeFailures": {
+          "FATAL EXCEPTION": 0,
+          "OutOfMemoryError": 0,
+          "Cannot draw recycled": 0,
+          "Cannot start a recycled": 0
+        }
+      },
+      "stages": {
+        "boundary-positioning-0": {
+          "durationMs": 492,
+          "samples": 147,
+          "blank": 0,
+          "windowCaptures": 20,
+          "copyStatus": {
+            "0": 20
+          },
+          "successfulWindowCaptures": 20,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 27,
+          "maxCaptureGapMs": 88,
+          "medianCopyLatencyMs": 3.0,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 140,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-loop-0": {
+          "durationMs": 25002,
+          "samples": 10661,
+          "blank": 0,
+          "windowCaptures": 1523,
+          "copyStatus": {
+            "0": 1523
+          },
+          "successfulWindowCaptures": 1523,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17.0,
+          "maxCaptureGapMs": 90,
+          "medianCopyLatencyMs": 3,
+          "wraps": {
+            "1": 6,
+            "4": 6,
+            "2": 6,
+            "0": 6
+          },
+          "completions": {},
+          "windowMediaSamples": 10661,
+          "boundaryWindowMediaSamples": 456,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-positioning-6": {
+          "durationMs": 958,
+          "samples": 224,
+          "blank": 9,
+          "windowCaptures": 27,
+          "copyStatus": {
+            "0": 27
+          },
+          "successfulWindowCaptures": 27,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17.0,
+          "maxCaptureGapMs": 166,
+          "medianCopyLatencyMs": 3,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 215,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.9921875,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 2,
+          "backgroundOver10Pct": [
+            {
+              "seq": 1546,
+              "pos": 8,
+              "frame": -1,
+              "fraction": 0.9921875
+            },
+            {
+              "seq": 1546,
+              "pos": 9,
+              "frame": -1,
+              "fraction": 0.9921875
+            },
+            {
+              "seq": 1546,
+              "pos": 10,
+              "frame": -2,
+              "fraction": 0.9921875
+            },
+            {
+              "seq": 1546,
+              "pos": 12,
+              "frame": -1,
+              "fraction": 0.9921875
+            },
+            {
+              "seq": 1547,
+              "pos": 10,
+              "frame": -1,
+              "fraction": 0.9921875
+            }
+          ]
+        },
+        "boundary-loop-6": {
+          "durationMs": 25004,
+          "samples": 14975,
+          "blank": 0,
+          "windowCaptures": 1872,
+          "copyStatus": {
+            "0": 1872
+          },
+          "successfulWindowCaptures": 1872,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 16,
+          "maxCaptureGapMs": 84,
+          "medianCopyLatencyMs": 3.0,
+          "wraps": {
+            "6": 7,
+            "10": 7,
+            "8": 7,
+            "12": 7,
+            "5": 7,
+            "9": 7
+          },
+          "completions": {},
+          "windowMediaSamples": 14976,
+          "boundaryWindowMediaSamples": 1055,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-positioning-10": {
+          "durationMs": 775,
+          "samples": 141,
+          "blank": 6,
+          "windowCaptures": 19,
+          "copyStatus": {
+            "0": 19
+          },
+          "successfulWindowCaptures": 19,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 41.0,
+          "maxCaptureGapMs": 124,
+          "medianCopyLatencyMs": 3,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 134,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.98828125,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 2,
+          "backgroundOver10Pct": [
+            {
+              "seq": 3445,
+              "pos": 13,
+              "frame": -1,
+              "fraction": 0.98828125
+            },
+            {
+              "seq": 3445,
+              "pos": 14,
+              "frame": -2,
+              "fraction": 0.98828125
+            },
+            {
+              "seq": 3446,
+              "pos": 14,
+              "frame": -2,
+              "fraction": 0.98828125
+            },
+            {
+              "seq": 3447,
+              "pos": 14,
+              "frame": -1,
+              "fraction": 0.984375
+            }
+          ]
+        },
+        "boundary-loop-10": {
+          "durationMs": 25002,
+          "samples": 10773,
+          "blank": 0,
+          "windowCaptures": 1539,
+          "copyStatus": {
+            "0": 1539
+          },
+          "successfulWindowCaptures": 1539,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17.0,
+          "maxCaptureGapMs": 79,
+          "medianCopyLatencyMs": 3,
+          "wraps": {
+            "10": 7,
+            "12": 7,
+            "9": 7,
+            "14": 7,
+            "13": 6
+          },
+          "completions": {},
+          "windowMediaSamples": 10773,
+          "boundaryWindowMediaSamples": 689,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-mode-switch": {
+          "durationMs": 1,
+          "samples": 7,
+          "blank": 0,
+          "windowCaptures": 1,
+          "copyStatus": {
+            "0": 1
+          },
+          "successfulWindowCaptures": 1,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": null,
+          "maxCaptureGapMs": 0,
+          "medianCopyLatencyMs": 26,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 7,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-open-keyboard": {
+          "durationMs": 0,
+          "samples": 7,
+          "blank": 0,
+          "windowCaptures": 1,
+          "copyStatus": {
+            "0": 1
+          },
+          "successfulWindowCaptures": 1,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": null,
+          "maxCaptureGapMs": 0,
+          "medianCopyLatencyMs": 22,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 7,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-ime-fast-return": {
+          "durationMs": 1948,
+          "samples": 772,
+          "blank": 0,
+          "windowCaptures": 209,
+          "copyStatus": {
+            "0": 209
+          },
+          "successfulWindowCaptures": 209,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 8.0,
+          "maxCaptureGapMs": 48,
+          "medianCopyLatencyMs": 3,
+          "wraps": {},
+          "completions": {
+            "13": 1,
+            "9": 1
+          },
+          "windowMediaSamples": 642,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 14,
+          "maxBackgroundFraction": 0.015625,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-ime-fast-fling": {
+          "durationMs": 7869,
+          "samples": 4304,
+          "blank": 0,
+          "windowCaptures": 735,
+          "copyStatus": {
+            "0": 735
+          },
+          "successfulWindowCaptures": 735,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 9.0,
+          "maxCaptureGapMs": 81,
+          "medianCopyLatencyMs": 3,
+          "wraps": {
+            "4": 3,
+            "13": 1
+          },
+          "completions": {
+            "1": 8,
+            "4": 11,
+            "5": 12,
+            "8": 12,
+            "9": 10,
+            "0": 4,
+            "12": 6,
+            "13": 4
+          },
+          "windowMediaSamples": 2741,
+          "boundaryWindowMediaSamples": 43,
+          "completionWindowMediaSamples": 616,
+          "maxBackgroundFraction": 0.015625,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-sequential-positioning": {
+          "durationMs": 461,
+          "samples": 33,
+          "blank": 0,
+          "windowCaptures": 6,
+          "copyStatus": {
+            "0": 6
+          },
+          "successfulWindowCaptures": 6,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17,
+          "maxCaptureGapMs": 372,
+          "medianCopyLatencyMs": 9.0,
+          "wraps": {},
+          "completions": {
+            "1": 1
+          },
+          "windowMediaSamples": 18,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 5,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-sequential-completion": {
+          "durationMs": 9182,
+          "samples": 702,
+          "blank": 0,
+          "windowCaptures": 230,
+          "copyStatus": {
+            "0": 230
+          },
+          "successfulWindowCaptures": 230,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 41,
+          "maxCaptureGapMs": 78,
+          "medianCopyLatencyMs": 3.0,
+          "wraps": {},
+          "completions": {
+            "0": 1,
+            "1": 1,
+            "2": 1
+          },
+          "windowMediaSamples": 690,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 22,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        }
+      },
+      "gestures": {
+        "count": 74,
+        "ime": 74,
+        "settling": 51,
+        "medianMs": 85.0
+      }
+    },
+    "boundary-fullspan-fixed-meizu": {
+      "run": "boundary-fullspan-fixed-meizu",
+      "passed": true,
+      "captureComplete": false,
+      "result": {
+        "ok": true,
+        "samples": 43546,
+        "events": [
+          {
+            "name": "fixture-media",
+            "complex": true,
+            "derivedVideoBytes": 32030470,
+            "derivedMotionBytes": 32507177,
+            "dynamicFileBytes": [
+              4481998,
+              4486810,
+              32030470,
+              10410687,
+              15943839,
+              12862653,
+              10410687,
+              15943839,
+              12862653,
+              10410687,
+              15943839,
+              12862653
+            ]
+          },
+          {
+            "name": "boundary-loop-0",
+            "start": 2390889833,
+            "end": 2390914841,
+            "wraps": {
+              "0": 7,
+              "1": 7,
+              "2": 7,
+              "3": 0,
+              "4": 6,
+              "5": 6,
+              "6": 7,
+              "7": 0,
+              "8": 0,
+              "9": 0,
+              "10": 0,
+              "11": 0,
+              "12": 0,
+              "13": 0,
+              "14": 0,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-loop-6",
+            "start": 2390915805,
+            "end": 2390940810,
+            "wraps": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 7,
+              "6": 7,
+              "7": 0,
+              "8": 6,
+              "9": 6,
+              "10": 7,
+              "11": 0,
+              "12": 6,
+              "13": 0,
+              "14": 0,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-loop-10",
+            "start": 2390941481,
+            "end": 2390966497,
+            "wraps": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 6,
+              "10": 7,
+              "11": 0,
+              "12": 6,
+              "13": 6,
+              "14": 7,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-ime-fast-covered",
+            "passed": true
+          },
+          {
+            "name": "boundary-fullspan-ime-entry",
+            "width": 1368,
+            "height": 1026,
+            "passed": true
+          },
+          {
+            "name": "boundary-sequential-completed",
+            "passed": true
+          }
+        ],
+        "originalUnchanged": true,
+        "apkSha256": "7f0362a1a3af9ee43027bfd3b0f62df43c545ee4a03789ce52c52985fdae3494",
+        "runtimeFailures": {
+          "FATAL EXCEPTION": 0,
+          "OutOfMemoryError": 0,
+          "Cannot draw recycled": 0,
+          "Cannot start a recycled": 0
+        }
+      },
+      "stages": {
+        "boundary-positioning-0": {
+          "durationMs": 644,
+          "samples": 189,
+          "blank": 0,
+          "windowCaptures": 26,
+          "copyStatus": {
+            "0": 26
+          },
+          "successfulWindowCaptures": 26,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 16,
+          "maxCaptureGapMs": 159,
+          "medianCopyLatencyMs": 4.0,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 182,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-loop-0": {
+          "durationMs": 24994,
+          "samples": 10479,
+          "blank": 0,
+          "windowCaptures": 1489,
+          "copyStatus": {
+            "0": 1489
+          },
+          "successfulWindowCaptures": 1489,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17.0,
+          "maxCaptureGapMs": 125,
+          "medianCopyLatencyMs": 4,
+          "wraps": {
+            "2": 7,
+            "0": 7,
+            "1": 7,
+            "6": 7,
+            "4": 6,
+            "5": 6
+          },
+          "completions": {},
+          "windowMediaSamples": 10423,
+          "boundaryWindowMediaSamples": 760,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.00390625,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-positioning-6": {
+          "durationMs": 928,
+          "samples": 207,
+          "blank": 13,
+          "windowCaptures": 20,
+          "copyStatus": {
+            "0": 20
+          },
+          "successfulWindowCaptures": 20,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 32,
+          "maxCaptureGapMs": 206,
+          "medianCopyLatencyMs": 5.0,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 159,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.99609375,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 1,
+          "backgroundOver10Pct": [
+            {
+              "seq": 1518,
+              "pos": 8,
+              "frame": -1,
+              "fraction": 0.99609375
+            },
+            {
+              "seq": 1518,
+              "pos": 9,
+              "frame": -1,
+              "fraction": 0.99609375
+            },
+            {
+              "seq": 1518,
+              "pos": 10,
+              "frame": -1,
+              "fraction": 0.99609375
+            },
+            {
+              "seq": 1518,
+              "pos": 12,
+              "frame": -1,
+              "fraction": 0.99609375
+            }
+          ]
+        },
+        "boundary-loop-6": {
+          "durationMs": 24994,
+          "samples": 14950,
+          "blank": 0,
+          "windowCaptures": 1487,
+          "copyStatus": {
+            "0": 1487
+          },
+          "successfulWindowCaptures": 1487,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17.0,
+          "maxCaptureGapMs": 140,
+          "medianCopyLatencyMs": 4,
+          "wraps": {
+            "5": 7,
+            "6": 7,
+            "10": 7,
+            "8": 6,
+            "9": 6,
+            "12": 6
+          },
+          "completions": {},
+          "windowMediaSamples": 11896,
+          "boundaryWindowMediaSamples": 726,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-positioning-10": {
+          "durationMs": 647,
+          "samples": 206,
+          "blank": 0,
+          "windowCaptures": 28,
+          "copyStatus": {
+            "0": 28
+          },
+          "successfulWindowCaptures": 28,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17,
+          "maxCaptureGapMs": 143,
+          "medianCopyLatencyMs": 4.0,
+          "wraps": {
+            "12": 1
+          },
+          "completions": {},
+          "windowMediaSamples": 197,
+          "boundaryWindowMediaSamples": 10,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-loop-10": {
+          "durationMs": 25009,
+          "samples": 10444,
+          "blank": 0,
+          "windowCaptures": 1484,
+          "copyStatus": {
+            "0": 1484
+          },
+          "successfulWindowCaptures": 1484,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17,
+          "maxCaptureGapMs": 116,
+          "medianCopyLatencyMs": 4.0,
+          "wraps": {
+            "10": 7,
+            "14": 7,
+            "13": 6,
+            "12": 6,
+            "9": 6
+          },
+          "completions": {},
+          "windowMediaSamples": 10388,
+          "boundaryWindowMediaSamples": 604,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-mode-switch": {
+          "durationMs": 2,
+          "samples": 7,
+          "blank": 0,
+          "windowCaptures": 1,
+          "copyStatus": {
+            "0": 1
+          },
+          "successfulWindowCaptures": 1,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": null,
+          "maxCaptureGapMs": 0,
+          "medianCopyLatencyMs": 28,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 7,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-open-keyboard": {
+          "durationMs": 1,
+          "samples": 7,
+          "blank": 0,
+          "windowCaptures": 1,
+          "copyStatus": {
+            "0": 1
+          },
+          "successfulWindowCaptures": 1,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": null,
+          "maxCaptureGapMs": 0,
+          "medianCopyLatencyMs": 18,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 7,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-ime-fast-return": {
+          "durationMs": 1952,
+          "samples": 1217,
+          "blank": 0,
+          "windowCaptures": 222,
+          "copyStatus": {
+            "0": 203,
+            "3": 19
+          },
+          "successfulWindowCaptures": 203,
+          "missedWindowCaptures": 19,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 8,
+          "maxCaptureGapMs": 40,
+          "medianCopyLatencyMs": 4.0,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 643,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0078125,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-ime-fast-fling": {
+          "durationMs": 7338,
+          "samples": 4460,
+          "blank": 0,
+          "windowCaptures": 624,
+          "copyStatus": {
+            "0": 554,
+            "3": 70
+          },
+          "successfulWindowCaptures": 554,
+          "missedWindowCaptures": 70,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 9,
+          "maxCaptureGapMs": 146,
+          "medianCopyLatencyMs": 5.0,
+          "wraps": {},
+          "completions": {
+            "13": 11,
+            "5": 3,
+            "4": 8,
+            "1": 4,
+            "0": 4,
+            "9": 4,
+            "12": 6,
+            "8": 3
+          },
+          "windowMediaSamples": 2122,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 328,
+          "maxBackgroundFraction": 0.015625,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-sequential-positioning": {
+          "durationMs": 431,
+          "samples": 30,
+          "blank": 0,
+          "windowCaptures": 5,
+          "copyStatus": {
+            "0": 5
+          },
+          "successfulWindowCaptures": 5,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 28.0,
+          "maxCaptureGapMs": 366,
+          "medianCopyLatencyMs": 3,
+          "wraps": {},
+          "completions": {
+            "0": 1
+          },
+          "windowMediaSamples": 15,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 4,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-sequential-completion": {
+          "durationMs": 10492,
+          "samples": 1350,
+          "blank": 0,
+          "windowCaptures": 234,
+          "copyStatus": {
+            "0": 234
+          },
+          "successfulWindowCaptures": 234,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 39,
+          "maxCaptureGapMs": 1581,
+          "medianCopyLatencyMs": 5.0,
+          "wraps": {},
+          "completions": {
+            "0": 1,
+            "1": 1,
+            "2": 1
+          },
+          "windowMediaSamples": 702,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 24,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        }
+      },
+      "gestures": {
+        "count": 74,
+        "ime": 74,
+        "settling": 51,
+        "medianMs": 80.0
+      }
+    },
+    "boundary-fullspan-cold-oppo": {
+      "run": "boundary-fullspan-cold-oppo",
+      "passed": true,
+      "captureComplete": true,
+      "result": {
+        "ok": true,
+        "samples": 38519,
+        "events": [
+          {
+            "name": "boundary-glide-cold",
+            "passed": true
+          },
+          {
+            "name": "fixture-media",
+            "complex": true,
+            "derivedVideoBytes": 34143205,
+            "derivedMotionBytes": 34143205,
+            "dynamicFileBytes": [
+              4481998,
+              4486810,
+              34143205,
+              10410687,
+              15943839,
+              12862653,
+              10410687,
+              15943839,
+              12862653,
+              10410687,
+              15943839,
+              12862653
+            ]
+          },
+          {
+            "name": "boundary-loop-0",
+            "start": 146227376,
+            "end": 146252379,
+            "wraps": {
+              "0": 6,
+              "1": 6,
+              "2": 6,
+              "3": 0,
+              "4": 6,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 0,
+              "10": 0,
+              "11": 0,
+              "12": 0,
+              "13": 0,
+              "14": 0,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-loop-6",
+            "start": 146253224,
+            "end": 146278231,
+            "wraps": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 6,
+              "6": 6,
+              "7": 0,
+              "8": 6,
+              "9": 6,
+              "10": 6,
+              "11": 0,
+              "12": 6,
+              "13": 0,
+              "14": 0,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-loop-10",
+            "start": 146279188,
+            "end": 146304203,
+            "wraps": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 7,
+              "10": 7,
+              "11": 0,
+              "12": 7,
+              "13": 6,
+              "14": 7,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-ime-fast-covered",
+            "passed": true
+          },
+          {
+            "name": "boundary-fullspan-ime-entry",
+            "width": 1216,
+            "height": 912,
+            "passed": true
+          },
+          {
+            "name": "boundary-sequential-completed",
+            "passed": true
+          }
+        ],
+        "originalUnchanged": true,
+        "apkSha256": "4ecff5df5834363b07271480ecc0cf0f46e7cea75f262ac55f473743c10e69c0",
+        "runtimeFailures": {
+          "FATAL EXCEPTION": 0,
+          "OutOfMemoryError": 0,
+          "Cannot draw recycled": 0,
+          "Cannot start a recycled": 0
+        }
+      },
+      "stages": {
+        "boundary-positioning-0": {
+          "durationMs": 590,
+          "samples": 168,
+          "blank": 0,
+          "windowCaptures": 23,
+          "copyStatus": {
+            "0": 23
+          },
+          "successfulWindowCaptures": 23,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 15.5,
+          "maxCaptureGapMs": 165,
+          "medianCopyLatencyMs": 2,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 161,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-loop-0": {
+          "durationMs": 24990,
+          "samples": 10500,
+          "blank": 0,
+          "windowCaptures": 1500,
+          "copyStatus": {
+            "0": 1500
+          },
+          "successfulWindowCaptures": 1500,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17,
+          "maxCaptureGapMs": 103,
+          "medianCopyLatencyMs": 3.0,
+          "wraps": {
+            "4": 6,
+            "0": 6,
+            "2": 6,
+            "1": 6
+          },
+          "completions": {},
+          "windowMediaSamples": 10500,
+          "boundaryWindowMediaSamples": 456,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-positioning-6": {
+          "durationMs": 830,
+          "samples": 135,
+          "blank": 18,
+          "windowCaptures": 16,
+          "copyStatus": {
+            "0": 16
+          },
+          "successfulWindowCaptures": 16,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 18,
+          "maxCaptureGapMs": 154,
+          "medianCopyLatencyMs": 3.0,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 127,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.9765625,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 2,
+          "backgroundOver10Pct": [
+            {
+              "seq": 1526,
+              "pos": 8,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 1526,
+              "pos": 9,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 1526,
+              "pos": 10,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 1526,
+              "pos": 12,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 1527,
+              "pos": 8,
+              "frame": -1,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 1527,
+              "pos": 9,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 1527,
+              "pos": 10,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 1527,
+              "pos": 12,
+              "frame": -2,
+              "fraction": 0.96875
+            },
+            {
+              "seq": 1528,
+              "pos": 9,
+              "frame": -2,
+              "fraction": 0.97265625
+            },
+            {
+              "seq": 1528,
+              "pos": 10,
+              "frame": -2,
+              "fraction": 0.97265625
+            },
+            {
+              "seq": 1528,
+              "pos": 12,
+              "frame": -2,
+              "fraction": 0.97265625
+            },
+            {
+              "seq": 1529,
+              "pos": 9,
+              "frame": -1,
+              "fraction": 0.9765625
+            },
+            {
+              "seq": 1529,
+              "pos": 10,
+              "frame": -1,
+              "fraction": 0.9765625
+            },
+            {
+              "seq": 1529,
+              "pos": 12,
+              "frame": -1,
+              "fraction": 0.9765625
+            }
+          ]
+        },
+        "boundary-loop-6": {
+          "durationMs": 24990,
+          "samples": 11992,
+          "blank": 0,
+          "windowCaptures": 1499,
+          "copyStatus": {
+            "0": 1499
+          },
+          "successfulWindowCaptures": 1499,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17.0,
+          "maxCaptureGapMs": 135,
+          "medianCopyLatencyMs": 2,
+          "wraps": {
+            "6": 6,
+            "10": 6,
+            "5": 6,
+            "8": 6,
+            "12": 6,
+            "9": 6
+          },
+          "completions": {},
+          "windowMediaSamples": 11992,
+          "boundaryWindowMediaSamples": 684,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.00390625,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-positioning-10": {
+          "durationMs": 930,
+          "samples": 127,
+          "blank": 6,
+          "windowCaptures": 17,
+          "copyStatus": {
+            "0": 17
+          },
+          "successfulWindowCaptures": 17,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 31.0,
+          "maxCaptureGapMs": 174,
+          "medianCopyLatencyMs": 3,
+          "wraps": {
+            "10": 1
+          },
+          "completions": {},
+          "windowMediaSamples": 120,
+          "boundaryWindowMediaSamples": 9,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.98046875,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 2,
+          "backgroundOver10Pct": [
+            {
+              "seq": 3041,
+              "pos": 13,
+              "frame": -2,
+              "fraction": 0.97265625
+            },
+            {
+              "seq": 3041,
+              "pos": 14,
+              "frame": -1,
+              "fraction": 0.97265625
+            },
+            {
+              "seq": 3042,
+              "pos": 13,
+              "frame": -2,
+              "fraction": 0.97265625
+            },
+            {
+              "seq": 3043,
+              "pos": 13,
+              "frame": -1,
+              "fraction": 0.98046875
+            }
+          ]
+        },
+        "boundary-loop-10": {
+          "durationMs": 25008,
+          "samples": 10451,
+          "blank": 0,
+          "windowCaptures": 1493,
+          "copyStatus": {
+            "0": 1493
+          },
+          "successfulWindowCaptures": 1493,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17.0,
+          "maxCaptureGapMs": 100,
+          "medianCopyLatencyMs": 2,
+          "wraps": {
+            "12": 7,
+            "9": 7,
+            "14": 7,
+            "10": 7,
+            "13": 6
+          },
+          "completions": {},
+          "windowMediaSamples": 10451,
+          "boundaryWindowMediaSamples": 629,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.00390625,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-mode-switch": {
+          "durationMs": 0,
+          "samples": 7,
+          "blank": 0,
+          "windowCaptures": 1,
+          "copyStatus": {
+            "0": 1
+          },
+          "successfulWindowCaptures": 1,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": null,
+          "maxCaptureGapMs": 0,
+          "medianCopyLatencyMs": 22,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 7,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-open-keyboard": {
+          "durationMs": 0,
+          "samples": 7,
+          "blank": 0,
+          "windowCaptures": 1,
+          "copyStatus": {
+            "0": 1
+          },
+          "successfulWindowCaptures": 1,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": null,
+          "maxCaptureGapMs": 0,
+          "medianCopyLatencyMs": 18,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 7,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-ime-fast-return": {
+          "durationMs": 1949,
+          "samples": 794,
+          "blank": 0,
+          "windowCaptures": 224,
+          "copyStatus": {
+            "0": 224
+          },
+          "successfulWindowCaptures": 224,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 8,
+          "maxCaptureGapMs": 42,
+          "medianCopyLatencyMs": 2.0,
+          "wraps": {},
+          "completions": {
+            "13": 1
+          },
+          "windowMediaSamples": 696,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 7,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-ime-fast-fling": {
+          "durationMs": 7118,
+          "samples": 3618,
+          "blank": 0,
+          "windowCaptures": 652,
+          "copyStatus": {
+            "0": 652
+          },
+          "successfulWindowCaptures": 652,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 8,
+          "maxCaptureGapMs": 111,
+          "medianCopyLatencyMs": 3.0,
+          "wraps": {},
+          "completions": {
+            "13": 8,
+            "5": 3,
+            "1": 5,
+            "4": 9,
+            "0": 5,
+            "9": 4,
+            "8": 8,
+            "12": 6
+          },
+          "windowMediaSamples": 2119,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 378,
+          "maxBackgroundFraction": 0.0625,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-sequential-positioning": {
+          "durationMs": 439,
+          "samples": 24,
+          "blank": 0,
+          "windowCaptures": 7,
+          "copyStatus": {
+            "0": 7
+          },
+          "successfulWindowCaptures": 7,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 14.0,
+          "maxCaptureGapMs": 356,
+          "medianCopyLatencyMs": 2,
+          "wraps": {},
+          "completions": {
+            "0": 1
+          },
+          "windowMediaSamples": 21,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 6,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-sequential-completion": {
+          "durationMs": 9187,
+          "samples": 696,
+          "blank": 0,
+          "windowCaptures": 231,
+          "copyStatus": {
+            "0": 231
+          },
+          "successfulWindowCaptures": 231,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 41.0,
+          "maxCaptureGapMs": 82,
+          "medianCopyLatencyMs": 3,
+          "wraps": {},
+          "completions": {
+            "0": 1,
+            "1": 1,
+            "2": 1
+          },
+          "windowMediaSamples": 693,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 20,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        }
+      },
+      "gestures": {
+        "count": 74,
+        "ime": 74,
+        "settling": 52,
+        "medianMs": 77.0
+      }
+    },
+    "boundary-fullspan-cold-samsung": {
+      "run": "boundary-fullspan-cold-samsung",
+      "passed": true,
+      "captureComplete": true,
+      "result": {
+        "ok": true,
+        "samples": 44323,
+        "events": [
+          {
+            "name": "boundary-glide-cold",
+            "passed": true
+          },
+          {
+            "name": "fixture-media",
+            "complex": true,
+            "derivedVideoBytes": 35240637,
+            "derivedMotionBytes": 35240637,
+            "dynamicFileBytes": [
+              4481998,
+              4486810,
+              35240637,
+              10410687,
+              15943839,
+              12862653,
+              10410687,
+              15943839,
+              12862653,
+              10410687,
+              15943839,
+              12862653
+            ]
+          },
+          {
+            "name": "boundary-loop-0",
+            "start": 338185553,
+            "end": 338210554,
+            "wraps": {
+              "0": 6,
+              "1": 6,
+              "2": 6,
+              "3": 0,
+              "4": 6,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 0,
+              "10": 0,
+              "11": 0,
+              "12": 0,
+              "13": 0,
+              "14": 0,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-loop-6",
+            "start": 338211332,
+            "end": 338236343,
+            "wraps": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 7,
+              "6": 7,
+              "7": 0,
+              "8": 7,
+              "9": 7,
+              "10": 7,
+              "11": 0,
+              "12": 7,
+              "13": 0,
+              "14": 0,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-loop-10",
+            "start": 338236978,
+            "end": 338261986,
+            "wraps": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 7,
+              "10": 7,
+              "11": 0,
+              "12": 7,
+              "13": 6,
+              "14": 7,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-ime-fast-covered",
+            "passed": true
+          },
+          {
+            "name": "boundary-fullspan-ime-entry",
+            "width": 1440,
+            "height": 1080,
+            "passed": true
+          },
+          {
+            "name": "boundary-sequential-completed",
+            "passed": true
+          }
+        ],
+        "originalUnchanged": true,
+        "apkSha256": "4ecff5df5834363b07271480ecc0cf0f46e7cea75f262ac55f473743c10e69c0",
+        "runtimeFailures": {
+          "FATAL EXCEPTION": 0,
+          "OutOfMemoryError": 0,
+          "Cannot draw recycled": 0,
+          "Cannot start a recycled": 0
+        }
+      },
+      "stages": {
+        "boundary-positioning-0": {
+          "durationMs": 543,
+          "samples": 147,
+          "blank": 0,
+          "windowCaptures": 20,
+          "copyStatus": {
+            "0": 20
+          },
+          "successfulWindowCaptures": 20,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 24,
+          "maxCaptureGapMs": 117,
+          "medianCopyLatencyMs": 3.0,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 140,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-loop-0": {
+          "durationMs": 24992,
+          "samples": 10857,
+          "blank": 0,
+          "windowCaptures": 1551,
+          "copyStatus": {
+            "0": 1551
+          },
+          "successfulWindowCaptures": 1551,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17.0,
+          "maxCaptureGapMs": 87,
+          "medianCopyLatencyMs": 3,
+          "wraps": {
+            "4": 6,
+            "1": 6,
+            "2": 6,
+            "0": 6
+          },
+          "completions": {},
+          "windowMediaSamples": 10857,
+          "boundaryWindowMediaSamples": 474,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-positioning-6": {
+          "durationMs": 769,
+          "samples": 279,
+          "blank": 8,
+          "windowCaptures": 34,
+          "copyStatus": {
+            "0": 34
+          },
+          "successfulWindowCaptures": 34,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 16,
+          "maxCaptureGapMs": 112,
+          "medianCopyLatencyMs": 3.0,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 271,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.98828125,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 1,
+          "backgroundOver10Pct": [
+            {
+              "seq": 1574,
+              "pos": 10,
+              "frame": -2,
+              "fraction": 0.98828125
+            },
+            {
+              "seq": 1574,
+              "pos": 12,
+              "frame": -2,
+              "fraction": 0.98828125
+            },
+            {
+              "seq": 1575,
+              "pos": 10,
+              "frame": -1,
+              "fraction": 0.98828125
+            },
+            {
+              "seq": 1575,
+              "pos": 12,
+              "frame": -1,
+              "fraction": 0.98828125
+            }
+          ]
+        },
+        "boundary-loop-6": {
+          "durationMs": 25006,
+          "samples": 16608,
+          "blank": 0,
+          "windowCaptures": 2076,
+          "copyStatus": {
+            "0": 2076
+          },
+          "successfulWindowCaptures": 2076,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 9,
+          "maxCaptureGapMs": 83,
+          "medianCopyLatencyMs": 3.0,
+          "wraps": {
+            "6": 7,
+            "10": 7,
+            "8": 7,
+            "12": 7,
+            "5": 7,
+            "9": 7
+          },
+          "completions": {},
+          "windowMediaSamples": 16608,
+          "boundaryWindowMediaSamples": 1118,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-positioning-10": {
+          "durationMs": 608,
+          "samples": 197,
+          "blank": 2,
+          "windowCaptures": 27,
+          "copyStatus": {
+            "0": 27
+          },
+          "successfulWindowCaptures": 27,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17.0,
+          "maxCaptureGapMs": 104,
+          "medianCopyLatencyMs": 3,
+          "wraps": {
+            "10": 1
+          },
+          "completions": {},
+          "windowMediaSamples": 190,
+          "boundaryWindowMediaSamples": 13,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-loop-10": {
+          "durationMs": 25002,
+          "samples": 10682,
+          "blank": 0,
+          "windowCaptures": 1526,
+          "copyStatus": {
+            "0": 1526
+          },
+          "successfulWindowCaptures": 1526,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17,
+          "maxCaptureGapMs": 89,
+          "medianCopyLatencyMs": 3.0,
+          "wraps": {
+            "12": 7,
+            "9": 7,
+            "14": 7,
+            "13": 6,
+            "10": 7
+          },
+          "completions": {},
+          "windowMediaSamples": 10682,
+          "boundaryWindowMediaSamples": 642,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-mode-switch": {
+          "durationMs": 0,
+          "samples": 7,
+          "blank": 0,
+          "windowCaptures": 1,
+          "copyStatus": {
+            "0": 1
+          },
+          "successfulWindowCaptures": 1,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": null,
+          "maxCaptureGapMs": 0,
+          "medianCopyLatencyMs": 27,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 7,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-open-keyboard": {
+          "durationMs": 1,
+          "samples": 7,
+          "blank": 0,
+          "windowCaptures": 1,
+          "copyStatus": {
+            "0": 1
+          },
+          "successfulWindowCaptures": 1,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": null,
+          "maxCaptureGapMs": 0,
+          "medianCopyLatencyMs": 23,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 7,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-ime-fast-return": {
+          "durationMs": 2006,
+          "samples": 785,
+          "blank": 0,
+          "windowCaptures": 213,
+          "copyStatus": {
+            "0": 213
+          },
+          "successfulWindowCaptures": 213,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 8.0,
+          "maxCaptureGapMs": 39,
+          "medianCopyLatencyMs": 2,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 659,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0078125,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-ime-fast-fling": {
+          "durationMs": 7560,
+          "samples": 4022,
+          "blank": 0,
+          "windowCaptures": 684,
+          "copyStatus": {
+            "0": 684
+          },
+          "successfulWindowCaptures": 684,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 9,
+          "maxCaptureGapMs": 76,
+          "medianCopyLatencyMs": 3.0,
+          "wraps": {
+            "4": 4
+          },
+          "completions": {
+            "5": 11,
+            "12": 6,
+            "9": 9,
+            "8": 12,
+            "1": 8,
+            "13": 1,
+            "4": 11,
+            "0": 4
+          },
+          "windowMediaSamples": 2606,
+          "boundaryWindowMediaSamples": 41,
+          "completionWindowMediaSamples": 637,
+          "maxBackgroundFraction": 0.0078125,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-sequential-positioning": {
+          "durationMs": 463,
+          "samples": 33,
+          "blank": 0,
+          "windowCaptures": 6,
+          "copyStatus": {
+            "0": 6
+          },
+          "successfulWindowCaptures": 6,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 19,
+          "maxCaptureGapMs": 369,
+          "medianCopyLatencyMs": 9.5,
+          "wraps": {},
+          "completions": {
+            "0": 1
+          },
+          "windowMediaSamples": 18,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 5,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-sequential-completion": {
+          "durationMs": 9192,
+          "samples": 699,
+          "blank": 0,
+          "windowCaptures": 229,
+          "copyStatus": {
+            "0": 229
+          },
+          "successfulWindowCaptures": 229,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 41.0,
+          "maxCaptureGapMs": 75,
+          "medianCopyLatencyMs": 3,
+          "wraps": {},
+          "completions": {
+            "0": 1,
+            "1": 1,
+            "2": 1
+          },
+          "windowMediaSamples": 687,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 21,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        }
+      },
+      "gestures": {
+        "count": 74,
+        "ime": 74,
+        "settling": 51,
+        "medianMs": 84.0
+      }
+    },
+    "boundary-fullspan-cold-meizu": {
+      "run": "boundary-fullspan-cold-meizu",
+      "passed": true,
+      "captureComplete": false,
+      "result": {
+        "ok": true,
+        "samples": 43247,
+        "events": [
+          {
+            "name": "boundary-glide-cold",
+            "passed": true
+          },
+          {
+            "name": "fixture-media",
+            "complex": true,
+            "derivedVideoBytes": 32030470,
+            "derivedMotionBytes": 32507177,
+            "dynamicFileBytes": [
+              4481998,
+              4486810,
+              32030470,
+              10410687,
+              15943839,
+              12862653,
+              10410687,
+              15943839,
+              12862653,
+              10410687,
+              15943839,
+              12862653
+            ]
+          },
+          {
+            "name": "boundary-loop-0",
+            "start": 2391154209,
+            "end": 2391179222,
+            "wraps": {
+              "0": 7,
+              "1": 7,
+              "2": 7,
+              "3": 0,
+              "4": 6,
+              "5": 6,
+              "6": 7,
+              "7": 0,
+              "8": 0,
+              "9": 0,
+              "10": 0,
+              "11": 0,
+              "12": 0,
+              "13": 0,
+              "14": 0,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-loop-6",
+            "start": 2391180215,
+            "end": 2391205225,
+            "wraps": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 7,
+              "6": 7,
+              "7": 0,
+              "8": 6,
+              "9": 6,
+              "10": 6,
+              "11": 0,
+              "12": 6,
+              "13": 0,
+              "14": 0,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-loop-10",
+            "start": 2391205914,
+            "end": 2391230928,
+            "wraps": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 7,
+              "10": 7,
+              "11": 0,
+              "12": 7,
+              "13": 6,
+              "14": 7,
+              "15": 0
+            }
+          },
+          {
+            "name": "boundary-ime-fast-covered",
+            "passed": true
+          },
+          {
+            "name": "boundary-fullspan-ime-entry",
+            "width": 1368,
+            "height": 1026,
+            "passed": true
+          },
+          {
+            "name": "boundary-sequential-completed",
+            "passed": true
+          }
+        ],
+        "originalUnchanged": true,
+        "apkSha256": "4ecff5df5834363b07271480ecc0cf0f46e7cea75f262ac55f473743c10e69c0",
+        "runtimeFailures": {
+          "FATAL EXCEPTION": 0,
+          "OutOfMemoryError": 0,
+          "Cannot draw recycled": 0,
+          "Cannot start a recycled": 0
+        }
+      },
+      "stages": {
+        "boundary-positioning-0": {
+          "durationMs": 680,
+          "samples": 189,
+          "blank": 0,
+          "windowCaptures": 26,
+          "copyStatus": {
+            "0": 26
+          },
+          "successfulWindowCaptures": 26,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 16,
+          "maxCaptureGapMs": 146,
+          "medianCopyLatencyMs": 4.0,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 182,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.00390625,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-loop-0": {
+          "durationMs": 25000,
+          "samples": 10493,
+          "blank": 0,
+          "windowCaptures": 1491,
+          "copyStatus": {
+            "0": 1491
+          },
+          "successfulWindowCaptures": 1491,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17.0,
+          "maxCaptureGapMs": 132,
+          "medianCopyLatencyMs": 4,
+          "wraps": {
+            "2": 7,
+            "0": 7,
+            "1": 7,
+            "6": 7,
+            "4": 6,
+            "5": 6
+          },
+          "completions": {},
+          "windowMediaSamples": 10437,
+          "boundaryWindowMediaSamples": 760,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.00390625,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-positioning-6": {
+          "durationMs": 963,
+          "samples": 97,
+          "blank": 18,
+          "windowCaptures": 9,
+          "copyStatus": {
+            "0": 9
+          },
+          "successfulWindowCaptures": 9,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 92.0,
+          "maxCaptureGapMs": 234,
+          "medianCopyLatencyMs": 7,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 71,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.99609375,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 2,
+          "backgroundOver10Pct": [
+            {
+              "seq": 1520,
+              "pos": 8,
+              "frame": -1,
+              "fraction": 0.99609375
+            },
+            {
+              "seq": 1520,
+              "pos": 9,
+              "frame": -1,
+              "fraction": 0.99609375
+            },
+            {
+              "seq": 1520,
+              "pos": 10,
+              "frame": -2,
+              "fraction": 0.99609375
+            },
+            {
+              "seq": 1520,
+              "pos": 12,
+              "frame": -2,
+              "fraction": 0.99609375
+            },
+            {
+              "seq": 1521,
+              "pos": 10,
+              "frame": -1,
+              "fraction": 0.984375
+            },
+            {
+              "seq": 1521,
+              "pos": 12,
+              "frame": -1,
+              "fraction": 0.984375
+            }
+          ]
+        },
+        "boundary-loop-6": {
+          "durationMs": 24999,
+          "samples": 14880,
+          "blank": 0,
+          "windowCaptures": 1480,
+          "copyStatus": {
+            "0": 1480
+          },
+          "successfulWindowCaptures": 1480,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17,
+          "maxCaptureGapMs": 148,
+          "medianCopyLatencyMs": 4.0,
+          "wraps": {
+            "5": 7,
+            "6": 7,
+            "10": 6,
+            "8": 6,
+            "12": 6,
+            "9": 6
+          },
+          "completions": {},
+          "windowMediaSamples": 11840,
+          "boundaryWindowMediaSamples": 709,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-positioning-10": {
+          "durationMs": 678,
+          "samples": 224,
+          "blank": 0,
+          "windowCaptures": 30,
+          "copyStatus": {
+            "0": 30
+          },
+          "successfulWindowCaptures": 30,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17,
+          "maxCaptureGapMs": 151,
+          "medianCopyLatencyMs": 4.0,
+          "wraps": {
+            "10": 1
+          },
+          "completions": {},
+          "windowMediaSamples": 211,
+          "boundaryWindowMediaSamples": 11,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-loop-10": {
+          "durationMs": 25011,
+          "samples": 10412,
+          "blank": 0,
+          "windowCaptures": 1480,
+          "copyStatus": {
+            "0": 1480
+          },
+          "successfulWindowCaptures": 1480,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 17,
+          "maxCaptureGapMs": 114,
+          "medianCopyLatencyMs": 4.0,
+          "wraps": {
+            "12": 7,
+            "9": 7,
+            "14": 7,
+            "10": 7,
+            "13": 6
+          },
+          "completions": {},
+          "windowMediaSamples": 10360,
+          "boundaryWindowMediaSamples": 635,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0.0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-mode-switch": {
+          "durationMs": 1,
+          "samples": 7,
+          "blank": 0,
+          "windowCaptures": 1,
+          "copyStatus": {
+            "0": 1
+          },
+          "successfulWindowCaptures": 1,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": null,
+          "maxCaptureGapMs": 0,
+          "medianCopyLatencyMs": 26,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 7,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-open-keyboard": {
+          "durationMs": 1,
+          "samples": 7,
+          "blank": 0,
+          "windowCaptures": 1,
+          "copyStatus": {
+            "0": 1
+          },
+          "successfulWindowCaptures": 1,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": null,
+          "maxCaptureGapMs": 0,
+          "medianCopyLatencyMs": 17,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 7,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-ime-fast-return": {
+          "durationMs": 1948,
+          "samples": 1208,
+          "blank": 0,
+          "windowCaptures": 216,
+          "copyStatus": {
+            "0": 198,
+            "3": 18
+          },
+          "successfulWindowCaptures": 198,
+          "missedWindowCaptures": 18,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 8,
+          "maxCaptureGapMs": 48,
+          "medianCopyLatencyMs": 4.0,
+          "wraps": {},
+          "completions": {},
+          "windowMediaSamples": 616,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 0,
+          "maxBackgroundFraction": 0.0078125,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-ime-fast-fling": {
+          "durationMs": 7726,
+          "samples": 4310,
+          "blank": 0,
+          "windowCaptures": 572,
+          "copyStatus": {
+            "0": 507,
+            "3": 65
+          },
+          "successfulWindowCaptures": 507,
+          "missedWindowCaptures": 65,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 9,
+          "maxCaptureGapMs": 164,
+          "medianCopyLatencyMs": 5.0,
+          "wraps": {},
+          "completions": {
+            "1": 5,
+            "4": 6,
+            "13": 11,
+            "12": 5,
+            "5": 7,
+            "9": 4,
+            "0": 3
+          },
+          "windowMediaSamples": 1909,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 264,
+          "maxBackgroundFraction": 0.01171875,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-sequential-positioning": {
+          "durationMs": 419,
+          "samples": 25,
+          "blank": 0,
+          "windowCaptures": 4,
+          "copyStatus": {
+            "0": 4
+          },
+          "successfulWindowCaptures": 4,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 34,
+          "maxCaptureGapMs": 367,
+          "medianCopyLatencyMs": 4.0,
+          "wraps": {},
+          "completions": {
+            "0": 1
+          },
+          "windowMediaSamples": 12,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 3,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        },
+        "boundary-sequential-completion": {
+          "durationMs": 10435,
+          "samples": 1395,
+          "blank": 0,
+          "windowCaptures": 239,
+          "copyStatus": {
+            "0": 239
+          },
+          "successfulWindowCaptures": 239,
+          "missedWindowCaptures": 0,
+          "uncoveredWraps": 0,
+          "uncoveredCompletions": 0,
+          "medianCaptureGapMs": 39.5,
+          "maxCaptureGapMs": 1594,
+          "medianCopyLatencyMs": 5,
+          "wraps": {},
+          "completions": {
+            "0": 1,
+            "1": 1,
+            "2": 1
+          },
+          "windowMediaSamples": 717,
+          "boundaryWindowMediaSamples": 0,
+          "completionWindowMediaSamples": 25,
+          "maxBackgroundFraction": 0.0,
+          "boundaryMaxBackgroundFraction": 0,
+          "completionMaxBackgroundFraction": 0.0,
+          "suspectCaptures": 0,
+          "backgroundOver10Pct": []
+        }
+      },
+      "gestures": {
+        "count": 74,
+        "ime": 74,
+        "settling": 52,
+        "medianMs": 82.5
+      }
+    }
+  },
+  "unitTests": {
+    "suites": 225,
+    "tests": 1507,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "publication": {
+    "code": 202610151555,
+    "sha256": "34c9e4bc3f140387670b2b59a101563032f4854d3fd2a1fef45b61e9600d67b4",
+    "size": 27480393,
+    "metadataMatches": true,
+    "normalPackage": true,
+    "noProbeEntry": true,
+    "noPrivateTestAssets": true
+  }
+}

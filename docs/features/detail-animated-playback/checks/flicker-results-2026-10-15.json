@@ -1,0 +1,749 @@
+{
+  "devices": [
+    {
+      "device": "oppo",
+      "before": {
+        "run": "red4-oppo",
+        "samples": 2433,
+        "apkSha256": "e8ec9a59855381baf283168f57af1c35b44b1881f6e5ce09a4546a6d01dc508a",
+        "originalUnchanged": true,
+        "events": [],
+        "recycle_blank_by_position": [
+          1,
+          1,
+          3
+        ],
+        "warm_blank_by_position": [],
+        "edge_static_frames": 58,
+        "loop_blank": 0,
+        "loop_wraps": 6,
+        "existing_loop_blank": 0,
+        "existing_loop_wraps": 0,
+        "decodedGif": {
+          "frames": 75,
+          "blackFrames": 0,
+          "transparentFrames": 0
+        }
+      },
+      "after": {
+        "run": "bounded-oppo",
+        "samples": 6660,
+        "apkSha256": "f44c3f42c249386ba68698432ddde4f3642dda86080728a89b022d868efc8afc",
+        "originalUnchanged": true,
+        "events": [
+          {
+            "name": "edge-paused-0",
+            "same": true,
+            "stopped": true
+          },
+          {
+            "name": "edge-paused-1",
+            "same": true,
+            "stopped": true
+          },
+          {
+            "name": "edge-paused-2",
+            "same": true,
+            "stopped": true
+          },
+          {
+            "name": "recycled-stopped",
+            "passed": true
+          },
+          {
+            "name": "warm-first-frames",
+            "available": 0
+          },
+          {
+            "name": "activity-stopped",
+            "passed": true
+          },
+          {
+            "name": "activity-resumed",
+            "passed": true
+          },
+          {
+            "name": "mode-0",
+            "passed": true
+          },
+          {
+            "name": "mode-2",
+            "passed": true
+          },
+          {
+            "name": "mode-1",
+            "passed": true
+          },
+          {
+            "name": "mode-3",
+            "passed": true
+          },
+          {
+            "name": "reorder-plays",
+            "passed": true
+          },
+          {
+            "name": "existing-media-loop",
+            "passed": true
+          }
+        ],
+        "recycle_blank_by_position": [
+          0,
+          0,
+          0
+        ],
+        "warm_blank_by_position": [
+          0,
+          0,
+          0
+        ],
+        "edge_static_frames": 0,
+        "loop_blank": 0,
+        "loop_wraps": 6,
+        "existing_loop_blank": 0,
+        "existing_loop_wraps": 9,
+        "decodedGif": {
+          "frames": 75,
+          "blackFrames": 0,
+          "transparentFrames": 0
+        }
+      }
+    },
+    {
+      "device": "samsung",
+      "before": {
+        "run": "red2-samsung",
+        "samples": 2568,
+        "apkSha256": "e8ec9a59855381baf283168f57af1c35b44b1881f6e5ce09a4546a6d01dc508a",
+        "originalUnchanged": true,
+        "events": [],
+        "recycle_blank_by_position": [
+          1,
+          1,
+          1
+        ],
+        "warm_blank_by_position": [],
+        "edge_static_frames": 58,
+        "loop_blank": 0,
+        "loop_wraps": 6,
+        "existing_loop_blank": 0,
+        "existing_loop_wraps": 0,
+        "decodedGif": {
+          "frames": 75,
+          "blackFrames": 0,
+          "transparentFrames": 0
+        }
+      },
+      "after": {
+        "run": "bounded-samsung",
+        "samples": 6822,
+        "apkSha256": "f44c3f42c249386ba68698432ddde4f3642dda86080728a89b022d868efc8afc",
+        "originalUnchanged": true,
+        "events": [
+          {
+            "name": "edge-paused-0",
+            "same": true,
+            "stopped": true
+          },
+          {
+            "name": "edge-paused-1",
+            "same": true,
+            "stopped": true
+          },
+          {
+            "name": "edge-paused-2",
+            "same": true,
+            "stopped": true
+          },
+          {
+            "name": "recycled-stopped",
+            "passed": true
+          },
+          {
+            "name": "warm-first-frames",
+            "available": 0
+          },
+          {
+            "name": "activity-stopped",
+            "passed": true
+          },
+          {
+            "name": "activity-resumed",
+            "passed": true
+          },
+          {
+            "name": "mode-0",
+            "passed": true
+          },
+          {
+            "name": "mode-2",
+            "passed": true
+          },
+          {
+            "name": "mode-1",
+            "passed": true
+          },
+          {
+            "name": "mode-3",
+            "passed": true
+          },
+          {
+            "name": "reorder-plays",
+            "passed": true
+          },
+          {
+            "name": "existing-media-loop",
+            "passed": true
+          }
+        ],
+        "recycle_blank_by_position": [
+          0,
+          0,
+          0
+        ],
+        "warm_blank_by_position": [
+          0,
+          0,
+          0
+        ],
+        "edge_static_frames": 0,
+        "loop_blank": 0,
+        "loop_wraps": 6,
+        "existing_loop_blank": 0,
+        "existing_loop_wraps": 9,
+        "decodedGif": {
+          "frames": 75,
+          "blackFrames": 0,
+          "transparentFrames": 0
+        }
+      }
+    },
+    {
+      "device": "meizu",
+      "before": {
+        "run": "red2-meizu",
+        "samples": 2457,
+        "apkSha256": "e8ec9a59855381baf283168f57af1c35b44b1881f6e5ce09a4546a6d01dc508a",
+        "originalUnchanged": true,
+        "events": [],
+        "recycle_blank_by_position": [
+          1,
+          1,
+          3
+        ],
+        "warm_blank_by_position": [],
+        "edge_static_frames": 64,
+        "loop_blank": 0,
+        "loop_wraps": 6,
+        "existing_loop_blank": 0,
+        "existing_loop_wraps": 0,
+        "decodedGif": {
+          "frames": 69,
+          "blackFrames": 0,
+          "transparentFrames": 0
+        }
+      },
+      "after": {
+        "run": "bounded2-meizu",
+        "samples": 6510,
+        "apkSha256": "05f4101482c4ceb1d5d705ffd4a1e2674d0f676020dec2388adb34bc145bf18d",
+        "originalUnchanged": true,
+        "events": [
+          {
+            "name": "edge-paused-0",
+            "same": true,
+            "stopped": true
+          },
+          {
+            "name": "edge-paused-1",
+            "same": true,
+            "stopped": true
+          },
+          {
+            "name": "edge-paused-2",
+            "same": true,
+            "stopped": true
+          },
+          {
+            "name": "recycled-stopped",
+            "passed": true
+          },
+          {
+            "name": "warm-first-frames",
+            "available": 0
+          },
+          {
+            "name": "activity-stopped",
+            "passed": true
+          },
+          {
+            "name": "activity-resumed",
+            "passed": true
+          },
+          {
+            "name": "mode-0",
+            "passed": true
+          },
+          {
+            "name": "mode-2",
+            "passed": true
+          },
+          {
+            "name": "mode-1",
+            "passed": true
+          },
+          {
+            "name": "mode-3",
+            "passed": true
+          },
+          {
+            "name": "reorder-plays",
+            "passed": true
+          },
+          {
+            "name": "existing-media-loop",
+            "passed": true
+          }
+        ],
+        "recycle_blank_by_position": [
+          0,
+          0,
+          0
+        ],
+        "warm_blank_by_position": [
+          0,
+          0,
+          0
+        ],
+        "edge_static_frames": 0,
+        "loop_blank": 0,
+        "loop_wraps": 6,
+        "existing_loop_blank": 0,
+        "existing_loop_wraps": 9,
+        "decodedGif": {
+          "frames": 69,
+          "blackFrames": 0,
+          "transparentFrames": 0
+        }
+      }
+    }
+  ],
+  "cacheAndSizeChecks": [
+    {
+      "run": "warm-samsung",
+      "samples": 5364,
+      "apkSha256": "612492bb53d476e6fccbc4636e049960c8ca55db5b1360e642bfb1059d16e075",
+      "originalUnchanged": true,
+      "events": [
+        {
+          "name": "edge-paused-0",
+          "same": true,
+          "stopped": true
+        },
+        {
+          "name": "edge-paused-1",
+          "same": true,
+          "stopped": true
+        },
+        {
+          "name": "edge-paused-2",
+          "same": true,
+          "stopped": true
+        },
+        {
+          "name": "recycled-stopped",
+          "passed": true
+        },
+        {
+          "name": "warm-first-frames",
+          "available": 0
+        },
+        {
+          "name": "activity-stopped",
+          "passed": true
+        },
+        {
+          "name": "activity-resumed",
+          "passed": true
+        },
+        {
+          "name": "mode-0",
+          "passed": true
+        },
+        {
+          "name": "mode-2",
+          "passed": true
+        },
+        {
+          "name": "mode-1",
+          "passed": true
+        },
+        {
+          "name": "mode-3",
+          "passed": true
+        },
+        {
+          "name": "reorder-plays",
+          "passed": true
+        }
+      ],
+      "returns": [
+        {
+          "stage": "warm-return",
+          "position": 0,
+          "samples": 104,
+          "blank": 1
+        },
+        {
+          "stage": "warm-return",
+          "position": 1,
+          "samples": 104,
+          "blank": 1
+        },
+        {
+          "stage": "warm-return",
+          "position": 2,
+          "samples": 104,
+          "blank": 1
+        }
+      ]
+    },
+    {
+      "run": "large-red-samsung",
+      "samples": 654,
+      "apkSha256": "67f8fbf7fd9bc2ac9640f3d955e08c1a8f903f18d7a19c3db68eedccebf2cc2f",
+      "originalUnchanged": true,
+      "events": [
+        {
+          "name": "large-size",
+          "width": 1440,
+          "height": 1080
+        },
+        {
+          "name": "large-warm-first-frame",
+          "available": false
+        }
+      ],
+      "returns": [
+        {
+          "stage": "large-return",
+          "position": 0,
+          "samples": 102,
+          "blank": 1
+        },
+        {
+          "stage": "large-return",
+          "position": 1,
+          "samples": 102,
+          "blank": 0
+        },
+        {
+          "stage": "large-return",
+          "position": 2,
+          "samples": 102,
+          "blank": 0
+        },
+        {
+          "stage": "large-warm-return",
+          "position": 0,
+          "samples": 116,
+          "blank": 0
+        },
+        {
+          "stage": "large-warm-return",
+          "position": 1,
+          "samples": 116,
+          "blank": 0
+        },
+        {
+          "stage": "large-warm-return",
+          "position": 2,
+          "samples": 116,
+          "blank": 0
+        }
+      ]
+    },
+    {
+      "run": "bounded-large-oppo",
+      "samples": 525,
+      "apkSha256": "f44c3f42c249386ba68698432ddde4f3642dda86080728a89b022d868efc8afc",
+      "originalUnchanged": true,
+      "events": [
+        {
+          "name": "large-size",
+          "width": 1216,
+          "height": 912
+        },
+        {
+          "name": "large-warm-first-frame",
+          "available": false
+        }
+      ],
+      "returns": [
+        {
+          "stage": "large-return",
+          "position": 0,
+          "samples": 84,
+          "blank": 0
+        },
+        {
+          "stage": "large-return",
+          "position": 1,
+          "samples": 84,
+          "blank": 0
+        },
+        {
+          "stage": "large-return",
+          "position": 2,
+          "samples": 84,
+          "blank": 0
+        },
+        {
+          "stage": "large-warm-return",
+          "position": 0,
+          "samples": 91,
+          "blank": 0
+        },
+        {
+          "stage": "large-warm-return",
+          "position": 1,
+          "samples": 91,
+          "blank": 0
+        },
+        {
+          "stage": "large-warm-return",
+          "position": 2,
+          "samples": 91,
+          "blank": 0
+        }
+      ]
+    },
+    {
+      "run": "bounded-large-samsung",
+      "samples": 630,
+      "apkSha256": "f44c3f42c249386ba68698432ddde4f3642dda86080728a89b022d868efc8afc",
+      "originalUnchanged": true,
+      "events": [
+        {
+          "name": "large-size",
+          "width": 1440,
+          "height": 1080
+        },
+        {
+          "name": "large-warm-first-frame",
+          "available": false
+        }
+      ],
+      "returns": [
+        {
+          "stage": "large-return",
+          "position": 0,
+          "samples": 96,
+          "blank": 0
+        },
+        {
+          "stage": "large-return",
+          "position": 1,
+          "samples": 96,
+          "blank": 0
+        },
+        {
+          "stage": "large-return",
+          "position": 2,
+          "samples": 96,
+          "blank": 0
+        },
+        {
+          "stage": "large-warm-return",
+          "position": 0,
+          "samples": 114,
+          "blank": 0
+        },
+        {
+          "stage": "large-warm-return",
+          "position": 1,
+          "samples": 114,
+          "blank": 0
+        },
+        {
+          "stage": "large-warm-return",
+          "position": 2,
+          "samples": 114,
+          "blank": 0
+        }
+      ]
+    },
+    {
+      "run": "bounded-large-meizu",
+      "samples": 570,
+      "apkSha256": "f44c3f42c249386ba68698432ddde4f3642dda86080728a89b022d868efc8afc",
+      "originalUnchanged": true,
+      "events": [
+        {
+          "name": "large-size",
+          "width": 1368,
+          "height": 1026
+        },
+        {
+          "name": "large-warm-first-frame",
+          "available": false
+        }
+      ],
+      "returns": [
+        {
+          "stage": "large-return",
+          "position": 0,
+          "samples": 86,
+          "blank": 0
+        },
+        {
+          "stage": "large-return",
+          "position": 1,
+          "samples": 86,
+          "blank": 0
+        },
+        {
+          "stage": "large-return",
+          "position": 2,
+          "samples": 86,
+          "blank": 0
+        },
+        {
+          "stage": "large-warm-return",
+          "position": 0,
+          "samples": 103,
+          "blank": 0
+        },
+        {
+          "stage": "large-warm-return",
+          "position": 1,
+          "samples": 103,
+          "blank": 0
+        },
+        {
+          "stage": "large-warm-return",
+          "position": 2,
+          "samples": 103,
+          "blank": 0
+        }
+      ]
+    }
+  ],
+  "jvm": {
+    "tests": 1507,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1,
+    "suites": 225
+  },
+  "existingGifFiles": [
+    {
+      "sample": "oppo-0",
+      "frames": 75,
+      "duration_ms": 40,
+      "blank_frames": [],
+      "dark_frames": [],
+      "white_frames": [],
+      "loop_difference": 36.637,
+      "adjacent_median": 1.523,
+      "adjacent_max": 61.08
+    },
+    {
+      "sample": "oppo-1",
+      "frames": 75,
+      "duration_ms": 40,
+      "blank_frames": [],
+      "dark_frames": [],
+      "white_frames": [],
+      "loop_difference": 3.718,
+      "adjacent_median": 2.463,
+      "adjacent_max": 4.419
+    },
+    {
+      "sample": "oppo-2",
+      "frames": 75,
+      "duration_ms": 40,
+      "blank_frames": [],
+      "dark_frames": [],
+      "white_frames": [],
+      "loop_difference": 42.159,
+      "adjacent_median": 3.761,
+      "adjacent_max": 30.0
+    },
+    {
+      "sample": "samsung-0",
+      "frames": 75,
+      "duration_ms": 40,
+      "blank_frames": [],
+      "dark_frames": [],
+      "white_frames": [],
+      "loop_difference": 3.876,
+      "adjacent_median": 2.525,
+      "adjacent_max": 4.545
+    },
+    {
+      "sample": "samsung-1",
+      "frames": 75,
+      "duration_ms": 40,
+      "blank_frames": [],
+      "dark_frames": [],
+      "white_frames": [],
+      "loop_difference": 42.159,
+      "adjacent_median": 3.76,
+      "adjacent_max": 30.004
+    },
+    {
+      "sample": "samsung-2",
+      "frames": 73,
+      "duration_ms": 40,
+      "blank_frames": [],
+      "dark_frames": [],
+      "white_frames": [],
+      "loop_difference": 38.962,
+      "adjacent_median": 3.733,
+      "adjacent_max": 14.271
+    },
+    {
+      "sample": "meizu-0",
+      "frames": 75,
+      "duration_ms": 40,
+      "blank_frames": [],
+      "dark_frames": [],
+      "white_frames": [],
+      "loop_difference": 3.718,
+      "adjacent_median": 2.463,
+      "adjacent_max": 4.419
+    },
+    {
+      "sample": "meizu-1",
+      "frames": 75,
+      "duration_ms": 40,
+      "blank_frames": [],
+      "dark_frames": [],
+      "white_frames": [],
+      "loop_difference": 11.749,
+      "adjacent_median": 0.746,
+      "adjacent_max": 2.604
+    },
+    {
+      "sample": "meizu-2",
+      "frames": 75,
+      "duration_ms": 40,
+      "blank_frames": [],
+      "dark_frames": [],
+      "white_frames": [],
+      "loop_difference": 42.159,
+      "adjacent_median": 3.761,
+      "adjacent_max": 30.0
+    }
+  ],
+  "publication": {
+    "code": 202610151408,
+    "sha256": "f121e2d28e57269f3ba855cdd4824efe2428b71987a33e60e7611320ee979dd9",
+    "size": 31122705,
+    "metadataMatches": true,
+    "normalPackage": true,
+    "noProbeEntry": true,
+    "noPrivateTestAssets": true
+  }
+}
