@@ -13,8 +13,10 @@ import java.io.OutputStream
  *
  * ```
  * 接收方 → 发送方   "EDTS" | version u8 | token 16 字节 | receiverId 16 字节
- * 发送方 → 接收方   status u8 | length u64 | 记事文件 length 字节
- * 接收方 → 发送方   ACK（0x06），收完、写好文件之后才回
+ * 发送方 → 接收方   status u8 | length u64 | 元数据 length 字节
+ * 接收方 → 发送方   所需附件编号（见 TapFileTransfer）
+ * 发送方 → 接收方   请求的附件内容
+ * 接收方 → 发送方   ACK（0x06），收完并校验文件之后才回
  * ```
  *
  * 发送方放行一条连接要两项都对上：令牌证明它碰过这台手机（组密码同一次分享里谁都一样）；
@@ -27,7 +29,7 @@ import java.io.OutputStream
  */
 object TapStream {
 
-    const val VERSION: Int = 1
+    const val VERSION: Int = 2
 
     const val STATUS_OK: Int = 0
     const val STATUS_BAD_TOKEN: Int = 1

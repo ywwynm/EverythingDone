@@ -42,6 +42,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import com.ywwynm.everythingdone.taptransfer.ui.receive.TapDetailReceiveController
+import com.ywwynm.everythingdone.taptransfer.protocol.TapFileTransfer
 import com.ywwynm.everythingdone.thingfile.PendingThing
 import com.ywwynm.everythingdone.thingfile.ThingFileUpdate
 import androidx.annotation.StringRes
@@ -2166,6 +2167,14 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 override val accentBackground: ThingBackground get() =
                     getAccentBackground() ?: ThingBackground.pure(getAccentColor())
                 override fun canReceive() = canTapUpdate()
+                override fun existingAttachments(): List<TapFileTransfer.LocalAttachment> {
+                    val snapshot = if (mEditable) buildShareSnapshot() else Thing(mThing!!)
+                    retainReceivedAttachments(snapshot)
+                    return snapshot.attachment.orEmpty().split(AttachmentHelper.SIGNAL).drop(1).mapNotNull {
+                        val type = it.firstOrNull()?.digitToIntOrNull() ?: return@mapNotNull null
+                        if (it.length < 2) null else TapFileTransfer.LocalAttachment(type, File(it.substring(1)))
+                    }
+                }
                 override fun prepareForReceive() {
                     KeyboardUtil.hideKeyboard(window)
                     mEtTitle?.clearFocus()
@@ -2214,6 +2223,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
     private fun applyReceivedContent(prepared: ThingFileUpdate.Prepared, settings: ThingFileUpdate.Settings) {
         check(canTapUpdate())
+        prepared.ensureFilesAvailable()
         val replaceSettings = settings == ThingFileUpdate.Settings.USE_RECEIVED
         val before = captureReceivedState(replaceSettings)
         val desired = ThingFileUpdate.merge(before.thing, prepared.content, settings)

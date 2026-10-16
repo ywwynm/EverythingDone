@@ -1,4 +1,4 @@
-"""仅使用两台已授权设备；原有数据库逐表核对，结果和录屏保存至本机 tmp。"""
+"""仅使用本轮指定设备；原有数据库逐表核对，结果和画面保存至本机 tmp。"""
 import argparse
 import hashlib
 import json
@@ -9,7 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 ADB = r"E:\AndroidSDK\platform-tools\adb.exe"
 PACKAGE = "com.ywwynm.everythingdone"
-DEVICES = {"samsung": "R5CW20BLNKL", "meizu": "192.168.100.67:42641"}
+DEVICES = {"oppo": "3B1629006YC00000", "samsung": "R5CW20BLNKL", "meizu": "192.168.100.67:40807"}
 
 
 def adb(serial, *args, timeout=120):
@@ -22,6 +22,11 @@ def adb(serial, *args, timeout=120):
 def snapshot(serial, path):
     path.mkdir(parents=True, exist_ok=True)
     (path / "EverythingDoneData.db").write_bytes(adb(serial, "exec-out", "run-as", PACKAGE, "cat", "databases/EverythingDoneData.db"))
+    # WAL 模式下只复制主数据库可能看不到最近写入。缺失 WAL 是合法状态。
+    wal = subprocess.run([ADB, "-s", serial, "exec-out", "run-as", PACKAGE, "cat",
+                          "databases/EverythingDoneData.db-wal"], capture_output=True, timeout=30)
+    if wal.returncode == 0 and wal.stdout:
+        (path / "EverythingDoneData.db-wal").write_bytes(wal.stdout)
     summary = {}
     with sqlite3.connect((path / "EverythingDoneData.db").as_uri() + "?mode=ro", uri=True) as db:
         for (table,) in db.execute("select name from sqlite_master where type='table'"):
@@ -42,16 +47,17 @@ def main():
     parser.add_argument("run")
     parser.add_argument("--install", action="store_true")
     parser.add_argument("--record", action="store_true")
-    parser.add_argument("--suite", choices=("all", "animation", "media-entry", "review"), default="all")
+    parser.add_argument("--suite", choices=("all", "animation", "media-entry", "review", "reuse"), default="all")
+    parser.add_argument("--apk", type=Path, default=ROOT / "app/build/outputs/apk/debug/app-debug.apk")
     args = parser.parse_args()
     if not args.run.replace("-", "").replace("_", "").isalnum():
         raise ValueError("运行名只接受字母、数字、横线与下划线")
     serial = DEVICES[args.device]
-    output = ROOT / "tmp/tap-update-20261010" / args.device / args.run
+    output = ROOT / ("tmp/tap-reuse-20261016" if args.suite == "reuse" else "tmp/tap-update-20261010") / args.device / args.run
     before = snapshot(serial, output / "before")
     print(json.dumps({"device": args.device, "before_counts": {k: v["count"] for k, v in before.items()}}, ensure_ascii=False), flush=True)
     if args.install:
-        print(adb(serial, "install", "-r", ROOT / "app/build/outputs/apk/debug/app-debug.apk").decode().strip(), flush=True)
+        print(adb(serial, "install", "-r", args.apk.resolve()).decode().strip(), flush=True)
     remote_video = f"/sdcard/tap-update-{args.run}.mp4"
     recorder = None
     if args.record:
@@ -67,6 +73,10 @@ def main():
     report.update({"data_unchanged": not changed, "changed_tables": changed})
     (output / "result.json").write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
     print(json.dumps(report, ensure_ascii=False), flush=True)
+    if args.suite == "reuse" and report.get("passed"):
+        remote = f"/sdcard/Android/data/{PACKAGE}/files/tap-{args.suite}-result.png"
+        adb(serial, "pull", remote, output / "result.png")
+        adb(serial, "shell", "rm", remote)
     if recorder:
         _, error = recorder.communicate(timeout=60)
         if recorder.returncode:

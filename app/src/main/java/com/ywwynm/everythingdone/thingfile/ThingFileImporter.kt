@@ -393,6 +393,13 @@ object ThingFileImporter {
             for (i in p.attachmentFiles.indices) {
                 val src = p.attachmentFiles[i]
                 val type = p.attachmentTypes[i]
+                if (p.attachmentKeys[i] in p.reusedAttachmentKeys) {
+                    if (!src.isFile) throw IOException("复用附件已不存在")
+                    val existing = type.toString() + src.absolutePath
+                    sb.append(AttachmentHelper.SIGNAL).append(existing)
+                    mapping[p.attachmentKeys[i]] = existing
+                    continue
+                }
                 val dst = createFileFor(type, stamp, thingIndex, i, src.name)
                     ?: throw IOException("建不了附件文件：${src.name}")
                 if (!src.renameTo(dst)) {

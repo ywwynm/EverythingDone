@@ -27,9 +27,13 @@ import com.ywwynm.everythingdone.database.HabitDAO
 import com.ywwynm.everythingdone.helpers.AlarmHelper
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.helpers.CheckListHelper
+import com.ywwynm.everythingdone.helpers.VideoCoverPreviewManager
 import com.ywwynm.everythingdone.model.*
 import com.ywwynm.everythingdone.taptransfer.transport.TapIncomingOffer
 import com.ywwynm.everythingdone.taptransfer.transport.TapReceiverTransport
+import com.ywwynm.everythingdone.taptransfer.transport.TapReceivedPayload
+import com.ywwynm.everythingdone.taptransfer.protocol.TapFileTransfer
+import com.ywwynm.everythingdone.taptransfer.protocol.TapStream
 import com.ywwynm.everythingdone.taptransfer.ui.receive.TapDetailReceiveController
 import com.ywwynm.everythingdone.taptransfer.ui.receive.TapReceivePull
 import com.ywwynm.everythingdone.taptransfer.ui.receive.TapUpdateSettingsDialog
@@ -37,6 +41,11 @@ import com.ywwynm.everythingdone.thingfile.*
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.net.InetAddress
+import java.net.ServerSocket
+import java.net.Socket
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
@@ -67,7 +76,8 @@ class TapDetailUpdateProbe : Instrumentation() {
             helper = DBHelper(targetContext); db = helper.writableDatabase
             dir = File(targetContext.cacheDir, "tap-update-probe-${System.currentTimeMillis()}").apply { mkdirs() }
             prefs.edit().putBoolean("simulate", true).commit()
-            if (args.getString("suite") == "media-entry") mediaEntryCases()
+            if (args.getString("suite") == "reuse") { attachmentReuseCases(); readerCases(); reviewCases() }
+            else if (args.getString("suite") == "media-entry") mediaEntryCases()
             else if (args.getString("suite") == "review") reviewCases()
             else {
                 if (args.getString("suite") != "animation") { storageCases(); readerCases() }
@@ -115,6 +125,181 @@ class TapDetailUpdateProbe : Instrumentation() {
         })
         ids += id
         return read(id)
+    }
+
+    /** 用真实 TCP 协议在单机回环上传输，再交付生产接收回调，不依赖实体 NFC 碰触。 */
+    private fun transfer(content: ThingShareContent, local: List<TapFileTransfer.LocalAttachment>,
+        receiver: TapDetailReceiveController? = null, reverse: Boolean = false): TapFileTransfer.Received {
+        val outgoing = ThingFileWriter.prepareTransfer(targetContext, content)
+        val executor = Executors.newSingleThreadExecutor()
+        val token = ByteArray(16) { it.toByte() }
+        val receiverId = ByteArray(16) { (it + 32).toByte() }
+        try {
+            ServerSocket(0, 1, InetAddress.getLoopbackAddress()).use { server ->
+                val sending = executor.submit<Long> {
+                    (if (reverse) Socket(InetAddress.getLoopbackAddress(), server.localPort) else server.accept()).use { socket ->
+                        socket.soTimeout = 30000
+                        if (reverse) TapStream.writeSenderHello(socket.getOutputStream(), token, receiverId)
+                        val hello = TapStream.readClientHello(socket.getInputStream())
+                        check(hello.token.contentEquals(token) && hello.receiverId.contentEquals(receiverId))
+                        val sent = TapFileTransfer.send(socket.getInputStream(), socket.getOutputStream(), outgoing)
+                        TapStream.readAck(socket.getInputStream())
+                        sent
+                    }
+                }
+                val received = (if (reverse) server.accept() else Socket(InetAddress.getLoopbackAddress(), server.localPort)).use { socket ->
+                    socket.soTimeout = 30000
+                    if (reverse) check(TapStream.readSenderHello(socket.getInputStream()).token.contentEquals(token))
+                    TapStream.writeClientHello(socket.getOutputStream(), token, receiverId)
+                    TapFileTransfer.receive(socket.getInputStream(), socket.getOutputStream(),
+                        File(dir, "wire-${System.nanoTime()}"), local,
+                        connected = { total -> if (receiver != null) main { receiver.onConnected(total) } },
+                        progress = { done, total -> if (receiver != null) main { receiver.onProgress(done, total) } }).also {
+                        TapStream.writeAck(socket.getOutputStream())
+                    }
+                }
+                check(sending.get(30, TimeUnit.SECONDS) == received.transferredBytes)
+                return received
+            }
+        } finally { executor.shutdownNow() }
+    }
+
+    private fun attachmentReuseCases() {
+        fun key(type: Int, file: File) = "$type${file.absolutePath}"
+        fun keys(thing: Thing) = thing.attachment.orEmpty().split(AttachmentHelper.SIGNAL).drop(1)
+        fun locals(thing: Thing) = keys(thing).map { TapFileTransfer.LocalAttachment(it[0].digitToInt(), File(it.substring(1))) }
+        fun image(name: String, color: Int): File = File(dir, name).also { file ->
+            val bitmap = Bitmap.createBitmap(96, 72, Bitmap.Config.ARGB_8888)
+            bitmap.eraseColor(color)
+            file.outputStream().use { check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+            bitmap.recycle()
+        }
+        val video = File(dir, "original.mp4").also { file -> targetContext.assets.open("detail-regression/video.mp4").use { input ->
+            file.outputStream().use { input.copyTo(it) }
+        } }
+        val a = image("original-a.png", Color.RED)
+        val b = image("original-b.png", Color.BLUE)
+        val videoKey = key(1, video)
+        val old = fixture().apply {
+            content = "复用验证：更新前"
+            attachment = AttachmentHelper.toAttachmentStr(listOf(videoKey, key(0, a), key(0, b)), emptyList())
+            thingCardAppearance = ThingCardAppearance(mediaSourceKey = videoKey,
+                sources = mapOf(videoKey to ThingCardAppearance.SourceAppearance(videoFrameMs = 0)))
+            detailAttachmentMediaAppearance = DetailAttachmentMediaAppearance().withSource(videoKey,
+                DetailAttachmentMediaAppearance.SourceAppearance(videoFrameMs = 0))
+        }
+        ThingFileUpdate.write(targetContext, old, null)
+        val gif = checkNotNull(VideoCoverPreviewManager.generateBlocking(targetContext, video.path, 0))
+        files += gif
+        val gifHash = TapFileTransfer.identify(0, gif)
+        val gifTime = gif.lastModified()
+        val videoTime = video.lastModified()
+        val workManager = androidx.work.WorkManager.getInstance(targetContext)
+        fun workIds() = workManager.getWorkInfosForUniqueWork(gif.name).get(30, TimeUnit.SECONDS).map { it.id }.toSet()
+        val beforeWork = workIds()
+        val senderVideo = File(dir, "renamed-video.mp4").also { video.copyTo(it) }
+        val senderA = File(dir, "renamed-a.png").also { a.copyTo(it) }
+        val senderB = File(dir, "renamed-b.png").also { b.copyTo(it) }
+        val senderKey = key(1, senderVideo)
+        val incoming = Thing(old).apply {
+            content = "复用验证：正文已更新，视频位于第三个附件。"
+            attachment = AttachmentHelper.toAttachmentStr(listOf(key(0, senderB), key(0, senderA), senderKey), emptyList())
+            thingCardAppearance = thingCardAppearance.remapSources(mapOf(videoKey to senderKey))
+            detailAttachmentMediaAppearance = detailAttachmentMediaAppearance.remapSources(mapOf(videoKey to senderKey))
+        }
+        val activity = open(old.id)
+        fun apply(thing: Thing, expectedBytes: Long, reverse: Boolean = false) {
+            val receiver = begin(activity)
+            val host = main { field<TapDetailReceiveController.Host>(receiver, "host") }
+            val local = main { host.existingAttachments() }
+            main { receiver.onTouched(TapIncomingOffer("附件复用模拟", 1, intArrayOf(thing.getColor()))) }
+            val received = transfer(ThingShareContent.ofThings(listOf(thing)), local, receiver, reverse)
+            check(received.transferredBytes == expectedBytes) { "附件实际传输 ${received.transferredBytes}，预期 $expectedBytes" }
+            main { receiver.onReceived(TapReceivedPayload.Files(received)) }
+            await(30000) { !receiver.isReceiving }
+            check(read(old.id).content == thing.content)
+            files += locals(read(old.id)).map { it.file }.filter { it != video && it != a && it != b }
+        }
+        apply(incoming, 0)
+        check(keys(read(old.id)) == listOf(key(0, b), key(0, a), videoKey))
+        check(video.lastModified() == videoTime && gif.lastModified() == gifTime)
+        check(TapFileTransfer.identify(0, gif) == gifHash && workIds() == beforeWork)
+        check(VideoCoverPreviewManager.getReadyPreview(targetContext, video.path, 0) == gif)
+        check(read(old.id).thingCardAppearance.mediaSourceKey == videoKey)
+        cases.put("附件 1 匹配来件 3、全部改名重排：附件传输 0 字节，原路径及 GIF 完整保留，无新生成任务")
+        menu(activity, R.id.act_undo)
+        check(read(old.id).attachment == old.attachment && read(old.id).content == old.content)
+        menu(activity, R.id.act_redo)
+        check(keys(read(old.id)) == listOf(key(0, b), key(0, a), videoKey))
+        check(video.exists() && gif.exists())
+        cases.put("重排复用后整次撤销／重做，旧附件与 GIF 均可用")
+
+        val added = image("added.png", Color.GREEN)
+        val mixed = Thing(incoming).apply {
+            content = "新增绿色附件，删除红色附件。"
+            attachment = AttachmentHelper.toAttachmentStr(listOf(key(0, added), senderKey, key(0, senderB)), emptyList())
+        }
+        apply(mixed, added.length(), reverse = true)
+        val mixedKeys = keys(read(old.id))
+        check(mixedKeys[1] == videoKey && mixedKeys[2] == key(0, b) && mixedKeys.size == 3)
+        check(File(mixedKeys[0].substring(1)).readBytes().contentEquals(added.readBytes()))
+        check(File(mixedKeys[0].substring(1)).extension == "png")
+        menu(activity, R.id.act_undo)
+        check(keys(read(old.id)) == listOf(key(0, b), key(0, a), videoKey))
+        menu(activity, R.id.act_redo)
+        check(keys(read(old.id)) == mixedKeys)
+        cases.put("反向建组的 TCP 方向模拟：新增、删除与重排混合，仅发送新增 PNG 的 ${added.length()} 字节，撤销／重做完整")
+
+        val frameChanged = Thing(read(old.id)).apply {
+            content = "同一视频改用新的封面起始时间。"
+            thingCardAppearance = thingCardAppearance.copy(sources = thingCardAppearance.sources +
+                (videoKey to ThingCardAppearance.SourceAppearance(videoFrameMs = 600)))
+            detailAttachmentMediaAppearance = detailAttachmentMediaAppearance.withSource(videoKey,
+                DetailAttachmentMediaAppearance.SourceAppearance(videoFrameMs = 600))
+        }
+        apply(frameChanged, 0)
+        check(read(old.id).thingCardAppearance.sources[videoKey]?.videoFrameMs == 600L)
+        check(read(old.id).detailAttachmentMediaAppearance.source(videoKey)?.videoFrameMs == 600L)
+        // 更新外观已可能触发唯一 Worker；测试必须走相同调度，不能再直接并发调用编码器。
+        main { VideoCoverPreviewManager.requestPreview(targetContext, video.path, 600) {} }
+        await(90000) { VideoCoverPreviewManager.getReadyPreview(targetContext, video.path, 600) != null }
+        val changedGif = checkNotNull(VideoCoverPreviewManager.getReadyPreview(targetContext, video.path, 600))
+        files += changedGif
+        check(changedGif != gif && gif.exists() && video.lastModified() == videoTime)
+        check(VideoCoverPreviewManager.generateBlocking(targetContext, video.path, 600) == changedGif)
+        cases.put("只改封面参数仍传输 0 附件字节，参数正确映射到原视频；新参数生成独立 GIF，再次请求复用")
+        uiAutomation.takeScreenshot()?.let { bitmap ->
+            File(targetContext.getExternalFilesDir(null), "tap-reuse-result.png").outputStream().use {
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
+            }
+            bitmap.recycle()
+        }
+
+        val duplicateFile = File(dir, "duplicate-video.mp4").also { video.copyTo(it) }
+        val duplicateKey = key(1, duplicateFile)
+        val duplicate = Thing(frameChanged).apply {
+            attachment = AttachmentHelper.toAttachmentStr(listOf(videoKey, duplicateKey), emptyList())
+            detailAttachmentMediaAppearance = DetailAttachmentMediaAppearance()
+                .withSource(videoKey, DetailAttachmentMediaAppearance.SourceAppearance(videoFrameMs = 0))
+                .withSource(duplicateKey, DetailAttachmentMediaAppearance.SourceAppearance(videoFrameMs = 600))
+        }
+        val received = transfer(ThingShareContent.ofThings(listOf(duplicate)), listOf(TapFileTransfer.LocalAttachment(1, video)))
+        check(received.transferredBytes == 0L && received.borrowedKeys.size == 1)
+        val parsed = TapReceivedPayload.Files(received).read(targetContext) as ThingFileReader.Result.Ok
+        val prepared = ThingFileUpdate.prepare(parsed.things.single())
+        check(keys(prepared.content).toSet().size == 2)
+        check(prepared.content.detailAttachmentMediaAppearance.sources.values.map { it.videoFrameMs }.toSet() == setOf(0L, 600L))
+        prepared.discard(); received.discard()
+        check(video.exists() && gif.exists())
+        cases.put("重复内容只复用／本地复制，不合并附件条目；两个封面参数各自保留，放弃更新不删除借用文件")
+
+        val late = transfer(ThingShareContent.ofThings(listOf(frameChanged)), locals(read(old.id)))
+        val canceled = begin(activity)
+        main { canceled.exit(immediate = true); canceled.onReceived(TapReceivedPayload.Files(late)) }
+        check(!late.directory.exists() && video.exists() && gif.exists())
+        check(read(old.id).content == frameChanged.content)
+        cases.put("取消后的协商来件只清理自有目录，原视频和 GIF 保留")
+        main { activity.finish() }; await { activity.isDestroyed }; current = null
     }
 
     /** 通过生产详情与菜单验证：接收让位不能删掉顶部附件的一段像素。 */

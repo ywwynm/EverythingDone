@@ -8,6 +8,7 @@ import java.io.IOException
 import java.net.Inet4Address
 import java.net.InetAddress
 import java.net.Socket
+import java.net.SocketException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
@@ -69,7 +70,9 @@ class TapReceiverServerTest {
                         1 -> TapStream.writeSenderHello(s.getOutputStream(), offer.token, ByteArray(16))
                         2 -> TapStream.writeClientHello(s.getOutputStream(), offer.token, offer.receiverId)
                     }
-                    assertEquals(-1, s.getInputStream().read())
+                    // 错方向的前导只读到 magic 就拒绝；未读完数据时 Windows 可回 RST 而非 EOF。
+                    val closed = try { s.getInputStream().read() == -1 } catch (_: SocketException) { true }
+                    assertTrue("未认证连接必须被关闭", closed)
                 }
             }
             Socket("127.0.0.1", server.port).use { s ->

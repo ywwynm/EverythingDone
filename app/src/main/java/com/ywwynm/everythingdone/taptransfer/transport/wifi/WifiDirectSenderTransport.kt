@@ -24,6 +24,7 @@ import com.ywwynm.everythingdone.taptransfer.protocol.TapCardResponder
 import com.ywwynm.everythingdone.taptransfer.protocol.TapHandshake
 import com.ywwynm.everythingdone.taptransfer.protocol.TapReceiverGroupOffer
 import com.ywwynm.everythingdone.taptransfer.protocol.TapStream
+import com.ywwynm.everythingdone.taptransfer.protocol.TapFileTransfer
 import com.ywwynm.everythingdone.taptransfer.transport.TapFailure
 import com.ywwynm.everythingdone.taptransfer.transport.TapSenderTransport
 import com.ywwynm.everythingdone.taptransfer.transport.nfc.TapSenderGate
@@ -790,7 +791,7 @@ class WifiDirectSenderTransport(private val context: Context,
                     listener?.onPeerConnected()
                 }
             }
-            socket.soTimeout = SOCKET_TIMEOUT_MS
+            socket.soTimeout = PAYLOAD_TIMEOUT_MS.toInt()
             val file = offer?.payload?.await(PAYLOAD_TIMEOUT_MS)
             if (file == null) {
                 diagnostics.failure("TCP 无可发送文件")
@@ -798,14 +799,11 @@ class WifiDirectSenderTransport(private val context: Context,
                 main.post { failPeer(g, peer, TapFailure.FILE) }
                 return
             }
-            val total = file.length()
-            stage = "发送文件"
-            diagnostics.event("TCP 开始发送文件", "bytes=$total")
-            TapStream.writeHeader(output, TapStream.STATUS_OK, total)
+            stage = "协商附件并发送缺失文件"
+            diagnostics.event("TCP 开始协商附件", "attachments=${file.sources.size}")
             var lastPost = 0L
             var diagnosticProgress = 0L
-            FileInputStream(file).use { fis ->
-                TapStream.copyExactly(fis, output, total) { done ->
+            val sentBytes = TapFileTransfer.send(input, output, file) { done, total ->
                     val now = SystemClock.uptimeMillis()
                     if (now - diagnosticProgress >= 1000 || done == total) {
                         diagnosticProgress = now
@@ -815,8 +813,9 @@ class WifiDirectSenderTransport(private val context: Context,
                         lastPost = now
                         main.post { if (g == generation && current === peer) listener?.onProgress(done, total) }
                     }
-                }
             }
+            socket.soTimeout = SOCKET_TIMEOUT_MS
+            diagnostics.event("附件传输完成", "attachmentBytes=$sentBytes")
             diagnostics.event("文件字节已发送", "等待 ACK，timeoutMs=$SOCKET_TIMEOUT_MS")
             stage = "等待接收 ACK"
             TapStream.readAck(input)

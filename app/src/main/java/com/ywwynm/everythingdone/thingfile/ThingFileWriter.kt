@@ -11,6 +11,7 @@ import com.ywwynm.everythingdone.model.Habit
 import com.ywwynm.everythingdone.model.Reminder
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingFolder
+import com.ywwynm.everythingdone.taptransfer.protocol.TapFileTransfer
 
 import org.json.JSONArray
 import org.json.JSONObject
@@ -78,10 +79,6 @@ object ThingFileWriter {
         if (content.things.isEmpty()) {
             return Result.Failed(context.getString(R.string.thing_file_error_no_things))
         }
-        val reminderDao = ReminderDAO.getInstance(context)
-        val habitDao = HabitDAO.getInstance(context)
-        val withFolders = content.hasFolders
-
         var attachmentCount = 0
         try {
             FileOutputStream(dst).use { fos ->
@@ -89,55 +86,16 @@ object ThingFileWriter {
                     // 附件多为已压缩的媒体，用最快级别；清单是文本，仍有压缩收益。
                     zos.setLevel(Deflater.BEST_SPEED)
 
-                    val thingsJson = JSONArray()
-                    val foldersJson = JSONArray()
-                    var nextFolderKey = 0
-
-                    fun visit(nodes: List<ThingShareContent.Node>, parentKey: Int?) {
-                        for ((order, node) in nodes.withIndex()) {
-                            // 顶层的项不带置顶：收到的一律不置顶
-                            val sticky = parentKey != null && node.sticky
-                            when (node) {
-                                is ThingShareContent.ThingNode -> {
-                                    val thing = node.thing
-                                    val index = thingsJson.length()
-                                    val files = writeAttachments(zos, thing, index, keptAttachments?.get(thing.id))
-                                    attachmentCount += files.size
-                                    val o = toJson(
-                                        thing,
-                                        files,
-                                        node.reminder ?: reminderDao?.getReminderById(thing.id),
-                                        habitDao?.getHabitById(thing.id)
-                                    )
-                                    if (withFolders) {
-                                        putPlacement(o, parentKey, order, sticky)
-                                    }
-                                    thingsJson.put(o)
-                                }
-                                is ThingShareContent.FolderNode -> {
-                                    val key = nextFolderKey++
-                                    val o = toJson(node.folder, key)
-                                    putPlacement(o, parentKey, order, sticky)
-                                    foldersJson.put(o)
-                                    visit(node.children, key)
-                                }
+                    val manifest = manifest(context, content) { thing, index ->
+                        attachmentEntries(thing, index, keptAttachments?.get(thing.id)).also { entries ->
+                            attachmentCount += entries.size
+                            for (entry in entries) {
+                                zos.putNextEntry(ZipEntry(entry.entry))
+                                copy(File(entry.typePathName.substring(1)), zos)
+                                zos.closeEntry()
                             }
                         }
                     }
-                    visit(content.items, null)
-
-                    val manifest = JSONObject()
-                    manifest.put(ThingFile.KEY_FORMAT, ThingFile.FORMAT)
-                    manifest.put(
-                        ThingFile.KEY_VERSION,
-                        if (withFolders) ThingFile.VERSION else ThingFile.VERSION_THINGS_ONLY
-                    )
-                    manifest.put(ThingFile.KEY_APP_VERSION_CODE, appVersionCode(context))
-                    manifest.put(ThingFile.KEY_EXPORT_TIME, System.currentTimeMillis())
-                    if (withFolders) {
-                        manifest.put(ThingFile.KEY_FOLDERS, foldersJson)
-                    }
-                    manifest.put(ThingFile.KEY_THINGS, thingsJson)
 
                     zos.putNextEntry(ZipEntry(ThingFile.ENTRY_MANIFEST))
                     zos.write(manifest.toString().toByteArray(StandardCharsets.UTF_8))
@@ -156,6 +114,59 @@ object ThingFileWriter {
             )
         }
         return Result.Ok(dst, content.things.size, content.folderCount, attachmentCount, dst.length())
+    }
+
+    /** 碰一碰只预备元数据和内容摘要，文件在接收方报出缺失项后才读取发送。 */
+    fun prepareTransfer(context: Context, content: ThingShareContent): TapFileTransfer.Outgoing {
+        require(content.things.isNotEmpty())
+        val sources = ArrayList<TapFileTransfer.Source>()
+        val json = manifest(context, content) { thing, index ->
+            attachmentEntries(thing, index, null).also { entries ->
+                entries.forEach { entry -> sources.add(TapFileTransfer.source(entry.entry, entry.type,
+                    File(entry.typePathName.substring(1)))) }
+            }
+        }
+        return TapFileTransfer.Outgoing(json.toString().toByteArray(StandardCharsets.UTF_8), sources)
+    }
+
+    private fun manifest(context: Context, content: ThingShareContent,
+        attachments: (Thing, Int) -> List<AttachmentEntry>): JSONObject {
+        val reminderDao = ReminderDAO.getInstance(context)
+        val habitDao = HabitDAO.getInstance(context)
+        val thingsJson = JSONArray()
+        val foldersJson = JSONArray()
+        var nextFolderKey = 0
+        fun visit(nodes: List<ThingShareContent.Node>, parentKey: Int?) {
+            for ((order, node) in nodes.withIndex()) {
+                val sticky = parentKey != null && node.sticky
+                when (node) {
+                    is ThingShareContent.ThingNode -> {
+                        val thing = node.thing
+                        val o = toJson(thing, attachments(thing, thingsJson.length()),
+                            node.reminder ?: reminderDao?.getReminderById(thing.id),
+                            habitDao?.getHabitById(thing.id))
+                        if (content.hasFolders) putPlacement(o, parentKey, order, sticky)
+                        thingsJson.put(o)
+                    }
+                    is ThingShareContent.FolderNode -> {
+                        val key = nextFolderKey++
+                        val o = toJson(node.folder, key)
+                        putPlacement(o, parentKey, order, sticky)
+                        foldersJson.put(o)
+                        visit(node.children, key)
+                    }
+                }
+            }
+        }
+        visit(content.items, null)
+        return JSONObject().apply {
+            put(ThingFile.KEY_FORMAT, ThingFile.FORMAT)
+            put(ThingFile.KEY_VERSION, if (content.hasFolders) ThingFile.VERSION else ThingFile.VERSION_THINGS_ONLY)
+            put(ThingFile.KEY_APP_VERSION_CODE, appVersionCode(context))
+            put(ThingFile.KEY_EXPORT_TIME, System.currentTimeMillis())
+            if (content.hasFolders) put(ThingFile.KEY_FOLDERS, foldersJson)
+            put(ThingFile.KEY_THINGS, thingsJson)
+        }
     }
 
     /** 所在的文件夹（顶层不写）、在那一层里的先后、是否置顶（只写置顶的）。 */
@@ -188,8 +199,7 @@ object ThingFileWriter {
      * 把一条记事保留下来的附件写进 zip，返回它们在 zip 里的条目描述。
      * 原文件已经不在（用户在系统里删掉了）时静默跳过——与列表、详情页的既有行为一致。
      */
-    private fun writeAttachments(
-        zos: ZipOutputStream,
+    private fun attachmentEntries(
         thing: Thing,
         index: Int,
         kept: Set<String>?
@@ -211,13 +221,10 @@ object ThingFileWriter {
             }
             val type = typePathName[0].digitToIntOrNull() ?: continue
             val file = File(typePathName.substring(1))
-            if (!file.exists()) {
+            if (!file.isFile) {
                 continue
             }
             val entryName = "${ThingFile.ATTACHMENT_DIR}/$index/${n}_${file.name}"
-            zos.putNextEntry(ZipEntry(entryName))
-            copy(file, zos)
-            zos.closeEntry()
             result.add(AttachmentEntry(type, file.name, entryName, typePathName))
             n++
         }

@@ -87,7 +87,7 @@ class SimulatedSenderTransport(private val context: Context) : TapSenderTranspor
                     if (file == null) {
                         listener?.onFailed(TapFailure.FILE)
                     } else {
-                        stepProgress(g, peer, file.length().coerceAtLeast(1L), 1)
+                        stepProgress(g, peer, file.totalBytes.coerceAtLeast(1L), 1)
                     }
                 }
             }

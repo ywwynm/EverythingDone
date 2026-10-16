@@ -30,6 +30,8 @@ import com.ywwynm.everythingdone.taptransfer.protocol.TapHandshake
 import com.ywwynm.everythingdone.taptransfer.protocol.TapReaderExchange
 import com.ywwynm.everythingdone.taptransfer.protocol.TapReceiverGroupOffer
 import com.ywwynm.everythingdone.taptransfer.protocol.TapStream
+import com.ywwynm.everythingdone.taptransfer.protocol.TapFileTransfer
+import com.ywwynm.everythingdone.taptransfer.transport.TapReceivedPayload
 import com.ywwynm.everythingdone.taptransfer.transport.TapFailure
 import com.ywwynm.everythingdone.taptransfer.transport.TapIncomingOffer
 import com.ywwynm.everythingdone.taptransfer.transport.TapReceiverTransport
@@ -63,6 +65,11 @@ class WifiDirectReceiverTransport(private val activity: Activity,
     private var channel: WifiP2pManager.Channel? = null
 
     private var listener: TapReceiverTransport.Listener? = null
+    private var existingAttachments = emptyList<TapFileTransfer.LocalAttachment>()
+
+    override fun setExistingAttachments(attachments: List<TapFileTransfer.LocalAttachment>) {
+        existingAttachments = attachments.toList()
+    }
     private var receiverName = ""
     private val receiverId = ByteArray(TapApdu.RECEIVER_ID_BYTES)
 
@@ -488,10 +495,11 @@ class WifiDirectReceiverTransport(private val activity: Activity,
                          reverse: TapReceiverGroupOffer? = null) {
         // 确认发出之后，即使接收状态已经退出也要把文件交给它：发送方已经显示已发送了
         val receiver = listener ?: return
+        val existing = existingAttachments
         val until = currentAttempt.deadlineMs
         val thread = Thread({
             diagnostics.event("开始 TCP 接收")
-            val dst = File(TapTransfer.workDir(context, "in"), "recv-${System.currentTimeMillis()}.edthing")
+            val dst = File(TapTransfer.workDir(context, "in"), "recv-${java.util.UUID.randomUUID()}")
             var s: Socket? = null
             var committed = false
             try {
@@ -531,14 +539,13 @@ class WifiDirectReceiverTransport(private val activity: Activity,
                 diagnostics.event("TCP 身份信息已发送", "等待文件头，timeoutMs=$HEADER_TIMEOUT_MS")
                 // 附件大时发送方可能还在写记事文件：头部与发送方等文件的时限对齐，数据段恢复短超时
                 s.soTimeout = HEADER_TIMEOUT_MS
-                val total = TapStream.readHeader(input)
-                diagnostics.event("TCP 文件头有效", "bytes=$total")
-                s.soTimeout = SOCKET_TIMEOUT_MS
-                main.post { if (isCurrent(g, currentAttempt)) listener?.onConnected(total) }
                 var lastPost = 0L
                 var diagnosticProgress = 0L
-                FileOutputStream(dst).use { fos ->
-                    TapStream.copyExactly(input, fos, total) { done ->
+                val received = TapFileTransfer.receive(input, output, dst, existing, connected = { total ->
+                    s.soTimeout = SOCKET_TIMEOUT_MS
+                    diagnostics.event("附件协商完成", "bytes=$total")
+                    main.post { if (isCurrent(g, currentAttempt)) listener?.onConnected(total) }
+                }) { done, total ->
                         val now = SystemClock.uptimeMillis()
                         if (now - diagnosticProgress >= 1000 || done == total) {
                             diagnosticProgress = now
@@ -548,14 +555,13 @@ class WifiDirectReceiverTransport(private val activity: Activity,
                             lastPost = now
                             main.post { if (isCurrent(g, currentAttempt)) listener?.onProgress(done, total) }
                         }
-                    }
                 }
                 synchronized(ackLock) {
                     if (!isCurrent(g, currentAttempt)) {
                         throw IOException("接收状态已经退出")
                     }
                     TapStream.writeAck(output)
-                    diagnostics.event("TCP 接收 ACK 已写出", "bytes=$total；本端写入成功，对方是否读到需看发送端诊断")
+                    diagnostics.event("TCP 接收 ACK 已写出", "attachmentBytes=${received.transferredBytes}, reused=${received.borrowedKeys.size}")
                     committed = true
                 }
                 run {
@@ -578,7 +584,7 @@ class WifiDirectReceiverTransport(private val activity: Activity,
                         channel?.let { leaveGroup(it, joiningSsid, null) }
                         joiningSsid = null
                     }
-                    receiver.onReceived(dst)
+                    receiver.onReceived(TapReceivedPayload.Files(received))
                 }
             } catch (e: IOException) {
                 if (!isCurrent(g, currentAttempt)) {
@@ -597,7 +603,7 @@ class WifiDirectReceiverTransport(private val activity: Activity,
                 }
                 if (!committed) {
                     // 传了一半的内容一律丢弃（决策 2026-09-24）
-                    dst.delete()
+                    dst.deleteRecursively()
                 }
             }
         }, "tap-receive")

@@ -14,6 +14,7 @@ import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.model.ThingCardAppearance
 import com.ywwynm.everythingdone.model.ThingFolderCardPresentation
+import com.ywwynm.everythingdone.taptransfer.protocol.TapFileTransfer
 
 import org.json.JSONObject
 
@@ -96,6 +97,38 @@ object ThingFileReader {
 
     /** 清单里声明的附件在压缩包里找不到，或类型不认识：文件不完整。 */
     private class BrokenAttachmentException(val displayName: String) : Exception(displayName)
+
+    /** 仅接收本机协商生成的文件映射；普通 ZIP 导入绝不接受外部绝对路径引用。 */
+    fun readTransfer(context: Context, received: TapFileTransfer.Received): Result {
+        try {
+            received.verifyBorrowed()
+            val json = received.manifest.toString(StandardCharsets.UTF_8)
+            val manifest = JSONObject(json)
+            val descriptors = received.descriptors.associateBy { it.key }
+            val used = HashSet<String>()
+            val things = manifest.getJSONArray(ThingFile.KEY_THINGS)
+            for (i in 0 until things.length()) {
+                val attachments = things.getJSONObject(i).optJSONArray(ThingFile.KEY_ATTACHMENTS) ?: continue
+                for (j in 0 until attachments.length()) {
+                    val attachment = attachments.getJSONObject(j)
+                    val key = attachment.getString(ThingFile.KEY_ATTACHMENT_ENTRY)
+                    val descriptor = descriptors[key] ?: throw IOException("附件描述缺失")
+                    if (!used.add(key) || descriptor.identity.type != attachment.getInt(ThingFile.KEY_ATTACHMENT_TYPE))
+                        throw IOException("附件清单不一致")
+                }
+            }
+            if (used != descriptors.keys) throw IOException("存在未声明附件")
+            val result = parse(context, json, received.files, received.directory)
+            if (result is Result.Ok) result.things.forEach { pending ->
+                pending.reusedAttachmentKeys = received.borrowedKeys.intersect(pending.attachmentKeys.toSet())
+            }
+            return result
+        } catch (e: Exception) {
+            received.discard()
+            Log.e(TAG, "解析协商来件失败", e)
+            return Result.Broken(ThingFileMessages.of(context, R.string.thing_file_error_manifest, e.message))
+        }
+    }
 
     @JvmStatic
     fun read(context: Context, input: InputStream): Result {

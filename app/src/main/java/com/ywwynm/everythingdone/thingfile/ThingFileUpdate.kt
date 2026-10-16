@@ -17,12 +17,19 @@ import java.io.File
 object ThingFileUpdate {
     enum class Settings { KEEP_CURRENT, USE_RECEIVED }
 
-    class Prepared(val pending: PendingThing, val content: Thing, val files: List<File>) {
+    class Prepared(val pending: PendingThing, val content: Thing, val files: List<File>,
+        allFiles: List<File> = files) {
+        private val stamps = allFiles.map { Triple(it, it.length(), it.lastModified()) }
         var isCommitted = false
             private set
         fun markCommitted() { isCommitted = true }
         /** 尚未用于一次成功更新的文件可以直接清理；成功后交给详情页的撤销历史管理。 */
         fun discard() { if (!isCommitted) files.forEach { it.delete() } }
+        fun ensureFilesAvailable() {
+            check(stamps.all { (file, size, time) -> file.isFile && file.length() == size && file.lastModified() == time }) {
+                "更新前附件已变化"
+            }
+        }
     }
 
     /** 包含取消打卡等全部记录，不能使用只返回已完成记录的 DAO 查询作为撤销快照。 */
@@ -41,7 +48,7 @@ object ThingFileUpdate {
             thingCardAppearance = thingCardAppearance.remapSources(moved.keyMapping)
             detailAttachmentMediaAppearance = detailAttachmentMediaAppearance.remapSources(moved.keyMapping)
         }
-        return Prepared(pending, content, moved.files)
+        return Prepared(pending, content, moved.files, moved.keyMapping.values.map { File(it.substring(1)) })
     }
 
     fun merge(current: Thing, incoming: Thing, settings: Settings): Thing = Thing(current).apply {

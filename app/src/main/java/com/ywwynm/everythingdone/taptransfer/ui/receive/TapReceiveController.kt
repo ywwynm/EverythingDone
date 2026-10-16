@@ -36,6 +36,7 @@ import com.ywwynm.everythingdone.taptransfer.diagnostics.TapDiagnostics
 import com.ywwynm.everythingdone.taptransfer.transport.TapFailure
 import com.ywwynm.everythingdone.taptransfer.transport.TapIncomingOffer
 import com.ywwynm.everythingdone.taptransfer.transport.TapReceiverTransport
+import com.ywwynm.everythingdone.taptransfer.transport.TapReceivedPayload
 import com.ywwynm.everythingdone.taptransfer.ui.ProgressSmoother
 import com.ywwynm.everythingdone.taptransfer.ui.TapPrerequisiteWatcher
 import com.ywwynm.everythingdone.taptransfer.ui.TapProgressModel
@@ -156,7 +157,7 @@ class TapReceiveController(
 
     // 这一台的接收状态：碰上时建立，拼出、失败或退出时清掉
     private var busy = false
-    private var receivedFile: File? = null
+    private var receivedFile: TapReceivedPayload? = null
 
     /** 收到的顶层各项（按 stableId），按写进数据库的先后。 */
     private var importedIds: MutableList<Long>? = null
@@ -569,8 +570,8 @@ class TapReceiveController(
         model.progress(done, total)
     }
 
-    override fun onReceived(file: File) {
-        diagnostics.event("收到完整文件", "bytes=${file.length()}, receiving=$receiving")
+    override fun onReceived(file: TapReceivedPayload) {
+        diagnostics.event("收到完整文件", "attachmentBytes=${file.transferredBytes}, receiving=$receiving")
         if (!receiving) {
             // 确认字节发出之后才退出的接收：发送方已经显示已发送，文件照样导入，只是不播动画
             importQuietly(file)
@@ -726,7 +727,7 @@ class TapReceiveController(
 
     // ---------------------------------------------------------------- 导入
 
-    private fun importInBackground(file: File) {
+    private fun importInBackground(file: TapReceivedPayload) {
         val diagnostic = diagnostics
         diagnostic.event("开始解析和导入")
         val context = activity.applicationContext
@@ -735,14 +736,14 @@ class TapReceiveController(
         importedIds = ids
         IMPORTER.execute {
             val result = try {
-                FileInputStream(file).use { ThingFileReader.read(context, it) }
+                file.read(context)
             } catch (e: Exception) {
                 Log.e(TAG, "读收到的记事文件失败", e)
                 null
             }
             if (result !is ThingFileReader.Result.Ok) {
                 diagnostic.failure("记事文件解析失败", "result=${result?.javaClass?.simpleName}")
-                file.delete()
+                file.discard()
                 val message = (result as? ThingFileReader.Result.Broken)?.message
                 main.post { failCurrent(message) }
                 return@execute
@@ -764,7 +765,7 @@ class TapReceiveController(
                     })
             } finally {
                 ThingFileReader.cleanUp(result.tempDir)
-                file.delete()
+                file.discard()
             }
             main.post { onImported(summary) }
             diagnostic.event("导入完成", "imported=${summary.imported}")
@@ -792,18 +793,18 @@ class TapReceiveController(
     }
 
     /** 不参与这次接收的状态与动画，只把记事写进去、显示在列表里。 */
-    private fun importQuietly(file: File) {
+    private fun importQuietly(file: TapReceivedPayload) {
         val context = activity.applicationContext
         val target = folderId
         IMPORTER.execute {
             val result = try {
-                FileInputStream(file).use { ThingFileReader.read(context, it) }
+                file.read(context)
             } catch (e: Exception) {
                 Log.e(TAG, "读收到的记事文件失败", e)
                 null
             }
             if (result !is ThingFileReader.Result.Ok) {
-                file.delete()
+                file.discard()
                 return@execute
             }
             try {
@@ -819,7 +820,7 @@ class TapReceiveController(
                     })
             } finally {
                 ThingFileReader.cleanUp(result.tempDir)
-                file.delete()
+                file.discard()
             }
             main.post { host.onReceivedThingsCommitted() }
         }
@@ -1332,7 +1333,7 @@ class TapReceiveController(
     private fun failCurrent(message: String?) {
         recorder?.event("failed")
         Choreographer.getInstance().removeFrameCallback(frameCallback)
-        receivedFile?.delete()
+        receivedFile?.discard()
         cancelLanding()
         revealHidden()
         resetReceiveState()

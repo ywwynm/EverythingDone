@@ -30,6 +30,8 @@ import com.ywwynm.everythingdone.taptransfer.diagnostics.TapDiagnostics
 import com.ywwynm.everythingdone.taptransfer.transport.TapFailure
 import com.ywwynm.everythingdone.taptransfer.transport.TapIncomingOffer
 import com.ywwynm.everythingdone.taptransfer.transport.TapReceiverTransport
+import com.ywwynm.everythingdone.taptransfer.transport.TapReceivedPayload
+import com.ywwynm.everythingdone.taptransfer.protocol.TapFileTransfer
 import com.ywwynm.everythingdone.taptransfer.ui.ProgressSmoother
 import com.ywwynm.everythingdone.taptransfer.ui.TapPrerequisiteWatcher
 import com.ywwynm.everythingdone.taptransfer.ui.TapProgressModel
@@ -53,6 +55,7 @@ class TapDetailReceiveController(private val activity: FragmentActivity, private
         val foregroundColor: Int
         val accentBackground: ThingBackground
         fun canReceive(): Boolean
+        fun existingAttachments(): List<TapFileTransfer.LocalAttachment>
         fun prepareForReceive()
         fun needsSettingsChoice(pending: PendingThing): Boolean
         /** 可见附件与详情布局已就绪，快照不能只包含尚未加载的封面占位。 */
@@ -209,6 +212,7 @@ class TapDetailReceiveController(private val activity: FragmentActivity, private
         }
         val receiver = TapTransfer.createReceiverTransport(activity, diagnostics)
         transport = receiver
+        receiver.setExistingAttachments(host.existingAttachments())
         receiver.start(TapTransfer.deviceName(activity), listenerFor(receiver))
     }
 
@@ -230,8 +234,8 @@ class TapDetailReceiveController(private val activity: FragmentActivity, private
         override fun onProgress(done: Long, total: Long) {
             if (isCurrent()) this@TapDetailReceiveController.onProgress(done, total)
         }
-        override fun onReceived(file: File) {
-            if (isCurrent()) this@TapDetailReceiveController.onReceived(file) else file.delete()
+        override fun onReceived(file: TapReceivedPayload) {
+            if (isCurrent()) this@TapDetailReceiveController.onReceived(file) else file.discard()
         }
         override fun onFailed(reason: TapFailure) {
             if (isCurrent()) this@TapDetailReceiveController.onFailed(reason)
@@ -277,10 +281,10 @@ class TapDetailReceiveController(private val activity: FragmentActivity, private
     }
     override fun onProgress(done: Long, total: Long) { model.progress(done, total) }
 
-    override fun onReceived(file: File) {
-        diagnostics.event("收到更新文件", "bytes=${file.length()}")
+    override fun onReceived(file: TapReceivedPayload) {
+        diagnostics.event("收到更新文件", "attachmentBytes=${file.transferredBytes}")
         // 更新模式退出意味着取消更新，不再把迟到的来件应用到已离开的目标记事。
-        if (!isReceiving) { file.delete(); return }
+        if (!isReceiving) { file.discard(); return }
         val token = generation
         model.finished()
         timeline.complete(now())
@@ -289,14 +293,14 @@ class TapDetailReceiveController(private val activity: FragmentActivity, private
             var payload: ThingFileUpdate.Prepared? = null
             var error = R.string.tap_update_failed
             try {
-                result = file.inputStream().use { ThingFileReader.read(activity.applicationContext, it) }
+                result = file.read(activity.applicationContext)
                 val ok = result as? ThingFileReader.Result.Ok
                 if (ok != null && ok.singleStandaloneThing) payload = ThingFileUpdate.prepare(ok.things.single())
                 else if (ok != null) error = R.string.tap_update_single_only
             } catch (e: Exception) { Log.e(TAG, "准备更新文件失败", e) }
             finally {
                 (result as? ThingFileReader.Result.Ok)?.let { ThingFileReader.cleanUp(it.tempDir) }
-                file.delete()
+                file.discard()
             }
             val ready = payload
             main.post {
@@ -483,6 +487,7 @@ class TapDetailReceiveController(private val activity: FragmentActivity, private
         thaw()
         pull.setHint(activity.getString(R.string.tap_receive_hint))
         stage?.resumeWaiting()
+        transport?.setExistingAttachments(host.existingAttachments())
         transport?.resume()
     }
 

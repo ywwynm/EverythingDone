@@ -180,7 +180,10 @@ class PendingThing(
     val order: Int = 0,
     /** 在所在的文件夹里置顶（顶层不看）。 */
     val sticky: Boolean = false
-)
+) {
+    /** 碰一碰协商后借用的本地文件，不属于导入临时目录，不可移动或随失败删除。 */
+    internal var reusedAttachmentKeys: Set<String> = emptySet()
+}
 
 /**
  * 从记事文件里读出来、尚未写进数据库的一个文件夹（版本 2）。私密标记不随文件走（决策 2026-09-28 第 6 条），
