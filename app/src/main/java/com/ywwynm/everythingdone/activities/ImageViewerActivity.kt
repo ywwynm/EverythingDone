@@ -132,6 +132,11 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     private var mHasGainmap: BooleanArray = BooleanArray(0)
     /** Per-page, ephemeral: user tapped the badge to force SDR on this page. */
     private var mForcedSdr: BooleanArray = BooleanArray(0)
+    private var mPqController: com.ywwynm.everythingdone.hdr.HdrViewerController? = null
+    private val mPqHdrImages = java.util.WeakHashMap<PhotoView, Boolean>()
+    private var mViewerResumed = false
+    private var mViewerHasResumed = false
+    private var mPagerIdle = true
 
     /** 每页 Motion Photo 检测结果(null = 非动态照片 / 尚未检测出)。 */
     private var mMotionInfos: Array<MotionPhotoDetector.MotionPhotoInfo?> = arrayOf()
@@ -257,6 +262,12 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     }
 
     override fun initUI() {
+        if (Build.VERSION.SDK_INT >= 34 && com.ywwynm.everythingdone.hdr.HdrViewerController.supportedEnvironment()) {
+            mPqController = com.ywwynm.everythingdone.hdr.HdrViewerController(this) { view, hasHdr ->
+                mPqHdrImages[view] = hasHdr
+                applyHdrStateForCurrentPage()
+            }
+        }
         val decorView: View = window.decorView
         val flags = (View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                 or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
@@ -302,13 +313,14 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                 iv.isZoomable = true
             }
 
+            // 内存缓存可能同步回调；先登记页，当前静图可在首次 onResume 前开始 HDR 准备。
+            mTabs!!.add(tab)
             loadImage(index, pathName, iv, pb, size, videoFrameMsOf(index))
 
             if (type == AttachmentHelper.IMAGE && AttachmentHelper.isMotionPhotoCandidate(pathName)) {
                 detectMotionPhotoAsync(index)
             }
 
-            mTabs!!.add(tab)
         }
 
         mAdapter = ImageViewerPagerAdapter(mTabs)
@@ -410,6 +422,11 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
             .load(pathName)
             .dontTransform()
             .disallowHardwareConfig()
+        if (mPqController != null && mTypePathNames?.getOrNull(position)?.startsWith("0") == true) {
+            request = request.downsample(com.ywwynm.everythingdone.hdr.HdrViewerDownsampleStrategy)
+                // 直接读取附件原文件；旧的重编码资源缓存可能已放大小图或丢失 HDR 元数据。
+                .diskCacheStrategy(com.bumptech.glide.load.engine.DiskCacheStrategy.NONE)
+        }
         if (videoFrameMs > 0L) {
             // 视频页的静帧用 Thing Card Video Frame，与详情网格看到的是同一帧；
             // 自动播放也从这里起播、播完回到这里。见 ADR-0017。
@@ -430,15 +447,15 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                     dataSource: DataSource, isFirstResource: Boolean
                 ): Boolean {
                     iv.setImageBitmap(resource)
-                    pb.visibility = View.GONE
                     val hdr = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
                             resource.hasGainmap()
                     if (position in mHasGainmap.indices) {
                         mHasGainmap[position] = hdr
                     }
-                    if (position == mVpImage?.currentItem) {
+                    if (position == (if (mAdapter == null) mPosition else mVpImage?.currentItem)) {
                         applyHdrStateForCurrentPage()
                     }
+                    if (mPqController?.isAwaitingFirstFrame(iv) != true) pb.visibility = View.GONE
                     return true
                 }
             })
@@ -717,8 +734,8 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
             }
             mp.setSurface(surface)
             mp.isLooping = loop
-            mp.setOnVideoSizeChangedListener { _, w, h ->
-                if (w > 0 && h > 0) {
+            mp.setOnVideoSizeChangedListener { player, w, h ->
+                if (mMotionPlayer === player && w > 0 && h > 0) {
                     try { surfaceTexture.setDefaultBufferSize(w, h) } catch (_: Exception) {}
                     if (mMotionRevealed) setupMotionBaseTransform(texture)
                 }
@@ -747,23 +764,25 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                     mVpImage?.postDelayed(stop, autoStopAfterMs)
                 }
                 // 兜底:个别机型不发 VIDEO_RENDERING_START 时,延迟揭示避免卡在照片。
-                mVpImage?.postDelayed({ revealMotionSurface() }, 180L)
+                mVpImage?.postDelayed({ if (mMotionPlayer === player) revealMotionSurface() }, 180L)
             }
-            mp.setOnInfoListener { _, what, _ ->
+            mp.setOnInfoListener { player, what, _ ->
                 // 首帧真正渲染出来后才切换到视频层,做到从照片“无缝”变实况,消除起播闪烁/拉伸。
-                if (what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
+                if (mMotionPlayer === player && what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
                     revealMotionSurface()
                 }
                 false
             }
             if (!loop) {
                 // 自动播放一遍后回到静态。
-                mp.setOnCompletionListener {
-                    mVideoPlaybackCompleted = true
-                    stopMotionPlayback()
+                mp.setOnCompletionListener { player ->
+                    if (mMotionPlayer === player) {
+                        mVideoPlaybackCompleted = true
+                        stopMotionPlayback()
+                    }
                 }
             }
-            mp.setOnErrorListener { _, _, _ -> stopMotionPlayback(); true }
+            mp.setOnErrorListener { player, _, _ -> if (mMotionPlayer === player) stopMotionPlayback(); true }
             mp.prepareAsync()
             mMotionPlayer = mp
             mMotionPfd = pfd
@@ -771,6 +790,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
             mMotionTexture = texture
             mMotionPlayingPage = page
             mMotionHoldToPlay = holdToPlay
+            applyHdrStateForCurrentPage()
             mPlayingPlainVideo = info == null
             mVideoPlaybackCompleted = false
             requestPlaybackAudioFocus()
@@ -867,6 +887,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         mMotionPhotoView = null
         mMotionPlayingPage = -1
         mMotionHoldToPlay = false
+        applyHdrStateForCurrentPage()
         updateVideoSignalVisibility()
         updateLiveBadge()
     }
@@ -953,6 +974,9 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                     val currentIndex = mVpImage!!.currentItem
                     val sourcePath = currentSourcePath()
                     if (mSpatialMode) exitSpatialMode()
+                    cancelScheduledAutoplay()
+                    stopMotionPlayback()
+                    mPqController?.update(null, null, false)
                     if (sourcePath != null) {
                         mSpatialExecutor.execute { mSpatialStore.remove(sourcePath) }
                     }
@@ -974,6 +998,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                         mVideoFrameMs.removeAt(currentIndex)
                     }
                     mAdapter!!.removeTab(mVpImage, currentIndex)
+                    applyHdrStateForCurrentPage()
                     updateAttachmentNumber()
                     mUpdated = true
                     if (mAdapter!!.count == 0) {
@@ -1384,6 +1409,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         stopMotionPlayback()
         cancelScheduledAutoplay()
         mSpatialMode = true
+        applyHdrStateForCurrentPage()
         mSpatialSourcePath = sourcePath
         mSpatialHasLdiLite = derivative.ldiLite != null
         mSpatialRenderMode = SpatialRenderMode.resolve(
@@ -1919,6 +1945,10 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         })
 
         mVpImage!!.addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
+            override fun onPageScrollStateChanged(state: Int) {
+                mPagerIdle = state == ViewPager.SCROLL_STATE_IDLE
+                applyHdrStateForCurrentPage()
+            }
             override fun onPageSelected(position: Int) {
                 if (mSpatialMode) exitSpatialMode()
                 stopMotionPlayback()
@@ -1979,6 +2009,15 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
      * isn't boosted.
      */
     private fun applyHdrStateForCurrentPage() {
+        val pos = if (mAdapter == null) mPosition else mVpImage?.currentItem ?: return
+        val photo = mTabs?.getOrNull(pos)?.findViewById<PhotoView>(R.id.iv_image_attachment)
+        val source = mTypePathNames?.getOrNull(pos)
+        val still = source?.startsWith("0") == true &&
+            !AttachmentHelper.isAnimatedImageCandidate(source.substring(1))
+        val forcedSdr = mForcedSdr.getOrElse(pos) { false }
+        mPqController?.update(if (still) photo else null, if (still) source?.substring(1) else null,
+            mViewerResumed && mPagerIdle && !mSpatialMode, !forcedSdr,
+            prepareWhileInactive = !mViewerHasResumed, playingVideo = mMotionPlayer != null)
         if (mSpatialMode) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 window.colorMode = ActivityInfo.COLOR_MODE_DEFAULT
@@ -1986,11 +2025,10 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
             mTvHdrBadge?.visibility = View.GONE
             return
         }
-        val pos = mVpImage?.currentItem ?: return
-        val isHdr = pos in mHasGainmap.indices && mHasGainmap[pos]
-        val boostOn = isHdr && !(pos in mForcedSdr.indices && mForcedSdr[pos])
+        val isHdr = mHasGainmap.getOrElse(pos) { false } || (photo != null && mPqHdrImages[photo] == true)
+        val boostOn = isHdr && !forcedSdr
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            val mode = if (boostOn) ActivityInfo.COLOR_MODE_HDR else ActivityInfo.COLOR_MODE_DEFAULT
+            val mode = if (boostOn && mPqController == null) ActivityInfo.COLOR_MODE_HDR else ActivityInfo.COLOR_MODE_DEFAULT
             if (window.colorMode != mode) {
                 window.colorMode = mode
             }
@@ -2101,6 +2139,9 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     }
 
     override fun onPause() {
+        mPqController?.freezeWindow()
+        mViewerResumed = false
+        applyHdrStateForCurrentPage()
         super.onPause()
         cancelSpatialGeneration(showMessage = false)
         if (mSpatialMode) mSpatialPhotoView?.deactivate()
@@ -2111,6 +2152,10 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
 
     override fun onResume() {
         super.onResume()
+        mPqController?.resumeWindow()
+        mViewerResumed = true
+        mViewerHasResumed = true
+        mVpImage?.post { applyHdrStateForCurrentPage() }
         if (mSpatialMode) {
             mSpatialPhotoView?.activate(SpatialPreferences.deviceTiltEnabled(this))
         }
@@ -2119,6 +2164,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     }
 
     override fun onDestroy() {
+        mPqController?.close()
         cancelSpatialGeneration(showMessage = false)
         mSpatialPhotoView?.releaseRenderer()
         mSpatialExecutor.shutdownNow()
@@ -2126,6 +2172,16 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         stopMotionPlayback()
         mMotionDetectExecutor.shutdownNow()
         super.onDestroy()
+    }
+
+    override fun finish() {
+        mPqController?.freezeWindow()
+        super.finish()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        mPqController?.stopWindow()
     }
 
     companion object {

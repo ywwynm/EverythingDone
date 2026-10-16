@@ -1,0 +1,81 @@
+{
+  "status": "passed",
+  "checks": [
+    {
+      "name": "normal_android_unchanged",
+      "passed": true
+    },
+    {
+      "name": "native_pq_visible",
+      "passed": true
+    },
+    {
+      "name": "zoom_keeps_geometry",
+      "passed": true
+    },
+    {
+      "name": "pan_changes_position",
+      "passed": true
+    },
+    {
+      "name": "hdr_off_preserves_zoom",
+      "passed": true
+    },
+    {
+      "name": "hdr_on_preserves_zoom",
+      "passed": true
+    },
+    {
+      "name": "app5_1",
+      "passed": true
+    },
+    {
+      "name": "app5_2",
+      "passed": true
+    },
+    {
+      "name": "rotation_preserves_alignment",
+      "passed": true
+    },
+    {
+      "name": "sdr_unchanged",
+      "passed": true
+    },
+    {
+      "name": "gif_animated",
+      "passed": true
+    },
+    {
+      "name": "motion_autoplay_no_pq",
+      "passed": true
+    },
+    {
+      "motion_before": "RectF(-1216.0, 104.0, 2431.9998, 2536.0)",
+      "motion_after": "RectF(-1216.0, 104.0, 2431.9998, 2536.0)"
+    },
+    {
+      "name": "motion_hold_restores_zoom",
+      "passed": true
+    },
+    {
+      "name": "video_unaffected",
+      "passed": true
+    },
+    {
+      "name": "pause_resume_recreates",
+      "passed": true
+    },
+    {
+      "name": "spatial_suspends",
+      "passed": true
+    },
+    {
+      "name": "spatial_exit_restores",
+      "passed": true
+    },
+    {
+      "name": "diagnostic_export",
+      "passed": true
+    }
+  ]
+}

@@ -1,0 +1,139 @@
+{
+  "pixels": [
+    {
+      "encodedWidth": 960,
+      "encodedHeight": 640,
+      "fileBytes": 12759,
+      "independentDecode": [
+        {
+          "decodeMs": 2.70474,
+          "totalMs": 11.172448,
+          "baseBytes": 4915200
+        },
+        {
+          "decodeMs": 2.462188,
+          "totalMs": 10.424688,
+          "baseBytes": 4915200
+        }
+      ],
+      "reuseDecodedBitmap": [
+        {
+          "snapshotMs": 0.781771,
+          "totalMs": 2.908385,
+          "baseBytes": 2457600
+        },
+        {
+          "snapshotMs": 0.797448,
+          "totalMs": 2.984271,
+          "baseBytes": 2457600
+        }
+      ],
+      "decodedWidth": 960,
+      "decodedHeight": 640
+    },
+    {
+      "encodedWidth": 2048,
+      "encodedHeight": 1536,
+      "fileBytes": 25778,
+      "independentDecode": [
+        {
+          "decodeMs": 14.953906,
+          "totalMs": 79.30375,
+          "baseBytes": 25165824
+        },
+        {
+          "decodeMs": 20.281563,
+          "totalMs": 85.885677,
+          "baseBytes": 25165824
+        }
+      ],
+      "reuseDecodedBitmap": [
+        {
+          "snapshotMs": 4.180781,
+          "totalMs": 12.543125,
+          "baseBytes": 12582912
+        },
+        {
+          "snapshotMs": 3.569166,
+          "totalMs": 10.340208,
+          "baseBytes": 12582912
+        }
+      ],
+      "decodedWidth": 2048,
+      "decodedHeight": 1536
+    },
+    {
+      "encodedWidth": 4096,
+      "encodedHeight": 3072,
+      "fileBytes": 87782,
+      "independentDecode": [
+        {
+          "decodeMs": 64.963281,
+          "totalMs": 124.58849,
+          "baseBytes": 41817600
+        },
+        {
+          "decodeMs": 66.294062,
+          "totalMs": 126.792604,
+          "baseBytes": 41817600
+        }
+      ],
+      "reuseDecodedBitmap": [
+        {
+          "snapshotMs": 11.920677,
+          "totalMs": 31.064896,
+          "baseBytes": 20908800
+        },
+        {
+          "snapshotMs": 6.430312,
+          "totalMs": 19.321719,
+          "baseBytes": 20908800
+        }
+      ],
+      "decodedWidth": 2640,
+      "decodedHeight": 1980
+    },
+    {
+      "encodedWidth": 5824,
+      "encodedHeight": 4368,
+      "fileBytes": 202215,
+      "independentDecode": [
+        {
+          "decodeMs": 59.628854,
+          "totalMs": 120.764843,
+          "baseBytes": 41817600
+        },
+        {
+          "decodeMs": 82.466146,
+          "totalMs": 145.422656,
+          "baseBytes": 41817600
+        }
+      ],
+      "reuseDecodedBitmap": [
+        {
+          "snapshotMs": 9.309636,
+          "totalMs": 24.425729,
+          "baseBytes": 20908800
+        },
+        {
+          "snapshotMs": 10.206927,
+          "totalMs": 23.032813,
+          "baseBytes": 20908800
+        }
+      ],
+      "decodedWidth": 2640,
+      "decodedHeight": 1980
+    }
+  ],
+  "status": "passed",
+  "checks": [
+    {
+      "name": "snapshot_owns_gainmap_and_preserves_source",
+      "passed": true
+    },
+    {
+      "name": "pixel_budget_and_upload_cases",
+      "passed": true
+    }
+  ]
+}

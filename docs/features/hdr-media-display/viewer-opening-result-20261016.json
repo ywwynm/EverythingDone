@@ -1,0 +1,386 @@
+{
+  "scope": "指定 OPPO PLZ110 的应用侧首帧与交互回归；卓易通物理观感待用户验证",
+  "jvm": {
+    "tests": 37,
+    "failures": 0,
+    "skipped": 0
+  },
+  "before": [
+    {
+      "image": 0,
+      "run": 0,
+      "earlyPhotoFrames": 7,
+      "surfaceCount": 1
+    },
+    {
+      "image": 0,
+      "run": 1,
+      "earlyPhotoFrames": 2,
+      "surfaceCount": 1
+    },
+    {
+      "image": 1,
+      "run": 0,
+      "earlyPhotoFrames": 5,
+      "surfaceCount": 1
+    },
+    {
+      "image": 1,
+      "run": 1,
+      "earlyPhotoFrames": 4,
+      "surfaceCount": 1
+    },
+    {
+      "image": 2,
+      "run": 0,
+      "earlyPhotoFrames": 4,
+      "surfaceCount": 1
+    },
+    {
+      "image": 2,
+      "run": 1,
+      "earlyPhotoFrames": 4,
+      "surfaceCount": 1
+    }
+  ],
+  "after": [
+    {
+      "image": 0,
+      "run": 0,
+      "earlyPhotoFrames": 0,
+      "surfaceCount": 1,
+      "loadedMs": 157,
+      "visibleMs": 221
+    },
+    {
+      "image": 0,
+      "run": 1,
+      "earlyPhotoFrames": 0,
+      "surfaceCount": 1,
+      "loadedMs": 65,
+      "visibleMs": 128
+    },
+    {
+      "image": 1,
+      "run": 0,
+      "earlyPhotoFrames": 0,
+      "surfaceCount": 1,
+      "loadedMs": 139,
+      "visibleMs": 396
+    },
+    {
+      "image": 1,
+      "run": 1,
+      "earlyPhotoFrames": 0,
+      "surfaceCount": 1,
+      "loadedMs": 74,
+      "visibleMs": 179
+    },
+    {
+      "image": 2,
+      "run": 0,
+      "earlyPhotoFrames": 0,
+      "surfaceCount": 1,
+      "loadedMs": 76,
+      "visibleMs": 230
+    },
+    {
+      "image": 2,
+      "run": 1,
+      "earlyPhotoFrames": 0,
+      "surfaceCount": 1,
+      "loadedMs": 78,
+      "visibleMs": 182
+    },
+    {
+      "image": 3,
+      "run": 0,
+      "earlyPhotoFrames": 0,
+      "surfaceCount": 1,
+      "loadedMs": 137,
+      "visibleMs": 280
+    },
+    {
+      "image": 3,
+      "run": 1,
+      "earlyPhotoFrames": 0,
+      "surfaceCount": 1,
+      "loadedMs": 81,
+      "visibleMs": 186
+    }
+  ],
+  "openingChecks": [
+    {
+      "name": "opening_single_surface",
+      "passed": true
+    },
+    {
+      "name": "opening_no_native_photo_before_pq",
+      "passed": true
+    },
+    {
+      "name": "opening_pq_owns_pixels_photoview_keeps_drawable",
+      "passed": true
+    },
+    {
+      "name": "opening_sdr_no_gpu_or_pixel_copy",
+      "passed": true
+    },
+    {
+      "name": "opening_forced_sdr_during_prepare",
+      "passed": true
+    },
+    {
+      "name": "opening_timeout_ignores_late_data",
+      "passed": true
+    }
+  ],
+  "full": {
+    "status": "passed",
+    "checks": [
+      {
+        "name": "normal_android_unchanged",
+        "passed": true
+      },
+      {
+        "nativePhotoWidth": 960,
+        "nativePhotoHeight": 640
+      },
+      {
+        "name": "small_image_not_upscaled",
+        "passed": true
+      },
+      {
+        "name": "native_pq_visible",
+        "passed": true
+      },
+      {
+        "name": "zoom_keeps_geometry",
+        "passed": true
+      },
+      {
+        "name": "pan_changes_position",
+        "passed": true
+      },
+      {
+        "name": "hdr_off_reuses_surface",
+        "passed": true
+      },
+      {
+        "name": "hdr_off_preserves_zoom",
+        "passed": true
+      },
+      {
+        "name": "hdr_on_preserves_zoom",
+        "passed": true
+      },
+      {
+        "name": "egl_failure_keeps_original_photo",
+        "passed": true
+      },
+      {
+        "name": "app5_1",
+        "passed": true
+      },
+      {
+        "name": "app5_2",
+        "passed": true
+      },
+      {
+        "name": "rotation_preserves_alignment",
+        "passed": true
+      },
+      {
+        "name": "sdr_unchanged",
+        "passed": true
+      },
+      {
+        "name": "gif_animated",
+        "passed": true
+      },
+      {
+        "name": "motion_autoplay_pq_ready_below_video",
+        "passed": true
+      },
+      {
+        "motion_before": "RectF(-1215.9998, 104.0, 2432.0002, 2536.0)",
+        "motion_after": "RectF(-1215.9998, 104.0, 2432.0002, 2536.0)"
+      },
+      {
+        "name": "motion_hold_restores_zoom",
+        "passed": true
+      },
+      {
+        "name": "video_unaffected",
+        "passed": true
+      },
+      {
+        "name": "pause_resume_recreates",
+        "passed": true
+      },
+      {
+        "name": "spatial_suspends",
+        "passed": true
+      },
+      {
+        "name": "spatial_exit_restores",
+        "passed": true
+      },
+      {
+        "name": "diagnostic_export",
+        "passed": true
+      },
+      {
+        "name": "initial_nonzero_page",
+        "passed": true
+      }
+    ]
+  },
+  "lifecycle": {
+    "status": "passed",
+    "checks": [
+      {
+        "name": "motion_prepares_pq_under_video",
+        "passed": true
+      },
+      {
+        "name": "motion_completion_keeps_surface",
+        "passed": true
+      },
+      {
+        "name": "motion_completion_has_no_unready_frame",
+        "passed": true
+      },
+      {
+        "name": "motion_hold_keeps_surface",
+        "passed": true
+      },
+      {
+        "name": "motion_release_keeps_surface",
+        "passed": true
+      },
+      {
+        "name": "back_keeps_last_hdr_frame_through_pause",
+        "passed": true
+      },
+      {
+        "name": "stop_releases_output",
+        "passed": true
+      },
+      {
+        "name": "autoplay_to_hold_reuses_surface",
+        "passed": true
+      },
+      {
+        "name": "video_stays_sdr_during_hdr_toggle",
+        "passed": true
+      },
+      {
+        "name": "forced_sdr_kept_after_motion",
+        "passed": true
+      }
+    ]
+  },
+  "transitions": {
+    "status": "passed",
+    "checks": [
+      {
+        "name": "toggle_keeps_presented_surface",
+        "passed": true
+      },
+      {
+        "name": "toggle_submits_intermediate_gain_frames",
+        "passed": true
+      },
+      {
+        "name": "rapid_reversal_reuses_surface_and_finishes",
+        "passed": true
+      }
+    ]
+  },
+  "latency": {
+    "status": "passed",
+    "checks": [
+      {
+        "name": "gain_progresses_during_busy_main",
+        "passed": true
+      }
+    ],
+    "latency": [
+      {
+        "image": 0,
+        "run": 0,
+        "baseMs": 187,
+        "visibleMs": 229,
+        "pqMs": 226,
+        "gainMs": 236,
+        "fullMs": 408,
+        "readyToGainMs": 10,
+        "readyToFullMs": 182
+      },
+      {
+        "image": 0,
+        "run": 1,
+        "baseMs": 71,
+        "visibleMs": 133,
+        "pqMs": 131,
+        "gainMs": 181,
+        "fullMs": 336,
+        "readyToGainMs": 50,
+        "readyToFullMs": 205
+      },
+      {
+        "image": 1,
+        "run": 0,
+        "baseMs": 192,
+        "visibleMs": 421,
+        "pqMs": 419,
+        "gainMs": 429,
+        "fullMs": 605,
+        "readyToGainMs": 10,
+        "readyToFullMs": 186
+      },
+      {
+        "image": 1,
+        "run": 1,
+        "baseMs": 44,
+        "visibleMs": 148,
+        "pqMs": 131,
+        "gainMs": 180,
+        "fullMs": 339,
+        "readyToGainMs": 49,
+        "readyToFullMs": 208
+      },
+      {
+        "image": 2,
+        "run": 0,
+        "baseMs": 232,
+        "visibleMs": 403,
+        "pqMs": 397,
+        "gainMs": 406,
+        "fullMs": 581,
+        "readyToGainMs": 9,
+        "readyToFullMs": 184
+      },
+      {
+        "image": 2,
+        "run": 1,
+        "baseMs": 76,
+        "visibleMs": 231,
+        "pqMs": 209,
+        "gainMs": 259,
+        "fullMs": 394,
+        "readyToGainMs": 50,
+        "readyToFullMs": 185
+      }
+    ],
+    "gainDuringBusyMain": 0.77159256
+  },
+  "release": {
+    "debugUpdateCode": 202610161106,
+    "apkUrl": "http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202610161106.apk",
+    "sha256": "c3b2aab788205310d53ee485c27f3a1af4887aeff6f2b6a4f0cab4172634a514",
+    "sizeBytes": 30760777,
+    "publishedAt": "2026-10-16T11:06:49.424992800Z"
+  }
+}

@@ -1,0 +1,424 @@
+{
+  "userVideoBlackFramesSeconds": [
+    3.771,
+    4.686
+  ],
+  "baseline": {
+    "exitFrames": [
+      {
+        "phase": "before_pause",
+        "t": 212482743,
+        "ready": true,
+        "attached": true,
+        "strength": 1
+      },
+      {
+        "phase": "after_pause",
+        "t": 212482747,
+        "ready": false,
+        "attached": false,
+        "strength": -1
+      },
+      {
+        "phase": "before_stop",
+        "t": 212483585,
+        "ready": false,
+        "attached": false,
+        "strength": -1
+      },
+      {
+        "phase": "after_stop",
+        "t": 212483585,
+        "ready": false,
+        "attached": false,
+        "strength": -1
+      }
+    ],
+    "status": "failed",
+    "checks": [
+      {
+        "name": "motion_prepares_pq_under_video",
+        "passed": false
+      },
+      {
+        "name": "motion_completion_keeps_surface",
+        "passed": false
+      },
+      {
+        "name": "motion_completion_has_no_unready_frame",
+        "passed": false
+      },
+      {
+        "name": "motion_hold_keeps_surface",
+        "passed": false
+      },
+      {
+        "name": "motion_release_keeps_surface",
+        "passed": false
+      },
+      {
+        "name": "back_keeps_last_hdr_frame_through_pause",
+        "passed": false
+      },
+      {
+        "name": "stop_releases_output",
+        "passed": true
+      }
+    ],
+    "completionSamples": 43,
+    "unreadyCompletionSamples": 2
+  },
+  "lifecycle": {
+    "exitFrames": [
+      {
+        "phase": "before_pause",
+        "t": 212984822,
+        "ready": true,
+        "attached": true,
+        "strength": 1
+      },
+      {
+        "phase": "after_pause",
+        "t": 212984822,
+        "ready": true,
+        "attached": true,
+        "strength": 1
+      },
+      {
+        "phase": "before_stop",
+        "t": 212985658,
+        "ready": false,
+        "attached": true,
+        "strength": 1
+      },
+      {
+        "phase": "after_stop",
+        "t": 212985659,
+        "ready": false,
+        "attached": false,
+        "strength": -1
+      }
+    ],
+    "status": "passed",
+    "checks": [
+      {
+        "name": "motion_prepares_pq_under_video",
+        "passed": true
+      },
+      {
+        "name": "motion_completion_keeps_surface",
+        "passed": true
+      },
+      {
+        "name": "motion_completion_has_no_unready_frame",
+        "passed": true
+      },
+      {
+        "name": "motion_hold_keeps_surface",
+        "passed": true
+      },
+      {
+        "name": "motion_release_keeps_surface",
+        "passed": true
+      },
+      {
+        "name": "back_keeps_last_hdr_frame_through_pause",
+        "passed": true
+      },
+      {
+        "name": "stop_releases_output",
+        "passed": true
+      },
+      {
+        "name": "autoplay_to_hold_reuses_surface",
+        "passed": true
+      },
+      {
+        "name": "video_stays_sdr_during_hdr_toggle",
+        "passed": true
+      },
+      {
+        "name": "forced_sdr_kept_after_motion",
+        "passed": true
+      }
+    ],
+    "completionSamples": 43,
+    "unreadyCompletionSamples": 0
+  },
+  "viewer": {
+    "status": "passed",
+    "checks": [
+      {
+        "name": "normal_android_unchanged",
+        "passed": true
+      },
+      {
+        "nativePhotoWidth": 960,
+        "nativePhotoHeight": 640
+      },
+      {
+        "name": "small_image_not_upscaled",
+        "passed": true
+      },
+      {
+        "name": "native_pq_visible",
+        "passed": true
+      },
+      {
+        "name": "zoom_keeps_geometry",
+        "passed": true
+      },
+      {
+        "name": "pan_changes_position",
+        "passed": true
+      },
+      {
+        "name": "hdr_off_reuses_surface",
+        "passed": true
+      },
+      {
+        "name": "hdr_off_preserves_zoom",
+        "passed": true
+      },
+      {
+        "name": "hdr_on_preserves_zoom",
+        "passed": true
+      },
+      {
+        "name": "egl_failure_keeps_original_photo",
+        "passed": true
+      },
+      {
+        "name": "app5_1",
+        "passed": true
+      },
+      {
+        "name": "app5_2",
+        "passed": true
+      },
+      {
+        "name": "rotation_preserves_alignment",
+        "passed": true
+      },
+      {
+        "name": "sdr_unchanged",
+        "passed": true
+      },
+      {
+        "name": "gif_animated",
+        "passed": true
+      },
+      {
+        "name": "motion_autoplay_pq_ready_below_video",
+        "passed": true
+      },
+      {
+        "motion_before": "RectF(-1215.999, 104.0, 2432.001, 2536.0)",
+        "motion_after": "RectF(-1215.999, 104.0, 2432.001, 2536.0)"
+      },
+      {
+        "name": "motion_hold_restores_zoom",
+        "passed": true
+      },
+      {
+        "name": "video_unaffected",
+        "passed": true
+      },
+      {
+        "name": "pause_resume_recreates",
+        "passed": true
+      },
+      {
+        "name": "spatial_suspends",
+        "passed": true
+      },
+      {
+        "name": "spatial_exit_restores",
+        "passed": true
+      },
+      {
+        "name": "diagnostic_export",
+        "passed": true
+      },
+      {
+        "name": "initial_nonzero_page",
+        "passed": true
+      }
+    ]
+  },
+  "latencyBefore": {
+    "latency": [
+      {
+        "image": 0,
+        "run": 0,
+        "baseMs": 166,
+        "pqMs": 196,
+        "gainMs": 213,
+        "fullMs": 387,
+        "readyToGainMs": 17,
+        "readyToFullMs": 191
+      },
+      {
+        "image": 0,
+        "run": 1,
+        "baseMs": 15,
+        "pqMs": 136,
+        "gainMs": 233,
+        "fullMs": 363,
+        "readyToGainMs": 97,
+        "readyToFullMs": 227
+      },
+      {
+        "image": 1,
+        "run": 0,
+        "baseMs": 14,
+        "pqMs": 392,
+        "gainMs": 404,
+        "fullMs": 578,
+        "readyToGainMs": 12,
+        "readyToFullMs": 186
+      },
+      {
+        "image": 1,
+        "run": 1,
+        "baseMs": 21,
+        "pqMs": 159,
+        "gainMs": 281,
+        "fullMs": 410,
+        "readyToGainMs": 122,
+        "readyToFullMs": 251
+      },
+      {
+        "image": 2,
+        "run": 0,
+        "baseMs": 15,
+        "pqMs": 300,
+        "gainMs": 373,
+        "fullMs": 547,
+        "readyToGainMs": 73,
+        "readyToFullMs": 247
+      },
+      {
+        "image": 2,
+        "run": 1,
+        "baseMs": 47,
+        "pqMs": 173,
+        "gainMs": 302,
+        "fullMs": 432,
+        "readyToGainMs": 129,
+        "readyToFullMs": 259
+      }
+    ],
+    "gainDuringBusyMain": 0,
+    "status": "failed",
+    "checks": [
+      {
+        "name": "gain_progresses_during_busy_main",
+        "passed": false
+      }
+    ]
+  },
+  "latencyAfter": {
+    "latency": [
+      {
+        "image": 0,
+        "run": 0,
+        "baseMs": 169,
+        "pqMs": 203,
+        "gainMs": 213,
+        "fullMs": 384,
+        "readyToGainMs": 10,
+        "readyToFullMs": 181
+      },
+      {
+        "image": 0,
+        "run": 1,
+        "baseMs": 71,
+        "pqMs": 128,
+        "gainMs": 178,
+        "fullMs": 333,
+        "readyToGainMs": 50,
+        "readyToFullMs": 205
+      },
+      {
+        "image": 1,
+        "run": 0,
+        "baseMs": 139,
+        "pqMs": 314,
+        "gainMs": 364,
+        "fullMs": 497,
+        "readyToGainMs": 50,
+        "readyToFullMs": 183
+      },
+      {
+        "image": 1,
+        "run": 1,
+        "baseMs": 73,
+        "pqMs": 156,
+        "gainMs": 205,
+        "fullMs": 346,
+        "readyToGainMs": 49,
+        "readyToFullMs": 190
+      },
+      {
+        "image": 2,
+        "run": 0,
+        "baseMs": 185,
+        "pqMs": 300,
+        "gainMs": 350,
+        "fullMs": 482,
+        "readyToGainMs": 50,
+        "readyToFullMs": 182
+      },
+      {
+        "image": 2,
+        "run": 1,
+        "baseMs": 73,
+        "pqMs": 155,
+        "gainMs": 205,
+        "fullMs": 345,
+        "readyToGainMs": 50,
+        "readyToFullMs": 190
+      }
+    ],
+    "gainDuringBusyMain": 0.757699,
+    "status": "passed",
+    "checks": [
+      {
+        "name": "gain_progresses_during_busy_main",
+        "passed": true
+      }
+    ]
+  },
+  "toggles": {
+    "status": "passed",
+    "checks": [
+      {
+        "name": "toggle_keeps_presented_surface",
+        "passed": true
+      },
+      {
+        "name": "toggle_submits_intermediate_gain_frames",
+        "passed": true
+      },
+      {
+        "name": "rapid_reversal_reuses_surface_and_finishes",
+        "passed": true
+      }
+    ],
+    "normal": 24,
+    "rapid": 36
+  },
+  "jvm": {
+    "tests": 31,
+    "failures": 0,
+    "errors": 0
+  },
+  "recording": {
+    "frames": 630,
+    "durationSeconds": 15.5,
+    "centerBlackFrames": 0,
+    "device": "OPPO PLZ110",
+    "physicalHuaweiHdrVerified": false
+  }
+}

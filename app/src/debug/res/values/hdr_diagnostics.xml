@@ -1,0 +1,11 @@
+<resources>
+    <style name="HdrDiagnosticsTheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">#121212</item>
+        <item name="android:colorBackground">#121212</item>
+        <item name="android:textColorPrimary">#FFFFFF</item>
+        <item name="android:textColorSecondary">#CCCCCC</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="colorAccent">#80CBC4</item>
+    </style>
+</resources>

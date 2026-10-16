@@ -1,0 +1,162 @@
+{
+  "transitions": [
+    {
+      "image": 0,
+      "run": 0,
+      "baseMs": 225,
+      "pqMs": 1061,
+      "afterBaseMs": 836,
+      "toggles": [
+        {
+          "missingSamples": 40,
+          "surfaceChanged": true
+        },
+        {
+          "missingSamples": 3,
+          "surfaceChanged": true
+        },
+        {
+          "missingSamples": 39,
+          "surfaceChanged": true
+        },
+        {
+          "missingSamples": 2,
+          "surfaceChanged": true
+        }
+      ]
+    },
+    {
+      "image": 0,
+      "run": 1,
+      "baseMs": 5,
+      "pqMs": 370,
+      "afterBaseMs": 365,
+      "toggles": [
+        {
+          "missingSamples": 40,
+          "surfaceChanged": true
+        },
+        {
+          "missingSamples": 3,
+          "surfaceChanged": true
+        },
+        {
+          "missingSamples": 40,
+          "surfaceChanged": true
+        },
+        {
+          "missingSamples": 2,
+          "surfaceChanged": true
+        }
+      ]
+    },
+    {
+      "image": 1,
+      "run": 0,
+      "baseMs": 19,
+      "pqMs": 365,
+      "afterBaseMs": 346,
+      "toggles": [
+        {
+          "missingSamples": 40,
+          "surfaceChanged": true
+        },
+        {
+          "missingSamples": 4,
+          "surfaceChanged": true
+        },
+        {
+          "missingSamples": 38,
+          "surfaceChanged": true
+        },
+        {
+          "missingSamples": 5,
+          "surfaceChanged": true
+        }
+      ]
+    },
+    {
+      "image": 1,
+      "run": 1,
+      "baseMs": 6,
+      "pqMs": 388,
+      "afterBaseMs": 382,
+      "toggles": [
+        {
+          "missingSamples": 40,
+          "surfaceChanged": true
+        },
+        {
+          "missingSamples": 5,
+          "surfaceChanged": true
+        },
+        {
+          "missingSamples": 40,
+          "surfaceChanged": true
+        },
+        {
+          "missingSamples": 6,
+          "surfaceChanged": true
+        }
+      ]
+    },
+    {
+      "image": 2,
+      "run": 0,
+      "baseMs": 49,
+      "pqMs": 368,
+      "afterBaseMs": 319,
+      "toggles": [
+        {
+          "missingSamples": 39,
+          "surfaceChanged": true
+        },
+        {
+          "missingSamples": 5,
+          "surfaceChanged": true
+        },
+        {
+          "missingSamples": 40,
+          "surfaceChanged": true
+        },
+        {
+          "missingSamples": 5,
+          "surfaceChanged": true
+        }
+      ]
+    },
+    {
+      "image": 2,
+      "run": 1,
+      "baseMs": 11,
+      "pqMs": 368,
+      "afterBaseMs": 357,
+      "toggles": [
+        {
+          "missingSamples": 40,
+          "surfaceChanged": true
+        },
+        {
+          "missingSamples": 3,
+          "surfaceChanged": true
+        },
+        {
+          "missingSamples": 39,
+          "surfaceChanged": true
+        },
+        {
+          "missingSamples": 4,
+          "surfaceChanged": true
+        }
+      ]
+    }
+  ],
+  "status": "failed",
+  "error": "java.lang.IllegalStateException: toggle_keeps_presented_surface\n\tat com.ywwynm.everythingdone.hdr.HdrViewerRegressionProbe.record(HdrViewerRegressionProbe.kt:260)\n\tat com.ywwynm.everythingdone.hdr.HdrViewerRegressionProbe.transitions(HdrViewerRegressionProbe.kt:226)\n\tat com.ywwynm.everythingdone.hdr.HdrViewerRegressionProbe.onStart(HdrViewerRegressionProbe.kt:77)\n\tat android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2672)\n",
+  "checks": [
+    {
+      "name": "toggle_keeps_presented_surface",
+      "passed": false
+    }
+  ]
+}
