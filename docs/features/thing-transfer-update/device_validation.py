@@ -47,13 +47,14 @@ def main():
     parser.add_argument("run")
     parser.add_argument("--install", action="store_true")
     parser.add_argument("--record", action="store_true")
-    parser.add_argument("--suite", choices=("all", "animation", "media-entry", "review", "reuse"), default="all")
+    parser.add_argument("--home-start", type=int, default=0)
+    parser.add_argument("--suite", choices=("all", "animation", "media-entry", "review", "reuse", "home"), default="all")
     parser.add_argument("--apk", type=Path, default=ROOT / "app/build/outputs/apk/debug/app-debug.apk")
     args = parser.parse_args()
     if not args.run.replace("-", "").replace("_", "").isalnum():
         raise ValueError("运行名只接受字母、数字、横线与下划线")
     serial = DEVICES[args.device]
-    output = ROOT / ("tmp/tap-reuse-20261016" if args.suite == "reuse" else "tmp/tap-update-20261010") / args.device / args.run
+    output = ROOT / ("tmp/tap-reuse-20261016" if args.suite in ("reuse", "home") else "tmp/tap-update-20261010") / args.device / args.run
     before = snapshot(serial, output / "before")
     print(json.dumps({"device": args.device, "before_counts": {k: v["count"] for k, v in before.items()}}, ensure_ascii=False), flush=True)
     if args.install:
@@ -61,10 +62,11 @@ def main():
     remote_video = f"/sdcard/tap-update-{args.run}.mp4"
     recorder = None
     if args.record:
-        recorder = subprocess.Popen([ADB, "-s", serial, "shell", "screenrecord", "--time-limit", "25" if args.suite == "media-entry" else "35" if args.suite == "animation" else "55", "--bit-rate", "6000000", remote_video], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        recorder = subprocess.Popen([ADB, "-s", serial, "shell", "screenrecord", "--time-limit", "25" if args.suite == "media-entry" else "35" if args.suite == "animation" else "120" if args.suite == "home" else "55", "--bit-rate", "6000000", remote_video], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     raw = adb(serial, "shell", "am", "instrument", "-w", "-e", "run_id", args.run,
               "-e", "suite", args.suite,
-              PACKAGE + "/.taptransfer.TapDetailUpdateProbe", timeout=150)
+              "-e", "home_start", str(args.home_start),
+              PACKAGE + "/.taptransfer.TapDetailUpdateProbe", timeout=300 if args.suite == "home" else 150)
     (output / "instrument.txt").write_bytes(raw)
     after = snapshot(serial, output / "after")
     changed = [name for name in set(before) | set(after) if before.get(name) != after.get(name)]
@@ -73,7 +75,7 @@ def main():
     report.update({"data_unchanged": not changed, "changed_tables": changed})
     (output / "result.json").write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
     print(json.dumps(report, ensure_ascii=False), flush=True)
-    if args.suite == "reuse" and report.get("passed"):
+    if args.suite in ("reuse", "home") and report.get("passed"):
         remote = f"/sdcard/Android/data/{PACKAGE}/files/tap-{args.suite}-result.png"
         adb(serial, "pull", remote, output / "result.png")
         adb(serial, "shell", "rm", remote)

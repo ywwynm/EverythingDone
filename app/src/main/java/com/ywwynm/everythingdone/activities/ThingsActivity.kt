@@ -143,6 +143,8 @@ import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.model.ThingFolder
 import com.ywwynm.everythingdone.model.ThingFolderCardPresentation
 import com.ywwynm.everythingdone.model.ThingListEntry
+import com.ywwynm.everythingdone.adapters.ThingListContentDiff
+import androidx.recyclerview.widget.DiffUtil
 import com.ywwynm.everythingdone.model.ThingWidgetInfo
 import com.ywwynm.everythingdone.model.ThingsCounts
 import com.ywwynm.everythingdone.permission.PermissionUtil
@@ -445,8 +447,103 @@ class ThingsActivity :
 
     private var mRemoteIntent: Intent? = null
 
+    private data class ContentReturnProjection(val scope: String, val searching: Boolean, val keyword: String, val color: Int)
+    private data class ContentReturnSnapshot(val entries: List<ThingListEntry>, val projection: ContentReturnProjection)
+    private class ReceivedContentUpdate(val before: ContentReturnSnapshot) {
+        val changedIds = mutableSetOf<Long>()
+        var revision: Pair<String, Int>? = null
+        var scheduled = false
+    }
+    private var mStoppedContentSnapshot: ContentReturnSnapshot? = null
+    private var mReceivedContentUpdate: ReceivedContentUpdate? = null
+    private var mConsumedContentRevision: Pair<String, Int>? = null
+
+    private fun contentReturnProjection() = ContentReturnProjection(
+        mThingManager!!.getProjection().key(), App.isSearching,
+        mEtSearch!!.text.toString(), mColorPicker!!.getPickedColor()
+    )
+
+    private fun collectReceivedContentUpdate(intent: Intent): Boolean {
+        val origin = intent.getStringExtra("tap_update_origin") ?: return false
+        val revision = origin to intent.getIntExtra("tap_update_revision", 0)
+        if (mConsumedContentRevision == revision) return true
+        val thing: Thing = intent.getParcelableExtra(Def.Communication.KEY_THING) ?: return false
+        var pending = mReceivedContentUpdate
+        if (pending == null) {
+            val before = mStoppedContentSnapshot
+            if (before == null || before.projection != contentReturnProjection() || App.justNotifyAll()) {
+                App.setJustNotifyAll(true)
+                return false
+            }
+            pending = ReceivedContentUpdate(before)
+            mReceivedContentUpdate = pending
+            mAdapter!!.holdContentUpdateEntries(before.entries)
+        }
+        pending.changedIds += thing.id
+        // 文件夹卡片可能显示这条记事的预览或筛选计数，也必须更新。
+        mThingManager!!.getFolderPath(thing.folderId).forEach { pending.changedIds += -it.id }
+        pending.revision = revision
+        mRemoteIntent = intent
+        if (mCanSeeUi) publishReceivedContentUpdateWhenVisible()
+        return true
+    }
+
+    private fun clearReceivedContentUpdate() {
+        mAdapter?.holdContentUpdateEntries(null)
+        mReceivedContentUpdate = null
+        mStoppedContentSnapshot = null
+    }
+
+    private fun publishReceivedContentUpdateWhenVisible() {
+        val pending = mReceivedContentUpdate ?: return
+        if (pending.scheduled) return
+        pending.scheduled = true
+        mUpdateMainUiInOnResume = false
+        mRecyclerView!!.postDelayed({
+            if (mReceivedContentUpdate !== pending || isDestroyed) return@postDelayed
+            pending.scheduled = false
+            if (!mCanSeeUi || !lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) {
+                mUpdateMainUiInOnResume = true
+                return@postDelayed
+            }
+            if (App.justNotifyAll() || pending.before.projection != contentReturnProjection()) {
+                mConsumedContentRevision = pending.revision
+                justNotifyAll(false)
+                mRemoteIntent = null
+                return@postDelayed
+            }
+            finishNewItemShiningBorderAnimationIfNeeded()
+            if (App.isSearching) {
+                mThingManager!!.searchThings(mEtSearch!!.text.toString(), mColorPicker!!.getPickedColor())
+            } else {
+                mThingManager!!.loadThings()
+            }
+            val before = pending.before.entries.map { it.stableId }
+            val after = mThingManager!!.getThingListEntries().orEmpty().map { it.stableId }
+            val diff = DiffUtil.calculateDiff(ThingListContentDiff(before, after, pending.changedIds))
+            mAdapter!!.publishContentUpdate(diff)
+            mConsumedContentRevision = pending.revision
+            clearReceivedContentUpdate()
+            mRemoteIntent = null
+            refreshActivitySurfaceAndHeader()
+            mDrawerHeader!!.updateCompletionRate()
+            updateDrawerFolderItems()
+            if (App.isSearching) handleSearchResults()
+            if (mModeManager!!.getCurrentMode() == ModeManager.SELECTING) updateSelectingUi(false)
+            markOperationEmptyStateIfCurrentProjectionEmpty()
+            mUpdateMainUiInOnResume = true
+            App.setSomethingUpdatedSpecially(false)
+        }, 560)
+    }
+
     private val mUpdateUiReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
+            if (collectReceivedContentUpdate(intent)) return
+            if (mReceivedContentUpdate != null) {
+                // 混入其它来源的事件时交回原有完整刷新流程，不能丢掉其通知。
+                clearReceivedContentUpdate()
+                App.setJustNotifyAll(true)
+            }
             var mRemoteIntentInfo = "mRemoteIntent[null]"
             if (mRemoteIntent != null) {
                 mRemoteIntentInfo = "mRemoteIntent.resultCode[" +
@@ -743,7 +840,9 @@ class ThingsActivity :
             + "justNotifyAll[" + App.justNotifyAll() + "], "
             + mRemoteIntentInfo)
 
-        if (mUpdateMainUiInOnResume) {
+        if (mReceivedContentUpdate != null) {
+            publishReceivedContentUpdateWhenVisible()
+        } else if (mUpdateMainUiInOnResume) {
             if (App.justNotifyAll()) {
                 mRecyclerView!!.postDelayed({
                     justNotifyAll(false)
@@ -837,6 +936,12 @@ class ThingsActivity :
         dismissSnackbars()
         mScrollCausedByFinger = false
 
+        // 搜索键盘与转场可能推迟 onStop；此时详情已能提交更新，必须提前保存旧列表。
+        if (mReceivedContentUpdate == null) {
+            mStoppedContentSnapshot = ContentReturnSnapshot(
+                mAdapter!!.snapshotContentUpdateEntries(), contentReturnProjection()
+            )
+        }
         KeyboardUtil.hideKeyboard(currentFocus)
     }
 
@@ -852,6 +957,7 @@ class ThingsActivity :
     }
 
     override fun onDestroy() {
+        clearReceivedContentUpdate()
         super.onDestroy()
         unregisterReceiver(mUpdateUiReceiver)
         mApp!!.setDetailActivityRun(false)
@@ -1535,6 +1641,20 @@ class ThingsActivity :
     }
 
     private fun updateMainUi(data: Intent, resultCode: Int) {
+        if (collectReceivedContentUpdate(data)) {
+            if (mReceivedContentUpdate != null) publishReceivedContentUpdateWhenVisible()
+            return
+        }
+        if (mReceivedContentUpdate != null) {
+            if (resultCode == Def.Communication.RESULT_NO_UPDATE ||
+                resultCode == Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME ||
+                resultCode == Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_DIFFERENT) {
+                publishReceivedContentUpdateWhenVisible()
+                return
+            }
+            clearReceivedContentUpdate()
+            App.setJustNotifyAll(true)
+        }
         Log.i(TAG, "updateMainUi called, resultCode[$resultCode]")
         finishNewItemShiningBorderAnimationIfNeeded()
         mUpdateMainUiInOnResume = false
@@ -2005,6 +2125,7 @@ class ThingsActivity :
     }
 
     private fun justNotifyAll(shouldThingsAnimWhenAppearing: Boolean = true) {
+        clearReceivedContentUpdate()
         finishNewItemShiningBorderAnimationIfNeeded()
         if (App.isSearching) {
             mThingManager!!.searchThings(mEtSearch!!.text.toString(), mColorPicker!!.getPickedColor())
@@ -8055,7 +8176,7 @@ class ThingsActivity :
     internal inner class OnThingTouchedListener : ThingsAdapter.OnItemTouchedListener {
         override fun onItemTouch(v: View?, event: MotionEvent?): Boolean {
             val action = event!!.action
-            if (mIsNewItemShiningBorderActive) {
+            if (mIsNewItemShiningBorderActive || mReceivedContentUpdate != null) {
                 if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_MOVE) {
                     mRecyclerView!!.stopScroll()
                 }
@@ -8075,7 +8196,7 @@ class ThingsActivity :
         }
 
         override fun onItemClick(v: View?, listPosition: Int) {
-            if (listPosition <= 0 || mIsRevealAnimPlaying) {
+            if (listPosition <= 0 || mIsRevealAnimPlaying || mReceivedContentUpdate != null) {
                 return
             }
             dismissSnackbars()
@@ -8185,7 +8306,7 @@ class ThingsActivity :
         }
 
         override fun onItemLongClick(v: View?, listPosition: Int): Boolean {
-            if (mIsNewItemShiningBorderActive) {
+            if (mIsNewItemShiningBorderActive || mReceivedContentUpdate != null) {
                 return true
             }
             if (listPosition == 0) {

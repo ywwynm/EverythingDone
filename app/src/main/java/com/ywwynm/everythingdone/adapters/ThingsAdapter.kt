@@ -121,6 +121,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     override fun getThings(): List<Thing?>? = mThingManager!!.getThings()
 
     private var removalEntries: List<ThingListEntry>? = null
+    private var contentUpdateEntries: List<ThingListEntry>? = null
     private var selectionExitEntries = emptyMap<Long, ThingListEntry>()
     private var selectionExitAmount = 0f
     private var selectionExitAnimator: android.animation.ValueAnimator? = null
@@ -177,7 +178,24 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         removalEntries = entries
     }
 
-    protected open fun getEntries(): List<ThingListEntry>? = removalEntries ?: mThingManager!!.getThingListEntries()
+    /** 首页隐藏期间接收的变更尚未通知，返回转场完成前继续提供原列表。 */
+    internal fun holdContentUpdateEntries(entries: List<ThingListEntry>?) {
+        contentUpdateEntries = entries
+    }
+
+    internal fun snapshotContentUpdateEntries(): List<ThingListEntry> {
+        fun snapshot(entry: ThingListEntry): ThingListEntry = when (entry) {
+            is ThingListEntry.ThingEntry -> ThingListEntry.ThingEntry(Thing(entry.thing))
+            is ThingListEntry.FolderEntry -> entry.copy(
+                thumbnailEntries = entry.thumbnailEntries.map(::snapshot),
+                thumbnailThings = entry.thumbnailThings.map(::Thing)
+            )
+        }
+        return getEntries().orEmpty().map(::snapshot)
+    }
+
+    protected open fun getEntries(): List<ThingListEntry>? =
+        removalEntries ?: contentUpdateEntries ?: mThingManager!!.getThingListEntries()
 
     override fun getStickyThingParentFolderBackground(thing: Thing): ThingBackground? {
         val folderId = thing.folderId ?: return null

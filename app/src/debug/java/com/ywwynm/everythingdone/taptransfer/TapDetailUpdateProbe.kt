@@ -19,15 +19,20 @@ import android.widget.TextView
 import androidx.activity.ComponentDialog
 import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.DefaultItemAnimator
 import com.ywwynm.everythingdone.App
+import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.activities.DetailActivity
+import com.ywwynm.everythingdone.activities.ThingsActivity
+import com.ywwynm.everythingdone.adapters.BaseThingsAdapter
 import com.ywwynm.everythingdone.database.DBHelper
 import com.ywwynm.everythingdone.database.HabitDAO
 import com.ywwynm.everythingdone.helpers.AlarmHelper
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.helpers.CheckListHelper
 import com.ywwynm.everythingdone.helpers.VideoCoverPreviewManager
+import com.ywwynm.everythingdone.managers.ThingManager
 import com.ywwynm.everythingdone.model.*
 import com.ywwynm.everythingdone.taptransfer.transport.TapIncomingOffer
 import com.ywwynm.everythingdone.taptransfer.transport.TapReceiverTransport
@@ -57,6 +62,7 @@ class TapDetailUpdateProbe : Instrumentation() {
     private val files = mutableListOf<File>()
     private val cases = JSONArray()
     private val mediaEntryMeasurements = JSONArray()
+    private val homeMeasurements = JSONArray()
     private var current: DetailActivity? = null
     private lateinit var helper: DBHelper
     private lateinit var db: SQLiteDatabase
@@ -76,7 +82,8 @@ class TapDetailUpdateProbe : Instrumentation() {
             helper = DBHelper(targetContext); db = helper.writableDatabase
             dir = File(targetContext.cacheDir, "tap-update-probe-${System.currentTimeMillis()}").apply { mkdirs() }
             prefs.edit().putBoolean("simulate", true).commit()
-            if (args.getString("suite") == "reuse") { attachmentReuseCases(); readerCases(); reviewCases() }
+            if (args.getString("suite") == "home") homeReturnCases()
+            else if (args.getString("suite") == "reuse") { attachmentReuseCases(); readerCases(); reviewCases() }
             else if (args.getString("suite") == "media-entry") mediaEntryCases()
             else if (args.getString("suite") == "review") reviewCases()
             else {
@@ -110,6 +117,7 @@ class TapDetailUpdateProbe : Instrumentation() {
             prefs.edit().apply { if (hadSimulation) putBoolean("simulate", simulation) else remove("simulate") }.commit()
             report.put("cases", cases).put("fixtures_removed", JSONArray(ids))
                 .put("media_entry_measurements", mediaEntryMeasurements)
+                .put("home_measurements", homeMeasurements)
             finish(if (report.optBoolean("passed")) 0 else 1, Bundle().apply { putString("result", report.toString()) })
         }
     }
@@ -300,6 +308,283 @@ class TapDetailUpdateProbe : Instrumentation() {
         check(read(old.id).content == frameChanged.content)
         cases.put("取消后的协商来件只清理自有目录，原视频和 GIF 保留")
         main { activity.finish() }; await { activity.isDestroyed }; current = null
+    }
+
+    /** 从真实首页打开详情并返回，观察实际通知及已绑定卡片，避免只检查数据库。 */
+    private fun homeReturnCases() {
+        val manager = main { ThingManager.getInstance(targetContext)!! }
+        val previousProjection = main { manager.getProjection() }
+        val video = File(dir, "home-original.mp4").also { file ->
+            targetContext.assets.open("detail-regression/video.mp4").use { input ->
+                file.outputStream().use { input.copyTo(it) }
+            }
+        }
+        val picture = File(dir, "home-image.png").also { file ->
+            Bitmap.createBitmap(96, 72, Bitmap.Config.ARGB_8888).apply {
+                eraseColor(Color.BLUE)
+                file.outputStream().use { compress(Bitmap.CompressFormat.PNG, 100, it) }
+                recycle()
+            }
+        }
+        val videoKey = "1${video.path}"
+        val pictureKey = "0${picture.path}"
+        // 在界面绑定前备好两个封面，检查返回首页时选中的是对应缓存。
+        val previews = listOf(0L, 600L).associateWith {
+            checkNotNull(VideoCoverPreviewManager.generateBlocking(targetContext, video.path, it)).also(files::add)
+        }
+        val previewStamps = previews.mapValues { (_, file) -> file.lastModified() to TapFileTransfer.identify(0, file) }
+        val original = fixture().apply {
+            title = "首页刷新验证"; content = "接收前正文"
+            attachment = AttachmentHelper.toAttachmentStr(listOf(videoKey, pictureKey), emptyList())
+            thingCardAppearance = ThingCardAppearance(imagePlacement = Thing.THING_CARD_IMAGE_PLACEMENT_TOP,
+                mediaSourceKey = videoKey, sources = mapOf(videoKey to ThingCardAppearance.SourceAppearance(videoFrameMs = 0)))
+        }
+        ThingFileUpdate.write(targetContext, original, null)
+        main {
+            manager.navigateToFolderPathIndex(-1, false)
+            manager.setTypeFilterMask(ThingWidgetInfo.TYPE_FILTER_ALL, false)
+            App.getApp()!!.setStatus(Def.ThingStatus.UNDERWAY, true)
+        }
+        val home = startActivitySync(Intent(targetContext, ThingsActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) as ThingsActivity
+        var allChanges = 0
+        var itemChanges = 0
+        var insertedItems = 0
+        var removedItems = 0
+        val observer = object : RecyclerView.AdapterDataObserver() {
+            override fun onChanged() { allChanges++ }
+            override fun onItemRangeChanged(positionStart: Int, itemCount: Int) { itemChanges += itemCount }
+            override fun onItemRangeInserted(positionStart: Int, itemCount: Int) { insertedItems += itemCount }
+            override fun onItemRangeRemoved(positionStart: Int, itemCount: Int) { removedItems += itemCount }
+        }
+        var list: RecyclerView? = null
+        try {
+            await(20000) { home.hasWindowFocus() && field<RecyclerView?>(home, "mRecyclerView")?.adapter != null }
+            list = main { field<RecyclerView>(home, "mRecyclerView") }
+            val recycler = list
+            var animatedStableId = original.id
+            var changeAnimations = 0
+            var animatedFrames = 0
+            main {
+                val originalAnimator = recycler.itemAnimator as DefaultItemAnimator
+                recycler.itemAnimator = object : DefaultItemAnimator() {
+                    init {
+                        addDuration = originalAnimator.addDuration
+                        removeDuration = originalAnimator.removeDuration
+                        moveDuration = originalAnimator.moveDuration
+                        changeDuration = originalAnimator.changeDuration
+                        supportsChangeAnimations = originalAnimator.supportsChangeAnimations
+                    }
+                    override fun animateChange(oldHolder: RecyclerView.ViewHolder, newHolder: RecyclerView.ViewHolder?,
+                        fromX: Int, fromY: Int, toX: Int, toY: Int): Boolean {
+                        if (oldHolder.itemView.getTag(R.id.tag_thing_card_bound_stable_id) == animatedStableId) changeAnimations++
+                        return super.animateChange(oldHolder, newHolder, fromX, fromY, toX, toY)
+                    }
+                }
+                recycler.viewTreeObserver.addOnPreDrawListener {
+                    if ((0 until recycler.childCount).any { index ->
+                        val child = recycler.getChildAt(index)
+                        child.getTag(R.id.tag_thing_card_bound_stable_id) == animatedStableId && child.alpha > 0f && child.alpha < 1f
+                    }) animatedFrames++
+                    true
+                }
+            }
+            main { recycler.adapter!!.registerAdapterDataObserver(observer) }
+            fun assertCard(expected: Thing) {
+                if (animatedStableId < 0) {
+                    fun hasText(view: View): Boolean =
+                        view is TextView && view.text.toString() == expected.title ||
+                            view is android.view.ViewGroup && (0 until view.childCount).any { hasText(view.getChildAt(it)) }
+                    main { recycler.scrollToPosition(manager.getListPositionForFolderId(-animatedStableId)) }
+                    await {
+                        val holder = recycler.findViewHolderForAdapterPosition(manager.getListPositionForFolderId(-animatedStableId))
+                        holder != null && hasText(holder.itemView)
+                    }
+                    return
+                }
+                main { recycler.scrollToPosition(manager.getListPositionForThingId(expected.id)) }
+                val frame = expected.thingCardAppearance.sources.getValue(videoKey).videoFrameMs
+                val loadPrefix = "${video.path}:${video.length()}:${video.lastModified()}:$frame:"
+                await(15000) {
+                    val position = manager.getListPositionForThingId(expected.id)
+                    val holder = recycler.findViewHolderForAdapterPosition(position) as? BaseThingsAdapter.BaseThingViewHolder
+                    holder != null && holder.tvTitle?.text.toString() == expected.getTitleToDisplay() &&
+                        holder.tvContent?.text.toString() == expected.content &&
+                        holder.ivImageAttachment?.getTag(R.id.tag_thing_card_image_load_key)?.toString()?.startsWith(loadPrefix) == true &&
+                        holder.ivImageAttachment.drawable != null && holder.pbLoading?.visibility != View.VISIBLE &&
+                        (expected.type != Thing.REMINDER || holder.rlReminder?.visibility == View.VISIBLE)
+                }
+                check(VideoCoverPreviewManager.getReadyPreview(targetContext, video.path, frame) == previews.getValue(frame!!))
+            }
+            assertCard(original)
+            val labels = listOf("更新后直接返回", "更换封面后返回", "更新后撤销再返回", "更新后撤销重做再返回", "更换记事类型后返回",
+                "类型筛选移出", "类型筛选移入", "类型变化撤销后仍在列表", "类型变化撤销重做后移出",
+                "记录筛选撤销重做后移出", "记录筛选移入", "记录筛选类型变化后撤销",
+                "搜索不再匹配后移出", "搜索重新匹配后移入", "连续接收合并为一次更新",
+                "文件夹预览随内容更新", "类型筛选移出文件夹投影", "类型筛选恢复文件夹投影")
+            for ((step, label) in labels.withIndex()) {
+                if (step < (args.getString("home_start")?.toIntOrNull() ?: 0)) continue
+                if (step == 15) {
+                    val folder = next("thing_folders")
+                    db.insertOrThrow("thing_folders", null, ContentValues().apply {
+                        put("id", folder); put("title", "首页更新临时文件夹"); put("state", Thing.UNDERWAY)
+                        put("color", Color.BLUE); put("location", 1000000001L + original.id)
+                        put("create_time", epoch); put("update_time", epoch)
+                        put("card_presentation", ThingFolderCardPresentation(mode = ThingFolderCardPresentation.MODE_THUMBNAILS).toJson())
+                    }); folders += folder
+                    db.update("things", ContentValues().apply { put("folder_id", folder) }, "id=?", arrayOf("${original.id}"))
+                    animatedStableId = -folder
+                }
+                val before = read(original.id)
+                main {
+                    val mask = when (step) {
+                        in 5..8 -> ThingWidgetInfo.TYPE_FILTER_REMINDER
+                        in 9..11, 16, 17 -> ThingWidgetInfo.TYPE_FILTER_NOTE
+                        else -> ThingWidgetInfo.TYPE_FILTER_ALL
+                    }
+                    manager.setTypeFilterMask(mask, false)
+                    if (step == 12 && !App.isSearching || step == 14 && App.isSearching) {
+                        invoke(home, "toggleSearching", false)
+                    }
+                    if (step in 12..13) field<EditText>(home, "mEtSearch").setText("首页刷新验证")
+                    invoke(home, "justNotifyAll", false)
+                }
+                waitForIdleSync()
+                val beforeVisible = main { manager.getThingListEntries().orEmpty().any { it.stableId == animatedStableId } }
+                val beforeIds = main { manager.getThingListEntries().orEmpty().map { it.stableId } }
+                if (beforeVisible) assertCard(before)
+                val monitor = addMonitor(DetailActivity::class.java.name, null, false)
+                main {
+                    home.startActivityForResult(DetailActivity.getOpenIntentForUpdate(home, ThingsActivity.TAG,
+                        original.id, manager.getPosition(original.id), manager.getListPositionForThingId(original.id),
+                        manager.getProjection().key()), Def.Communication.REQUEST_ACTIVITY_DETAIL)
+                }
+                val detail = checkNotNull(monitor.waitForActivityWithTimeout(10000)) as DetailActivity
+                removeMonitor(monitor); current = detail
+                await { detail.findViewById<Toolbar>(R.id.actionbar)?.menu?.findItem(R.id.act_tap_update) != null }
+                val receiver = begin(detail)
+                var incoming = Thing(before).apply {
+                    title = "首页刷新验证 $step"; content = "首页应显示：$label"
+                    attachment = AttachmentHelper.toAttachmentStr(listOf(pictureKey, videoKey), emptyList())
+                    thingCardAppearance = thingCardAppearance.copy(sources = mapOf(videoKey to
+                        ThingCardAppearance.SourceAppearance(videoFrameMs = if (step == 1) 600 else 0)))
+                    if (step in 4..11 || step in 16..17) type = if (before.type == Thing.NOTE) Thing.REMINDER else Thing.NOTE
+                    if (step == 12) title = "不再命中搜索"; if (step == 12) content = "关键词已经移除"
+                }
+                val host = main { field<TapDetailReceiveController.Host>(receiver, "host") }
+                val local = main { host.existingAttachments() }
+                val content = ThingShareContent(listOf(ThingShareContent.ThingNode(incoming,
+                    reminder = if (incoming.type == Thing.REMINDER) Reminder(incoming.id, future) else null)))
+                main { receiver.onTouched(TapIncomingOffer("首页返回验证", 1, intArrayOf(incoming.getColor()))) }
+                val received = transfer(content, local, receiver)
+                check(received.transferredBytes == 0L)
+                val notificationsBefore = main { allChanges to itemChanges }
+                val structureBefore = main { insertedItems to removedItems }
+                val animationsBefore = main { changeAnimations to animatedFrames }
+                main { receiver.onReceived(TapReceivedPayload.Files(received)) }
+                if (before.type != Thing.NOTE || incoming.type != Thing.NOTE) {
+                    await { detail.supportFragmentManager.findFragmentByTag(TapUpdateSettingsDialog.TAG)?.view != null }
+                    main { detail.supportFragmentManager.findFragmentByTag(TapUpdateSettingsDialog.TAG)!!.requireView()
+                        .findViewById<View>(R.id.tap_update_replace).performClick() }
+                }
+                await(30000) { !receiver.isReceiving }
+                check(read(original.id).content == incoming.content)
+                if (step == 14) {
+                    incoming = Thing(incoming).apply { this.content = "连续接收后的最终正文" }
+                    val again = begin(detail)
+                    val next = transfer(ThingShareContent(listOf(ThingShareContent.ThingNode(incoming))), local, again)
+                    check(next.transferredBytes == 0L)
+                    main { again.onReceived(TapReceivedPayload.Files(next)) }
+                    await(30000) { !again.isReceiving }
+                }
+                val undo = step in setOf(2, 3, 7, 8, 9, 11)
+                val redo = step in setOf(3, 8, 9)
+                if (undo) menu(detail, R.id.act_undo)
+                if (redo) menu(detail, R.id.act_redo)
+                val expected = if (undo && !redo) before else incoming
+                check(read(original.id).content == expected.content)
+                val inputBlocked = main {
+                    if (field<Any?>(home, "mReceivedContentUpdate") == null || !beforeVisible) false
+                    else {
+                        val listener = home.OnThingTouchedListener()
+                        val mode = field<com.ywwynm.everythingdone.managers.ModeManager>(home, "mModeManager")
+                        val modeBefore = mode.getCurrentMode()
+                        val event = MotionEvent.obtain(0, 0, MotionEvent.ACTION_DOWN, 0f, 0f, 0)
+                        try { check(listener.onItemTouch(null, event)) } finally { event.recycle() }
+                        listener.onItemClick(null, beforeIds.indexOf(animatedStableId))
+                        check(listener.onItemLongClick(null, beforeIds.indexOf(animatedStableId)))
+                        check(mode.getCurrentMode() == modeBefore)
+                        true
+                    }
+                }
+                main { invoke(detail, "returnToThingsActivity", false, false) }
+                await { detail.isDestroyed && home.hasWindowFocus() }; current = null
+                try {
+                    await { allChanges > notificationsBefore.first || itemChanges > notificationsBefore.second ||
+                        insertedItems > structureBefore.first || removedItems > structureBefore.second }
+                } catch (failure: Throwable) {
+                    throw IllegalStateException("$label：没有通知，之前可见=$beforeVisible，原列表=$beforeIds，" +
+                        "最终列表=${main { manager.getThingListEntries().orEmpty().map { it.stableId } }}，" +
+                        "原标题=${before.title}，搜索=${main { field<EditText>(home, "mEtSearch").text }}，" +
+                        "待发布=${main { field<Any?>(home, "mReceivedContentUpdate") }}", failure)
+                }
+                val afterVisible = main { manager.getThingListEntries().orEmpty().any { it.stableId == animatedStableId } }
+                if (afterVisible) assertCard(expected)
+                waitForIdleSync()
+                await { recycler.itemAnimator?.isRunning != true }
+                val expectedChanges = if (beforeVisible && afterVisible) 1 else 0
+                check(main { allChanges == notificationsBefore.first && itemChanges == notificationsBefore.second + expectedChanges }) {
+                    "$label：应只更新一张卡片，实际全量=${allChanges - notificationsBefore.first}，单项=${itemChanges - notificationsBefore.second}"
+                }
+                check(main { insertedItems - structureBefore.first == if (!beforeVisible && afterVisible) 1 else 0 })
+                check(main { removedItems - structureBefore.second == if (beforeVisible && !afterVisible) 1 else 0 })
+                check(expectedChanges == 0 || main { changeAnimations > animationsBefore.first && animatedFrames > animationsBefore.second }) {
+                    "$label：未观察到实际卡片更新动画"
+                }
+                main {
+                    for (index in 0 until recycler.childCount) {
+                        val child = recycler.getChildAt(index)
+                        val position = recycler.getChildAdapterPosition(child)
+                        val bound = child.getTag(R.id.tag_thing_card_bound_stable_id) as? Long ?: continue
+                        if (position >= 0) check(manager.getThingListEntry(position)?.stableId == bound) { "$label：通知后卡片位置错乱" }
+                    }
+                }
+                check(read(original.id).attachment == expected.attachment)
+                homeMeasurements.put(JSONObject().put("case", label)
+                    .put("all_changes", main { allChanges - notificationsBefore.first })
+                    .put("item_changes", main { itemChanges - notificationsBefore.second })
+                    .put("inserted_items", main { insertedItems - structureBefore.first })
+                    .put("removed_items", main { removedItems - structureBefore.second })
+                    .put("transition_input_blocked", inputBlocked)
+                    .put("change_animations", main { changeAnimations - animationsBefore.first })
+                    .put("animated_frames", main { animatedFrames - animationsBefore.second })
+                    .put("bound_content", expected.content).put("frame_ms", expected.thingCardAppearance.sources.getValue(videoKey).videoFrameMs)
+                    .put("attachment_bytes", received.transferredBytes))
+                cases.put("$label：首页收到刷新通知，实际卡片正文、封面与类型正确；视频复用且传输 0 字节")
+            }
+            for ((frame, file) in previews) {
+                check(file.lastModified() == previewStamps.getValue(frame).first &&
+                    TapFileTransfer.identify(0, file) == previewStamps.getValue(frame).second)
+            }
+            uiAutomation.takeScreenshot()?.let { bitmap ->
+                File(targetContext.getExternalFilesDir(null), "tap-home-result.png").outputStream().use {
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
+                }
+                bitmap.recycle()
+            }
+        } finally {
+            main {
+                current?.finish(); current = null
+                list?.adapter?.unregisterAdapterDataObserver(observer)
+                if (App.isSearching) invoke(home, "toggleSearching", false)
+                home.finish()
+                manager.navigateToFolderPathIndex(-1, false)
+                previousProjection.currentFolderId?.let { manager.openFolderPath(it, loadThingsNow = false) }
+                manager.setTypeFilterMask(previousProjection.typeFilterMask, false)
+                App.getApp()!!.setStatus(previousProjection.status, true)
+            }
+            await { home.isDestroyed }
+        }
     }
 
     /** 通过生产详情与菜单验证：接收让位不能删掉顶部附件的一段像素。 */

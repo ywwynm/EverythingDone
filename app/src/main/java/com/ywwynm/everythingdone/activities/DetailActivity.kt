@@ -2291,17 +2291,20 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         } finally { shouldAddToActionList = recordActions }
     }
 
+    private var tapUpdateRevision = 0
+
     private fun publishReceivedUpdate(typeBefore: Int) {
         val result = if (typeBefore == mThing!!.type) Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME
             else Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_DIFFERENT
         val update = Intent(Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI).apply {
             setPackage(packageName)
             putExtra("tap_update_origin", tapUpdateOrigin)
+            putExtra("tap_update_revision", ++tapUpdateRevision)
             putExtra(Def.Communication.KEY_RESULT_CODE, result)
             putExtra(Def.Communication.KEY_TYPE_BEFORE, typeBefore)
             putExtra(Def.Communication.KEY_THING, mThing)
         }
-        App.setJustNotifyAll(true)
+        putMainListPositions(update)
         App.setLastUpdateUiIntent(update)
         setResult(result, update)
         sendBroadcast(update)

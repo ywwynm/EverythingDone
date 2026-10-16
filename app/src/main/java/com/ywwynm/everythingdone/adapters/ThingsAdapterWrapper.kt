@@ -1,8 +1,11 @@
 package com.ywwynm.everythingdone.adapters
 
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListUpdateCallback
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingFolder
+import com.ywwynm.everythingdone.model.ThingListEntry
 
 import java.util.ArrayList
 
@@ -39,6 +42,29 @@ open class ThingsAdapterWrapper(adapter: ThingsAdapter?) {
 
     open fun clearNotify() {
         mNotifyActions!!.clear()
+    }
+
+    internal fun snapshotContentUpdateEntries() = mAdapter!!.snapshotContentUpdateEntries()
+
+    internal fun holdContentUpdateEntries(entries: List<ThingListEntry>?) {
+        mAdapter!!.holdContentUpdateEntries(entries)
+    }
+
+    /** 整批差异必须在可见时一起发布，不能进入只保留最后一项的旧延迟队列。 */
+    internal fun publishContentUpdate(diff: DiffUtil.DiffResult) {
+        check(!mShouldWaitNotify)
+        mAdapter!!.holdContentUpdateEntries(null)
+        mAdapter!!.setShouldThingsAnimWhenAppearing(false)
+        clearNotify()
+        diff.dispatchUpdatesTo(object : ListUpdateCallback {
+            override fun onInserted(position: Int, count: Int) = mAdapter!!.notifyItemRangeInserted(position, count)
+            override fun onRemoved(position: Int, count: Int) = mAdapter!!.notifyItemRangeRemoved(position, count)
+            override fun onMoved(fromPosition: Int, toPosition: Int) = mAdapter!!.notifyItemMoved(fromPosition, toPosition)
+            override fun onChanged(position: Int, count: Int, payload: Any?) {
+                if (count == 1) mAdapter!!.notifyItemChanged(position)
+                else mAdapter!!.notifyItemRangeChanged(position, count)
+            }
+        })
     }
 
     open fun getItemCount(): Int = mAdapter!!.itemCount
