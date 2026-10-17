@@ -14,7 +14,7 @@ internal object ParticleSoftwareShadowSnapshot {
         val run = ParticlePresentationDiagnostics.of(root)
         val casters = mutableListOf<View>()
         fun visit(view: View) {
-            if (view.visibility != View.VISIBLE || view is SurfaceView) return
+            if (view.visibility != View.VISIBLE || ParticleSurfaceCopy.isSource(view)) return
             if (view is ViewGroup) {
                 for (i in 0 until view.childCount) visit(view.getChildAt(i))
             } else if (view.width > 0 && view.height > 0 && view.matrix.isIdentity) {

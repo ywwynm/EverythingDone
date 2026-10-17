@@ -32,6 +32,14 @@ import java.util.Map;
  */
 public class TimelyClockView extends View {
 
+    /** 可选取证接口，默认为空；不改变字形、动画时长、调度或绘制。 */
+    public interface RenderDiagnostics {
+        void onMorphStep();
+        void onClockDraw(long startedNs, long endedNs);
+    }
+    private RenderDiagnostics renderDiagnostics;
+    public void setRenderDiagnostics(RenderDiagnostics diagnostics) { renderDiagnostics = diagnostics; }
+
     public static final int MODE_AUTO_HIDE_HOUR = 0;
     public static final int MODE_FULL = 1;
 
@@ -330,6 +338,7 @@ public class TimelyClockView extends View {
             @Override public void onAnimationUpdate(ValueAnimator animation) {
                 float t = (Float) animation.getAnimatedValue();
                 slot.shape = evaluator.evaluate(t, pair[0], pair[1]);
+                if (renderDiagnostics != null) renderDiagnostics.onMorphStep();
                 invalidate();
             }
         });
@@ -514,6 +523,17 @@ public class TimelyClockView extends View {
 
     @Override protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+        RenderDiagnostics diagnostics = renderDiagnostics;
+        if (diagnostics == null) {
+            drawClockContent(canvas);
+            return;
+        }
+        long startedNs = System.nanoTime();
+        try { drawClockContent(canvas); }
+        finally { diagnostics.onClockDraw(startedNs, System.nanoTime()); }
+    }
+
+    private void drawClockContent(Canvas canvas) {
         ensureLoaded();
         if (styleData == null) return;
 

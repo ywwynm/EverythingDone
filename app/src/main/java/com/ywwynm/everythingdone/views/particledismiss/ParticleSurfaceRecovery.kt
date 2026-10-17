@@ -30,13 +30,14 @@ internal class ParticleSurfaceRecovery private constructor(
     private val entries: List<Entry>,
     private val diagnostic: ParticlePresentationDiagnostics.Run?
 ) {
-    private data class Entry(val surface: SurfaceView, val rect: Rect, val pixels: Bitmap,
+    private data class Entry(val surface: View, val rect: Rect, val pixels: Bitmap,
                              val cover: BitmapDrawable) {
-        var generation = 0
+        private var holderGeneration = 0L
+        val generation: Long get() = (surface as? ParticleDirectSurfaceSource)?.particleSurfaceGeneration ?: holderGeneration
         val lifecycle = object : SurfaceHolder.Callback {
-            override fun surfaceCreated(holder: SurfaceHolder) { generation++ }
-            override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) { generation++ }
-            override fun surfaceDestroyed(holder: SurfaceHolder) { generation++ }
+            override fun surfaceCreated(holder: SurfaceHolder) { holderGeneration++ }
+            override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) { holderGeneration++ }
+            override fun surfaceDestroyed(holder: SurfaceHolder) { holderGeneration++ }
         }
     }
     private val main = Handler(Looper.getMainLooper())
@@ -46,7 +47,7 @@ internal class ParticleSurfaceRecovery private constructor(
     private var primed = false
     private val pendingFrames = BooleanArray(entries.size)
     private val readyFrames = BooleanArray(entries.size)
-    private val frameGenerations = IntArray(entries.size)
+    private val frameGenerations = LongArray(entries.size)
     private var completion: (() -> Unit)? = null
     private var restorePending: (() -> Unit)? = null
     private val barrier = ParticleSurfaceReadyBarrier(entries.size) { finish("buffers_ready") }
@@ -58,7 +59,7 @@ internal class ParticleSurfaceRecovery private constructor(
 
     init {
         root.addOnAttachStateChangeListener(attachment)
-        entries.forEach { it.surface.holder.addCallback(it.lifecycle) }
+        entries.forEach { (it.surface as? SurfaceView)?.holder?.addCallback(it.lifecycle) }
     }
 
     /** 粒子仍在播放时预备冻结态恢复帧，减少真实窗口恢复之后的生产者排队。 */
@@ -84,7 +85,7 @@ internal class ParticleSurfaceRecovery private constructor(
             restoreOnce()
             entries.forEachIndexed { index, entry ->
                 if (readyFrames[index] && (entry.generation != frameGenerations[index] ||
-                        !entry.surface.holder.surface.isValid)) {
+                        !valid(entry.surface))) {
                     readyFrames[index] = false; pendingFrames[index] = false
                     barrier.surfaceReplaced(index)
                     diagnostic?.event("surface_recovery_recreated", mapOf("surface" to index))
@@ -110,13 +111,24 @@ internal class ParticleSurfaceRecovery private constructor(
             diagnostic?.event("surface_recovery_unavailable", mapOf("surface" to index, "reason" to "geometry_changed"))
             frameFailed(index, "geometry_changed"); return
         }
-        if (!surface.isAttachedToWindow || !surface.holder.surface.isValid) {
+        if (!surface.isAttachedToWindow || !valid(surface)) {
             diagnostic?.event("surface_recovery_waiting", mapOf("surface" to index, "reason" to "surface_invalid"))
             main.postDelayed({ requestFrame(index, entry) }, 32)
             return
         }
+        // 直接图层已保有冻结缓冲；隐藏窗口的事务不保证产生有效呈现 fence。
+        // 保持原图层，等 reveal 恢复窗口后才验证实际可见事务，避免迟到的 prime 失败提前撤盖。
+        if (surface is ParticleDirectSurfaceSource && !shown) return
         pendingFrames[index] = true
         frameGenerations[index] = entry.generation
+        if (surface is ParticleDirectSurfaceSource) {
+            surface.presentForParticleRecovery { submitted ->
+                if (closed || finishing) return@presentForParticleRecovery
+                diagnostic?.event("direct_surface_recovery_presented", mapOf("surface" to index, "ready" to submitted))
+                if (submitted) probeBuffer(index, entry, fresh = true) else frameFailed(index, "direct_present_unverified")
+            }
+            return
+        }
         val producer = surface as? ParticleSurfaceRedrawParticipant
         if (producer == null) {
             // 未接入生产者的表面只能验证现有缓冲，报告不把它标成恢复新帧。
@@ -150,7 +162,7 @@ internal class ParticleSurfaceRecovery private constructor(
             }
             // 此生产者由应用请求绘制；在请求前绑定下一张缓冲，避免选中旧帧。
             producer.redrawForParticleRecovery({
-                try { surface.applyTransactionToFrame(transaction); transferred.set(true) }
+                try { (surface as SurfaceView).applyTransactionToFrame(transaction); transferred.set(true) }
                 finally { transaction.close() }
             }) { submitted ->
                 if (!transferred.get()) transaction.close()
@@ -175,11 +187,11 @@ internal class ParticleSurfaceRecovery private constructor(
         val surface = entry.surface
         val bitmap = Bitmap.createBitmap(surface.width.coerceAtLeast(1), surface.height.coerceAtLeast(1), Bitmap.Config.ARGB_8888)
         try {
-            PixelCopy.request(surface, bitmap, { status ->
+            ParticleSurfaceCopy.request(surface, bitmap, { status ->
                 try {
                     if (closed || finishing) return@request
                     val producer = surface as? ParticleSurfaceRedrawParticipant
-                    val valid = status == PixelCopy.SUCCESS && surface.holder.surface.isValid &&
+                    val valid = status == PixelCopy.SUCCESS && valid(surface) &&
                         entry.generation == frameGenerations[index] &&
                         (producer?.acceptsParticleRecoveryBuffer(bitmap) ?: true)
                     diagnostic?.event("surface_recovery_buffer_checked", mapOf("surface" to index,
@@ -219,7 +231,7 @@ internal class ParticleSurfaceRecovery private constructor(
         closed = true; barrier.close(); main.removeCallbacks(timeout)
         restorePending?.invoke(); restorePending = null
         root.removeOnAttachStateChangeListener(attachment)
-        entries.forEach { it.surface.holder.removeCallback(it.lifecycle) }
+        entries.forEach { (it.surface as? SurfaceView)?.holder?.removeCallback(it.lifecycle) }
         entries.forEach { root.overlay.remove(it.cover) }
         diagnostic?.event("surface_recovery_closed", mapOf("reason" to reason))
         // 等下一次宿主提交再释放位图，避免 RenderThread 尚持有旧显示列表。
@@ -228,9 +240,15 @@ internal class ParticleSurfaceRecovery private constructor(
     }
 
     companion object {
+        private fun valid(view: View): Boolean = when (view) {
+            is SurfaceView -> view.holder.surface.isValid
+            is ParticleDirectSurfaceSource -> view.particleSurfaceValid
+            else -> false
+        }
+
         private val presentationWorker = Executors.newSingleThreadExecutor { Thread(it, "ParticleSurfacePresent") }
 
-        internal fun boundsInRoot(root: View, surface: SurfaceView,
+        internal fun boundsInRoot(root: View, surface: View,
                                   diagnostic: ParticlePresentationDiagnostics.Run?, stage: String): Rect? {
             val rect = Rect()
             if (surface.rootView !== root.rootView || !surface.getGlobalVisibleRect(rect)) {
@@ -255,10 +273,10 @@ internal class ParticleSurfaceRecovery private constructor(
             if (snapshot.width != root.width || snapshot.height != root.height) {
                 diagnostic?.event("surface_recovery_unavailable", mapOf("reason" to "snapshot_geometry")); return null
             }
-            val surfaces = mutableListOf<SurfaceView>()
+            val surfaces = mutableListOf<View>()
             fun visit(view: View) {
                 if (view.visibility != View.VISIBLE || view is ParticleOverlaySurfaceView) return
-                if (view is SurfaceView) surfaces += view
+                if (ParticleSurfaceCopy.isSource(view)) surfaces += view
                 if (view is ViewGroup) for (i in 0 until view.childCount) visit(view.getChildAt(i))
             }
             visit(root)

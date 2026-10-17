@@ -29,6 +29,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.Window
 import androidx.annotation.RequiresApi
+import androidx.core.view.doOnLayout
 import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.utils.AnimatorDurationScale
@@ -133,10 +134,52 @@ internal object ParticleDismissController {
     fun start(
         dialog: Dialog, touchInWindow: PointF?, onAnimationStarted: Runnable,
         onOverlayShown: Runnable, useDefaultTouchDistance: Boolean = false,
-        onDone: Runnable? = null
+        onDone: Runnable? = null, systemDim: Boolean = false,
+        onPreparationFailed: ((String) -> Unit)? = null
     ): Boolean {
         val window = dialog.window ?: return false
         val activity = activityFrom(dialog.context) ?: return false
+        if (systemDim) {
+            val trace: (String) -> Unit = { ParticleSystemDimLog.record(window, "dismiss_particle", it) }
+            trace("requested attached=${window.decorView.isAttachedToWindow}")
+            if (!ValueAnimator.areAnimatorsEnabled() || !window.decorView.isAttachedToWindow) return false
+            val host = ParticleSystemDimHost.create(activity) ?: return false
+            var launched = false
+            fun failed(reason: String) {
+                trace("preparation_failed reason=$reason")
+                host.close()
+                if (onPreparationFailed != null) onPreparationFailed(reason)
+                else { onAnimationStarted.run(); onOverlayShown.run() }
+                onDone?.run()
+            }
+            val timeout = Runnable {
+                if (!launched) { launched = true; failed("host_layout_timeout") }
+            }
+            mainHandler.postDelayed(timeout, 1100L)
+            // 新建承载窗口尚未附着时不能回落到 Activity，否则粒子仍被原窗口的 dim 压暗。
+            host.content.doOnLayout {
+                // doOnLayout 在布局调用栈内执行；SurfaceView 的添加与抓图须在本次布局返回后启动。
+                mainHandler.post {
+                    if (!launched) {
+                        launched = true
+                        mainHandler.removeCallbacks(timeout)
+                        if (!dialog.isShowing || activity.isFinishing || activity.isDestroyed ||
+                            !host.content.isAttachedToWindow) failed("host_or_dialog_unavailable")
+                        else {
+                            trace("host_ready size=${host.content.width}x${host.content.height}")
+                            val started = startContent(activity, window, window.decorView, touchInWindow,
+                                Runnable { trace("first_frame_or_fallback"); onAnimationStarted.run() },
+                                Runnable { trace("overlay_shown"); onOverlayShown.run() }, useDefaultTouchDistance,
+                                onDone = Runnable { trace("finished"); onDone?.run() },
+                                elevatedDecor = host.content, windowShadow = true,
+                                releaseElevatedHost = host::close, onPreparationFailed = onPreparationFailed, trace = trace)
+                            if (!started) failed("capture_rejected")
+                        }
+                    }
+                }
+            }
+            return true
+        }
         // 下面还压着别的弹窗时，粒子必须抬到一个全屏承载窗口上，否则会被它盖住。
         val elevated = acquireElevated(activity, dialog)
         val started = startContent(activity, window, window.decorView, touchInWindow,
@@ -187,13 +230,15 @@ internal object ParticleDismissController {
         onAnimationStarted: Runnable, onOverlayShown: Runnable,
         useDefaultTouchDistance: Boolean = false, onDone: Runnable? = null,
         elevatedDecor: ViewGroup? = null, shadowElevationPx: Float? = null,
-        windowShadow: Boolean = false
+        windowShadow: Boolean = false, releaseElevatedHost: (() -> Unit)? = null,
+        onPreparationFailed: ((String) -> Unit)? = null, trace: ((String) -> Unit)? = null
     ): Boolean {
         cancelAppearance(decor)
         val requestedAtNanos = System.nanoTime()
         // 每个前置拒绝都要能在日志里分辨出来：这一串里任何一条命中，弹窗都会以系统默认
         // 动画退出，观感就是「消散没播」，而此前一条日志都没有。
         fun reject(reason: String): Boolean {
+            trace?.invoke("rejected reason=$reason")
             if (BuildConfig.DEBUG) Log.w(ParticleMicroflakeRenderer.TAG, "消散未受理：$reason")
             return false
         }
@@ -208,7 +253,9 @@ internal object ParticleDismissController {
         // 承载窗口刚 show 出来时 decor 要等下一次遍历才附着；宁可退回 Activity 那张表面
         // （层级仍是旧的），也不能因此整场不播。
         val elevated = elevatedDecor?.takeIf { it.isAttachedToWindow }
-        if (elevatedDecor != null && elevated == null) ParticleElevatedHost.release(activity)
+        if (elevatedDecor != null && elevated == null) {
+            if (releaseElevatedHost != null) releaseElevatedHost() else ParticleElevatedHost.release(activity)
+        }
         val hostDecor = elevated
             ?: (activity.window.decorView as? ViewGroup ?: return reject("宿主没有 decor"))
         if (!hostDecor.isAttachedToWindow) return reject("宿主 decor 未附着")
@@ -249,8 +296,21 @@ internal object ParticleDismissController {
             val offscreen = shoot
             val captureAtNanos = System.nanoTime()
             val hasSurface = ParticleSnapshot.hasVisibleSurface(decor)
+            trace?.invoke("capture_begin surface=$hasSurface size=${decor.width}x${decor.height}")
             fun deliver(snapshot: Bitmap?, fallbackUsed: Boolean) {
                 try {
+                    trace?.invoke("capture_result bitmap=${snapshot?.width}x${snapshot?.height} " +
+                        "fallback=$fallbackUsed elapsedMs=${(System.nanoTime() - captureAtNanos) / 1e6} " +
+                        ParticleCaptureDiagnostics.describe())
+                    if (trace != null && snapshot != null) {
+                        // 只记录九处 alpha，区分非空但全透明的快照；不保存文字或颜色内容。
+                        val alpha = runCatching {
+                            (1..3).flatMap { y -> (1..3).map { x ->
+                                Color.alpha(snapshot.getPixel(snapshot.width * x / 4, snapshot.height * y / 4))
+                            } }
+                        }.getOrNull()
+                        trace("snapshot_alpha samples=$alpha")
+                    }
                     if (snapshot != null && !activity.isFinishing && !activity.isDestroyed &&
                         hostDecor.isAttachedToWindow && decor.isAttachedToWindow) {
                         // 含阴影的快照不做圆角遮罩，理由见 [startContent] 的 KDoc。
@@ -261,7 +321,7 @@ internal object ParticleDismissController {
                             onAnimationStarted, onOverlayShown,
                             requestedAtNanos, useDefaultTouchDistance, radius,
                             Runnable { outerShadow?.close(); releaseContent(); onDone?.run() }, feedback, elevated,
-                            cardSnapshot, atomicHandoff, outerShadow)
+                            cardSnapshot, atomicHandoff, outerShadow, releaseElevatedHost, trace)
                     } else {
                         // 走到这里弹窗会以系统默认动画退出，画面上就是「没有粒子」。
                         // 快照为空要能一眼看出走的是哪条抓图路径、卡在哪一步。
@@ -278,8 +338,10 @@ internal object ParticleDismissController {
                         releaseContent()
                         outerShadow?.close()
                         snapshot?.recycle()
-                        onAnimationStarted.run()
-                        onOverlayShown.run()
+                        releaseElevatedHost?.invoke()
+                        if (onPreparationFailed != null) onPreparationFailed(
+                            if (snapshot == null) "snapshot_missing" else "source_detached")
+                        else { onAnimationStarted.run(); onOverlayShown.run() }
                         onDone?.run()
                     }
                 } finally {
@@ -341,7 +403,8 @@ internal object ParticleDismissController {
         cardSnapshot: ParticleCardSnapshot? = null,
         /** 含投影的快照走窗口内原子交接（API 34+）：见 [startContent] 的 KDoc。 */
         atomicHandoff: Boolean = false,
-        outerShadow: ParticleDialogShadow? = null
+        outerShadow: ParticleDialogShadow? = null,
+        releaseElevatedHost: (() -> Unit)? = null, trace: ((String) -> Unit)? = null
     ) {
         // 圆角遮罩在材料线程上时，这张快照本身还是直角的——盖回真实弹窗必须自己裁角，
         // 否则交接期弹窗会有一瞬间变成直角。
@@ -407,7 +470,8 @@ internal object ParticleDismissController {
             onAnimationStarted = onAnimationStarted,
             onDone = Runnable {
                 releaseSurfaceCover?.invoke()
-                if (elevatedDecor != null) ParticleElevatedHost.release(activity)
+                if (releaseElevatedHost != null) releaseElevatedHost()
+                else if (elevatedDecor != null) ParticleElevatedHost.release(activity)
                 onDone?.run()
             },
             touchFeedback = feedback,
@@ -416,7 +480,8 @@ internal object ParticleDismissController {
             // 这是一次**消散**：收尾时不许把交接快照再显示出来，那等于让已经散掉的内容
             // 整块闪回一下。真实内容的 alpha 仍会还原（调用方此时已经把它藏起来了）。
             restoreSourceOnRelease = false,
-            onPresentedProgress = { outerShadow?.progress(it, appearance = false) }
+            onPresentedProgress = { outerShadow?.progress(it, appearance = false) },
+            trace = trace
         )
         ParticleOverlayHost.attach(hostDecor, overlay)
         // 阴影已经拍进快照里了：真实控件的 elevation 必须在**同一次遍历**里放掉，
@@ -489,16 +554,21 @@ internal object ParticleDismissController {
      * 场景定位）。
      */
     fun startCondense(dialog: Dialog, onAppearanceProgress: ((Float) -> Unit)? = null,
-                      onOverlayCreated: (ParticleDismissOverlay) -> Unit): Boolean {
+                      systemDim: Boolean = false, onOverlayCreated: (ParticleDismissOverlay) -> Unit): Boolean {
         val window = dialog.window ?: return false
         val activity = activityFrom(dialog.context) ?: return false
-        val elevated = acquireElevated(activity, dialog)
+        val ownHost = if (systemDim) ParticleSystemDimHost.create(activity) ?: return false else null
+        val elevated = ownHost?.content ?: acquireElevated(activity, dialog)
+        val releaseHost: (() -> Unit)? = when {
+            ownHost != null -> ownHost::close
+            elevated != null -> ({ ParticleElevatedHost.release(activity) })
+            else -> null
+        }
         val started = appearContent(activity, window, window.decorView, true, { dialog.isShowing },
             onAppearanceProgress, onOverlayCreated = onOverlayCreated,
             elevatedDecor = elevated,
-            onAppearanceFinished = if (elevated == null) null
-                else ({ ParticleElevatedHost.release(activity) }))
-        if (!started && elevated != null) ParticleElevatedHost.release(activity)
+            onAppearanceFinished = releaseHost, keepSystemDim = systemDim)
+        if (!started) releaseHost?.invoke()
         return started
     }
 
@@ -534,6 +604,7 @@ internal object ParticleDismissController {
          * 不打开 [cardShadow] 附带的窗口内原子交接。两者只应取其一。
          */
         shadowElevationPx: Float? = null,
+        keepSystemDim: Boolean = false,
         onOverlayCreated: (ParticleDismissOverlay) -> Unit
     ): Boolean {
         val requestedAtNanos = System.nanoTime()
@@ -562,9 +633,9 @@ internal object ParticleDismissController {
         var outerShadow: ParticleDialogShadow? = null
         val windowShadowElevation = if (hideWindow) ParticleDialogVisibility.elevation(window) else 0f
         val windowShadowTranslation = ParticleDialogVisibility.translationZ(window)
-        val debugVisibility = if (hideWindow && ParticlePresentationPolicy.of(activity).dialogMode !=
-            ParticlePresentationDiagnostics.DialogMode.ORIGINAL)
-            ParticleDialogVisibility.acquire(window, diagnostic) else null
+        val debugVisibility = if (hideWindow && (keepSystemDim || ParticlePresentationPolicy.of(activity).dialogMode !=
+            ParticlePresentationDiagnostics.DialogMode.ORIGINAL))
+            ParticleDialogVisibility.acquire(window, diagnostic, forceContent = keepSystemDim) else null
         val prevAlpha = debugVisibility?.originalWindowAlpha
             ?: if (hideWindow) window.attributes.alpha else decor.alpha
         fun setAlpha(alpha: Float) {
@@ -768,7 +839,10 @@ internal object ParticleDismissController {
                             }
                         }, touchFeedback = appearanceFeedback,
                             onPresentedProgress = { surfaceRecovery?.prime(); outerShadow?.progress(it, appearance = true); onAppearanceProgress?.invoke(it) }, prepared = prepared,
-                            hostDecor = elevated, cardSource = if (cardShadow) decor else null)
+                            hostDecor = elevated, cardSource = if (cardShadow) decor else null,
+                            trace = if (keepSystemDim) ({ stage ->
+                                ParticleSystemDimLog.record(window, "appear_particle", stage)
+                            }) else null)
                         overlayRef = overlay
                         if (surfaceRecovery != null) overlay.afterRelease(Runnable { surfaceRecovery.close("overlay_released") })
                         overlay.afterRelease(Runnable { outerShadow?.close() })

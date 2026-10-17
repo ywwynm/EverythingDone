@@ -1,6 +1,7 @@
 package com.ywwynm.everythingdone.views.recording.fablesol
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.opengl.GLES30
 import android.os.SystemClock
@@ -182,6 +183,9 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     // 用户 HDR 强度（D204）：1.0=关，3.6=峰值表标定档，默认=上限 9.6；只缩放超白增量。
     @Volatile private var hdrStrength = FableSolHdrPolicy.DEFAULT_STRENGTH
     private val hdrTransition = FableSolHdrTransition()
+    private var screenOutput = FableSolScreenOutput.SDR
+    private var lastPresentedTextureId = 0
+    private val pqStrengthTransition = FableSolPqStrengthTransition()
     private var sceneLinear = false
     private var hdrContentEnabled = false
     @Volatile private var scenePresenter: ScenePresenter? = null
@@ -285,7 +289,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     /**
      * [linearScene] = 场景以线性光合成、并允许超过 SDR reference white 的值。
      *
-     * 屏上由 EGL 窗口是否建成 FP16 linear scRGB 决定；**离线导出自行决定**，与任何显示器
+     * 屏上由 EGL 是否建成 HDR 输出（scRGB 或兼容 PQ）决定；**离线导出自行决定**，与任何显示器
      * 无关（fablesol-video-export D5）——超白值算不算得出来只取决于 `GL_RGBA16F` 能否
      * 渲染，而那是 GL 能力，不是显示能力。
      */
@@ -295,6 +299,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         hdrGain = 0f
         hdrHeadroom = 1f
         hdrTransition.reset()
+        pqStrengthTransition.reset()
         // EGL 上下文重建：眩光 pass 的 GL 名字已随旧上下文失效。
         // 程序重建后 uniform 全部丢失；置 NaN 强制首帧重传透射峰值表。
         uploadedTransmissionScale = Float.NaN
@@ -374,6 +379,11 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
 
     fun setDisplayHdrSdrRatio(ratio: Float) {
         displayHdrSdrRatio = ratio
+    }
+
+    /** 只由屏幕 EGL 会话设置；离线导出继续使用独立的 ScenePresenter。 */
+    fun setScreenOutput(output: FableSolScreenOutput) {
+        screenOutput = output
     }
 
     fun setHdrStrength(strength: Float) {
@@ -520,7 +530,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         synchronized(inputLock) { pendingTuning[key] = value }
     }
 
-    fun render(frameTimeNanos: Long): Timing {
+    fun render(frameTimeNanos: Long, beforePresentation: (() -> Unit)? = null): Timing {
         val drainStart = SystemClock.elapsedRealtimeNanos()
         val now = if (offlineTimebase) {
             frameTimeNanos / 1_000_000L
@@ -540,11 +550,12 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         if (dt <= 0.0) dt = TARGET_FRAME_SECONDS
         val boundedDt = dt.coerceAtMost(MAX_DT_SECONDS)
         // 帧内一致地读一次用户强度：headroom 上限、增量倍率同源。
-        val strength = hdrStrength
+        val pq = screenOutput == FableSolScreenOutput.PQ
+        val strength = if (pq) pqStrengthTransition.update(hdrStrength, boundedDt.toFloat()) else hdrStrength
         hdrHeadroom = if (hdrContentEnabled) {
             FableSolHdrPolicy.advanceHeadroom(
                 hdrHeadroom,
-                displayHdrSdrRatio,
+                if (pq) FableSolDisplayPolicy.contentHeadroom(true, displayHdrSdrRatio) else displayHdrSdrRatio,
                 strength,
                 boundedDt.toFloat()
             )
@@ -568,7 +579,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         val buildStart = SystemClock.elapsedRealtimeNanos()
         buildFrame()
         val drawStart = SystemClock.elapsedRealtimeNanos()
-        drawFrame()
+        drawFrame(beforePresentation)
         val drawEnd = SystemClock.elapsedRealtimeNanos()
         if (BuildConfig.DEBUG) presentationObserver?.invoke(this)
         return Timing(
@@ -1265,7 +1276,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         layerGradientDenominator[layer] = max(dx * dx + dy * dy, 1e-6).toFloat()
     }
 
-    private fun drawFrame() {
+    private fun drawFrame(beforePresentation: (() -> Unit)?) {
         check(sceneFramebufferId != 0 && sceneTextureId != 0 &&
             preWaterFramebufferId != 0 && preWaterTextureId != 0
         ) { "Scene targets are unavailable" }
@@ -1346,6 +1357,8 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             )
             if (glareOutput != 0) presentSourceId = glareOutput
         }
+        // 仅卓易通同缓冲前景使用：CPU 网格构建期间到达的 UI 也应进入本次呈现。
+        beforePresentation?.invoke()
         val presenter = scenePresenter
         if (presenter != null) {
             presenter.present(presentSourceId, width, height, sceneLinear, hdrHeadroom)
@@ -1628,8 +1641,21 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
     }
 
-    private fun presentScene(sourceTextureId: Int) {
-        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
+    private var foregroundTexture = 0
+    internal fun setForegroundTexture(texture: Int) { foregroundTexture = texture }
+
+    /** 只重做最终合成，不推进水体、音频、颜色或 HDR 过渡；普通设备不调用。 */
+    internal fun presentCachedScene(): Boolean {
+        if (scenePresenter != null || lastPresentedTextureId == 0 ||
+            sceneTargetWidth != width || sceneTargetHeight != height) return false
+        GLES30.glBindVertexArray(vertexArrayId)
+        presentScene(lastPresentedTextureId)
+        return true
+    }
+
+    private fun presentScene(sourceTextureId: Int, framebuffer: Int = 0, sdrSnapshot: Boolean = false) {
+        if (!sdrSnapshot) lastPresentedTextureId = sourceTextureId
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, framebuffer)
         GLES30.glViewport(0, 0, width, height)
         GLES30.glDisable(GLES30.GL_BLEND)
         GLES30.glClearColor(0f, 0f, 0f, 0f)
@@ -1638,6 +1664,13 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, sourceTextureId)
         GLES30.glUniform1i(presentationProgram.uniform("uScene"), 0)
+        // 粒子快照会另外捕获真实控件；这里必须只返回海浪，避免文字/半透明边缘叠两次。
+        val foreground = if (!sdrSnapshot) foregroundTexture else 0
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE1)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, foreground)
+        GLES30.glUniform1i(presentationProgram.uniform("uForeground"), 1)
+        GLES30.glUniform1i(presentationProgram.uniform("uHasForeground"), if (foreground != 0) 1 else 0)
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
         GLES30.glUniform3fv(
             presentationProgram.uniform("uBackdropColor"),
             1,
@@ -1663,15 +1696,67 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             presentationProgram.uniform("uSceneLinear"),
             if (sceneLinear) 1 else 0
         )
+        GLES30.glUniform1i(presentationProgram.uniform("uOutputPq"),
+            if (!sdrSnapshot && screenOutput == FableSolScreenOutput.PQ) 1 else 0)
+        GLES30.glUniform1i(presentationProgram.uniform("uOutputSdr"), if (sdrSnapshot) 1 else 0)
+        GLES30.glUniform1i(presentationProgram.uniform("uPqRgba8"), if (!sdrSnapshot) 1 else 0)
         GLES30.glUniform1f(
             presentationProgram.uniform("uHdrHeadroom"),
             hdrHeadroom
         )
         GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 3)
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE1)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, 0)
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, 0)
     }
 
+    /** 从同一帧线性场景生成完整 alpha 的 sRGB 快照，不读取／修改 PQ 窗口缓冲。 */
+    internal fun copySdrSnapshot(): Bitmap? {
+        if (lastPresentedTextureId == 0 || width <= 0 || height <= 0) return null
+        val texture = IntArray(1)
+        val framebuffer = IntArray(1)
+        GLES30.glGenTextures(1, texture, 0)
+        GLES30.glGenFramebuffers(1, framebuffer, 0)
+        try {
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, texture[0])
+            GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_NEAREST)
+            GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_NEAREST)
+            GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA8, width, height, 0,
+                GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, null)
+            GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, framebuffer[0])
+            GLES30.glFramebufferTexture2D(GLES30.GL_FRAMEBUFFER, GLES30.GL_COLOR_ATTACHMENT0,
+                GLES30.GL_TEXTURE_2D, texture[0], 0)
+            check(GLES30.glCheckFramebufferStatus(GLES30.GL_FRAMEBUFFER) == GLES30.GL_FRAMEBUFFER_COMPLETE) {
+                "SDR snapshot framebuffer incomplete"
+            }
+            presentScene(lastPresentedTextureId, framebuffer[0], sdrSnapshot = true)
+            val stride = width * 4
+            val pixels = ByteBuffer.allocateDirect(stride * height).order(ByteOrder.nativeOrder())
+            GLES30.glReadPixels(0, 0, width, height, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, pixels)
+            checkGl("SDR snapshot readback")
+            // GL 原点在左下，Bitmap 在左上。字节顺序仍为 Android 原生 RGBA，内容已预乘。
+            val upright = ByteBuffer.allocateDirect(stride * height).order(ByteOrder.nativeOrder())
+            val row = ByteArray(stride)
+            for (y in height - 1 downTo 0) {
+                pixels.position(y * stride)
+                pixels.get(row)
+                upright.put(row)
+            }
+            upright.rewind()
+            return Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).apply {
+                copyPixelsFromBuffer(upright)
+            }
+        } finally {
+            GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, 0)
+            GLES30.glDeleteFramebuffers(1, framebuffer, 0)
+            GLES30.glDeleteTextures(1, texture, 0)
+        }
+    }
+
     private fun releaseSceneTargets() {
+        lastPresentedTextureId = 0
         if (sceneFramebufferId != 0 || preWaterFramebufferId != 0) {
             GLES30.glDeleteFramebuffers(
                 2,

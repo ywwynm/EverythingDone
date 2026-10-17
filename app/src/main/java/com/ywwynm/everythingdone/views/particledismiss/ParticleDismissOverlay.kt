@@ -56,7 +56,8 @@ internal class ParticleDismissOverlay(
     cardSources: List<View>? = null,
     private val onBodyReleased: Runnable? = null,
     /** 与真实来源恢复处于同一次窗口交接；批量移除可在此隐藏已消散的旧 holder。 */
-    private val onSourcesRestored: Runnable? = null
+    private val onSourcesRestored: Runnable? = null,
+    private val trace: ((String) -> Unit)? = null
 ) : FrameLayout(activity) {
 
     private val host: Activity = activity
@@ -219,6 +220,7 @@ internal class ParticleDismissOverlay(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        trace?.invoke("overlay_attached size=${width}x$height reverse=${spec.reverse}")
         // 挂进 ViewGroupOverlay 之后不再是 DecorView 的子 View，遍历子节点找不到它；
         // 需要「当前有哪些动画层」的两处（透明宿主延迟 finish、debug 观察器）改查这份登记。
         synchronized(active) { active += this }
@@ -290,6 +292,7 @@ internal class ParticleDismissOverlay(
     }
 
     override fun onDetachedFromWindow() {
+        trace?.invoke("overlay_detached firstFrame=$firstFramePresented progress=$presentedProgress")
         ParticlePresentationDiagnostics.of(host)?.event("particle_detached",
             mapOf("overlay" to System.identityHashCode(this)))
         finished = true
@@ -310,6 +313,7 @@ internal class ParticleDismissOverlay(
     private fun fireDone() {
         if (doneFired) return
         doneFired = true
+        trace?.invoke("overlay_done firstFrame=$firstFramePresented progress=$presentedProgress")
         ParticlePresentationDiagnostics.of(host)?.event("particle_done", mapOf(
             "overlay" to System.identityHashCode(this), "reverse" to spec.reverse,
             "progress" to presentedProgress))
@@ -329,6 +333,7 @@ internal class ParticleDismissOverlay(
     private fun onFirstFrame() {
         if (finished || firstFramePresented) return
         firstFramePresented = true
+        trace?.invoke("gl_first_frame_presented")
         // 粒子已经在 Surface 上了，这时才撤快照——先显后撤，中间没有空白帧。
         snapshotView?.visibility = GONE
         if (!spec.inWindow || synchronizedCard) fireAnimationStarted()
@@ -349,6 +354,7 @@ internal class ParticleDismissOverlay(
 
     private fun onSessionFinished(completed: Boolean) {
         if (finished || returningToSource) return
+        trace?.invoke("session_finished completed=$completed firstFrame=$firstFramePresented progress=$presentedProgress")
         if (gesture != null) { removeSelf(); return }
         if (completed) {
             if (isCondense) {

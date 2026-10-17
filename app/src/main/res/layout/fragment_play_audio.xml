@@ -3,7 +3,7 @@
      必须用 minWidth/minHeight 声明固有尺寸，否则 FrameLayout 叠层会塌到最高子项（按钮行 96dp）。
      比 fragment_record_audio 高 30dp，多出来的高度留给进度滑杆；水体仍按 420dp 逻辑坐标
      渲染，由 AudioPlayDialogFragment 的取景平移把水线按回与录音对话框相同的贴底位置。 -->
-<FrameLayout
+<com.ywwynm.everythingdone.views.recording.fablesol.FableSolForegroundLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="280dp"
@@ -160,4 +160,4 @@
 
     </LinearLayout>
 
-</FrameLayout>
+</com.ywwynm.everythingdone.views.recording.fablesol.FableSolForegroundLayout>

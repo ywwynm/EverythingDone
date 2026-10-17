@@ -6,6 +6,7 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ArgbEvaluator
 import android.animation.ValueAnimator
+import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -33,6 +34,7 @@ import android.view.LayoutInflater
 import android.view.Surface
 import android.view.View
 import android.view.ViewGroup
+import android.view.Window
 import android.widget.CheckBox
 import android.widget.CompoundButton
 import android.widget.ImageView
@@ -107,6 +109,9 @@ import kotlin.math.roundToInt
  * RECORD_AUDIO 权限已授予（SettingsActivity 入口负责）。
  */
 class FableSolTuningDialogFragment : BaseDialogFragment() {
+
+    override fun usesFableSolSystemDim(): Boolean = true
+
 
     private var mActivity: EverythingDoneBaseActivity? = null
 
@@ -273,6 +278,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
     override fun onStart() {
         super.onStart()
         val window = dialog?.window ?: return
+        mVisualizer?.startCompositionPerformance(window, "tuning_dialog")
         val attributes = window.attributes
         attributes.preferredRefreshRate = TARGET_REFRESH_RATE
         window.attributes = attributes
@@ -296,6 +302,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
     }
 
     override fun onDestroyView() {
+        mVisualizer?.onHdrAvailabilityChanged = null
         mHdrCapabilityGeneration++
         mRefreshExportDerivedInfo = null
         mRefreshExportColorModeInfo = null
@@ -514,12 +521,34 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
 
     private fun setupHdrRow() {
         val ctx = mContentView!!.context
+        mVisualizer?.onHdrAvailabilityChanged = {
+            if (isAdded && mContentView != null) {
+                setupHdrRow()
+                applyHdrPreference()
+            }
+        }
         val label = f<TextView>(R.id.tv_fablesol_tuning_hdr)
+        if (BuildConfig.DEBUG && FableSolTuning.DEBUG_CONTROLS_ENABLED &&
+            com.ywwynm.everythingdone.views.recording.fablesol.FableSolDisplayPolicy
+                .usesPqCompatibility(Build.VERSION.SDK_INT, Build.MANUFACTURER, Build.DISPLAY)) {
+            label.setOnLongClickListener {
+                val sourceWindow = dialog?.window ?: return@setOnLongClickListener false
+                val sourcePreview = mVisualizer ?: return@setOnLongClickListener false
+                // 类仅存在于 debug；先记录仍在前台的真实窗口，再进入人工对照页。
+                Class.forName("com.ywwynm.everythingdone.views.recording.fablesol.FableSolHdrCompositionActivity")
+                    .getMethod("openFrom", Activity::class.java, Window::class.java, View::class.java)
+                    .invoke(null, requireActivity(), sourceWindow, sourcePreview)
+                true
+            }
+        }
         val value = f<TextView>(R.id.tv_fablesol_tuning_hdr_value)
         val seekBar = f<SeekBar>(R.id.sb_fablesol_tuning_hdr)
         mHdrSeekBar = seekBar
         seekBar.max = HDR_STRENGTH_STEPS
         DisplayUtil.setSeekBarBackground(seekBar, mAppliedBackground)
+        label.text = getString(R.string.fablesol_tuning_hdr)
+        label.alpha = 1f
+        seekBar.isEnabled = true
         if (!isHdrDisplaySupported()) {
             label.text = getString(R.string.fablesol_tuning_hdr) + " " +
                 getString(R.string.fablesol_tuning_hdr_unsupported)
@@ -583,15 +612,18 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         }
 
     /**
-     * WaveVisualizerFableSolGl.canBuildHdrSurface 里**显示器那一半**的判据（View 尚未
-     * attach 时用 Activity 的 display）。它只回答「这块屏能不能报出实时 headroom」，
-     * 决定滑杆是否可用；那边还要求用户强度高于关闭档，这里**不能**跟着加——否则滑到
-     * 关闭之后滑杆自己变灰，就再也拖不回来了。
+     * 普通设备沿用显示能力判断；卓易通允许实际尝试 PQ，失败后由宿主禁用。
+     * 不能将用户关闭档作为能力条件，否则关闭后无法重新拖动滑杆。
      */
     private fun isHdrDisplaySupported(): Boolean {
         if (Build.VERSION.SDK_INT < 34) return false
+        mVisualizer?.compatibilityHdrSupported()?.let { return it }
         val display = mVisualizer?.display ?: mActivity?.display ?: return false
-        return display.isHdr && display.isHdrSdrRatioAvailable
+        return com.ywwynm.everythingdone.views.recording.fablesol.FableSolDisplayPolicy.canOfferHdr(
+            Build.VERSION.SDK_INT,
+            com.ywwynm.everythingdone.views.recording.fablesol.FableSolDisplayPolicy.usesPqCompatibility(
+                Build.VERSION.SDK_INT, Build.MANUFACTURER, Build.DISPLAY),
+            display.isHdr, display.isHdrSdrRatioAvailable)
     }
 
     // ---- 参数行 ----
@@ -630,8 +662,8 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
             }
         }
         addExportGroup(container, ctx)
-        // debug 专属的调试组固定排在所有参数组之后；release 构建整段不出现。
-        if (BuildConfig.DEBUG) {
+        // 兼容调试入口统一收起；只在显式启用开发控件的 debug 构建中显示。
+        if (BuildConfig.DEBUG && FableSolTuning.DEBUG_CONTROLS_ENABLED) {
             container.addView(makeGroupHeader(ctx, getString(R.string.fablesol_group_debug)))
             container.addView(makePerfHudRow(ctx))
         }

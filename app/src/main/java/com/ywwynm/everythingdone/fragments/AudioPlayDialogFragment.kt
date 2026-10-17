@@ -60,6 +60,11 @@ import kotlin.math.roundToInt
  */
 class AudioPlayDialogFragment : BaseDialogFragment() {
 
+    override fun usesFableSolSystemDim(): Boolean = true
+
+    override fun onSystemDimContentClosing() { mPlayer?.pause() }
+
+
     private var mActivity: Activity? = null
 
     private var mPaths: List<String> = emptyList()
@@ -186,6 +191,7 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
     override fun onStart() {
         super.onStart()
         val window = dialog?.window ?: return
+        mVisualizer?.startCompositionPerformance(window, "audio_attachment_dialog")
         // 冻结期间不投高刷：切后台再回来会走到这里，无条件投票会把撤掉的那笔票又加回去。
         applyWindowFrameRatePolicy(animating = !mFrozenApplied)
         if (BuildConfig.DEBUG && mPerformanceMonitor == null) {

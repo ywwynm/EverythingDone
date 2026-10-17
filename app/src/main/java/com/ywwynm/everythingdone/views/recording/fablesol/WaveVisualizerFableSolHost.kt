@@ -21,16 +21,24 @@ import kotlin.math.min
 /**
  * Stage 1 运行时宿主：正常只运行 GLES；任何 GL 失败时切换旧 Canvas，并把天空强制为纯红色。
  */
-class WaveVisualizerFableSolHost @JvmOverloads constructor(
+class WaveVisualizerFableSolHost private constructor(
     context: Context,
-    attrs: AttributeSet? = null
+    attrs: AttributeSet?,
+    useDirectSurface: Boolean
 ) : FrameLayout(context, attrs), FableSolFrameReceiver,
     ParticleSnapshotParticipant {
 
+    @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) : this(context, attrs, true)
+
     // 正常 GLES 路径不创建第二份模拟、网格和采样数组；失败时再补齐回退实例与当前状态。
     private var canvasFallback: WaveVisualizerFableSol? = null
-    private val glView = WaveVisualizerFableSolGl(context).apply {
+    private val windowUnderlay = if (useDirectSurface && FableSolDisplayPolicy.usesPqCompatibility(
+        android.os.Build.VERSION.SDK_INT, android.os.Build.MANUFACTURER, android.os.Build.DISPLAY))
+        FableSolWindowUnderlay(context) else null
+    private val glView: FableSolRenderView = (if (windowUnderlay != null)
+        WaveVisualizerFableSolDirect(context, windowUnderlay) else WaveVisualizerFableSolGl(context)).apply {
         onGlFailure = { activateCanvasFallback() }
+        onHdrAvailabilityChanged = { this@WaveVisualizerFableSolHost.onHdrAvailabilityChanged?.invoke() }
     }
     private var fallbackActive = false
     private var currentBackground: ThingBackground? = null
@@ -42,6 +50,10 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
     /** 换缓冲格式期间的静止遮盖层；平时不创建，撤掉之后位图立即回收。 */
     private var formatCover: ImageView? = null
     private var coverShownAtNanos = 0L
+    private var hdrStrengthRequestId = 0L
+    private var requestedHdrStrength = FableSolTuning.hdrStrength(context)
+    private var hdrCaptureInFlight = false
+    private var hdrLifecycleId = 0L
     private var presentationAlpha = PREPARED_PRESENTATION_ALPHA
     private var presentationAnimator: ValueAnimator? = null
     private var particleHolds = 0
@@ -51,7 +63,8 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
 
     init {
         val match = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
-        addView(glView, match)
+        windowUnderlay?.let { addView(it, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)) }
+        addView(glView.view, match)
         setPresentationAlpha(PREPARED_PRESENTATION_ALPHA)
     }
 
@@ -75,6 +88,11 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
         glView.setPerformanceMonitor(if (fallbackActive) null else monitor)
         canvasFallback?.setPerformanceMonitor(if (fallbackActive) monitor else null)
         attachPerfHud(monitor)
+    }
+
+    internal fun startCompositionPerformance(window: android.view.Window, scenario: String) {
+        if (BuildConfig.DEBUG && !fallbackActive)
+            (glView as? WaveVisualizerFableSolDirect)?.startCompositionPerformance(window, scenario)
     }
 
     /**
@@ -163,6 +181,13 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
     /** GLES 异步失败、切到 Canvas 回退时回调一次；导出入口据此立刻隐藏，而不是等下次点击。 */
     var onGlFallback: (() -> Unit)? = null
 
+    /** null 继续使用普通 Android 能力判断；兼容输出失败只改变可用状态，不覆盖用户偏好。 */
+    internal fun compatibilityHdrSupported(): Boolean? = glView.compatibilityHdrSupported?.let {
+        it && !fallbackActive
+    }
+
+    internal var onHdrAvailabilityChanged: (() -> Unit)? = null
+
     /**
      * 用户 HDR 强度（1.0=关，9.6 封顶）；仅 GL 路径，Canvas 回退无 HDR。
      *
@@ -176,6 +201,51 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
      * 只是那一次没有遮盖——绝不因为遮盖失败就不改设置。
      */
     fun setHdrStrength(strength: Float) {
+        if (glView.retainsFrameOnOutputChange) {
+            glView.setHdrStrength(strength)
+            return
+        }
+        if (glView.compatibilityHdrSupported == null) {
+            setNativeHdrStrength(strength)
+            return
+        }
+        hdrStrengthRequestId++
+        requestedHdrStrength = strength
+        // 截图期间只保留最后一次请求，防止拖动滑杆排队做多次 GPU 读回。
+        if (hdrCaptureInFlight) return
+        if (fallbackActive || !glView.willChangeSurfaceFormat(strength) || formatCover?.visibility == VISIBLE) {
+            applyRequestedHdrStrength()
+            return
+        }
+        hdrCaptureInFlight = true
+        val lifecycle = hdrLifecycleId
+        glView.copyCurrentFrame { frame ->
+            if (lifecycle != hdrLifecycleId || !isAttachedToWindow) {
+                frame?.recycle()
+                return@copyCurrentFrame
+            }
+            if (glView.willChangeSurfaceFormat(requestedHdrStrength)) {
+                showFormatCover(frame)
+                coverShownAtNanos = System.nanoTime()
+                if (BuildConfig.DEBUG) {
+                    Log.i(COVER_TAG, "换格式遮盖：已上 抓图=${frame != null} 强度=$requestedHdrStrength")
+                }
+                if (frame != null && glView.compatibilityHdrSupported != null && isHardwareAccelerated) {
+                    // 卓易通先等遮盖进入窗口缓冲，再使旧 PQ 缓冲失效。
+                    // 准备期间继续合并滑杆请求，不能在 commit 前由下一次拖动抢先换格式。
+                    applyAfterCoverCommit(lifecycle)
+                    return@copyCurrentFrame
+                }
+            } else {
+                frame?.recycle()
+            }
+            hdrCaptureInFlight = false
+            applyRequestedHdrStrength()
+        }
+    }
+
+    /** 普通 Android 保留原有 PixelCopy 遮盖与切换顺序。 */
+    private fun setNativeHdrStrength(strength: Float) {
         if (fallbackActive || !glView.willChangeSurfaceFormat(strength)) {
             glView.setHdrStrength(strength)
             return
@@ -183,11 +253,41 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
         glView.copyCurrentFrame { frame ->
             showFormatCover(frame)
             coverShownAtNanos = System.nanoTime()
-            if (BuildConfig.DEBUG) {
-                Log.i(COVER_TAG, "换格式遮盖：已上 抓图=${frame != null} 强度=$strength")
-            }
+            if (BuildConfig.DEBUG) Log.i(COVER_TAG, "换格式遮盖：已上 抓图=${frame != null} 强度=$strength")
             glView.setHdrStrength(strength)
             glView.onNextPresented { hideFormatCover("新会话首帧") }
+            removeCallbacks(hideFormatCoverRunnable)
+            postDelayed(hideFormatCoverRunnable, COVER_TIMEOUT_MS)
+        }
+    }
+
+    private fun applyAfterCoverCommit(lifecycle: Long) {
+        var completed = false
+        lateinit var timeout: Runnable
+        val proceed = {
+            if (!completed) {
+                completed = true
+                removeCallbacks(timeout)
+                if (lifecycle == hdrLifecycleId && isAttachedToWindow) {
+                    hdrCaptureInFlight = false
+                    applyRequestedHdrStrength()
+                }
+            }
+        }
+        timeout = Runnable { proceed() }
+        val observer = viewTreeObserver
+        if (observer.isAlive) observer.registerFrameCommitCallback { post { proceed() } }
+        invalidate()
+        postDelayed(timeout, 160L)
+    }
+
+    private fun applyRequestedHdrStrength() {
+        val requestId = hdrStrengthRequestId
+        glView.setHdrStrength(requestedHdrStrength)
+        if (formatCover?.visibility == VISIBLE) {
+            glView.onNextPresented {
+                if (requestId == hdrStrengthRequestId) hideFormatCover("新会话首帧")
+            }
             removeCallbacks(hideFormatCoverRunnable)
             postDelayed(hideFormatCoverRunnable, COVER_TIMEOUT_MS)
         }
@@ -289,6 +389,9 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
     }
 
     override fun onDetachedFromWindow() {
+        hdrStrengthRequestId++
+        hdrLifecycleId++
+        hdrCaptureInFlight = false
         presentationAnimator?.cancel()
         presentationAnimator = null
         hideFormatCover()
@@ -300,7 +403,8 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
         fallbackActive = true
         glView.setPerformanceMonitor(null)
         glView.setRecordingHdrActive(false)
-        glView.visibility = View.GONE
+        glView.view.visibility = View.GONE
+        windowUnderlay?.visibility = View.GONE
         val fallback = WaveVisualizerFableSol(context).also { canvasFallback = it }
         fallback.setGlFallbackDiagnostic(true)
         currentBackground?.let(fallback::setThingBackground)
@@ -312,6 +416,7 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
         fallback.alpha = presentationAlpha
         addView(fallback, 0, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
         onGlFallback?.invoke()
+        if (glView.compatibilityHdrSupported != null) onHdrAvailabilityChanged?.invoke()
     }
 
     private fun resolveIntrinsic(spec: Int, dp: Float): Int {
@@ -325,15 +430,21 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
         }
     }
 
-    private companion object {
-        const val INTRINSIC_W_DP = 280f
-        const val INTRINSIC_H_DP = 420f
-        const val PREPARED_PRESENTATION_ALPHA = 0.16f
-        const val HUD_TEXT_SP = 8f
+    companion object {
+        /** C／M 等旧 SurfaceView 对照不随生产容器切成 N；仅 debug 诊断页调用。 */
+        internal fun forSurfaceViewComparison(context: Context): WaveVisualizerFableSolHost {
+            check(BuildConfig.DEBUG)
+            return WaveVisualizerFableSolHost(context, null, false)
+        }
+
+        private const val INTRINSIC_W_DP = 280f
+        private const val INTRINSIC_H_DP = 420f
+        private const val PREPARED_PRESENTATION_ALPHA = 0.16f
+        private const val HUD_TEXT_SP = 8f
         /** 遮盖层的兜底时限：新会话万一交不出帧，也绝不把静止图永久留在屏幕上。 */
-        const val COVER_TIMEOUT_MS = 900L
-        const val COVER_TAG = "FableSolSurfProbe"
-        val HUD_BACKGROUND = Color.argb(150, 0, 0, 0)
-        val HUD_FOREGROUND = Color.argb(255, 120, 255, 160)
+        private const val COVER_TIMEOUT_MS = 900L
+        private const val COVER_TAG = "FableSolSurfProbe"
+        private val HUD_BACKGROUND = Color.argb(150, 0, 0, 0)
+        private val HUD_FOREGROUND = Color.argb(255, 120, 255, 160)
     }
 }

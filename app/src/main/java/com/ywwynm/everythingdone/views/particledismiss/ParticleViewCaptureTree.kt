@@ -35,7 +35,7 @@ internal object ParticleViewCaptureTree {
             val canvas = node.beginRecording(view.width, view.height)
             try { block(canvas) } finally { node.endRecording() }
         }
-        fun update(view: View, frames: Map<SurfaceView, Bitmap>, excluded: Set<View>, affected: Set<View>,
+        fun update(view: View, frames: Map<View, Bitmap>, excluded: Set<View>, affected: Set<View>,
                    forceRecording: Boolean = false): RenderNode {
             val entry = entries.getOrPut(view) { Entry() }
             val resized = entry.width != view.width || entry.height != view.height
@@ -45,7 +45,8 @@ internal object ParticleViewCaptureTree {
                 record(entry.own, view) { drawOwn(view, children, it) }
                 record(entry.decorations, view) { view.onDrawForeground(it) }
                 val visible = children.filter { it.visibility == View.VISIBLE && it !in excluded &&
-                    it !is ParticleOverlaySurfaceView && it.width > 0 && it.height > 0 }
+                    it !is ParticleOverlaySurfaceView && it !is ParticleTransparentSurfaceContainer &&
+                    it.width > 0 && it.height > 0 }
                 val nodes = visible.map { child ->
                     val content = update(child, frames, excluded, affected, forceRecording)
                     val wrapped = checkNotNull(entries[child]).wrapper
@@ -73,10 +74,10 @@ internal object ParticleViewCaptureTree {
                     }
                 }
             } else if (forceRecording || resized || view.isDirty || view.isLayoutRequested || !entry.node.hasDisplayList() ||
-                view is SurfaceView || view is TextureView) {
+                ParticleSurfaceCopy.isSource(view) || view is TextureView) {
                 record(entry.node, view) { target ->
                     when (view) {
-                        is SurfaceView -> frames[view]?.let { target.drawBitmap(it, null,
+                        is SurfaceView, is ParticleDirectSurfaceSource -> frames[view]?.let { target.drawBitmap(it, null,
                             Rect(0, 0, view.width, view.height), Paint(Paint.FILTER_BITMAP_FLAG)) }
                         is TextureView -> view.bitmap?.let { target.drawBitmap(it, 0f, 0f, null); it.recycle() }
                         else -> view.draw(target)
@@ -97,7 +98,7 @@ internal object ParticleViewCaptureTree {
         }
     }
 
-    fun record(canvas: Canvas, root: View, frames: Map<SurfaceView, Bitmap>,
+    fun record(canvas: Canvas, root: View, frames: Map<View, Bitmap>,
                excluded: Set<View> = emptySet(), cache: Cache? = null,
                forceRootRecording: Boolean = false,
                borrowedViews: MutableSet<View>? = null): List<RenderNode> {
@@ -118,8 +119,8 @@ internal object ParticleViewCaptureTree {
             return emptyList()
         }
         fun draw(view: View, target: Canvas) {
-            if (view in excluded || view is ParticleOverlaySurfaceView) return
-            if (view is SurfaceView) {
+            if (view in excluded || view is ParticleOverlaySurfaceView || view is ParticleTransparentSurfaceContainer) return
+            if (ParticleSurfaceCopy.isSource(view)) {
                 frames[view]?.let { target.drawBitmap(it, null, Rect(0, 0, view.width, view.height),
                     Paint(Paint.FILTER_BITMAP_FLAG)) }
                 return
@@ -145,6 +146,7 @@ internal object ParticleViewCaptureTree {
             target.enableZ()
             children.forEachIndexed { index, child ->
                 if (visibility[index] != View.VISIBLE || child in excluded || child is ParticleOverlaySurfaceView ||
+                    child is ParticleTransparentSurfaceContainer ||
                     child.width <= 0 || child.height <= 0) return@forEachIndexed
                 val node = RenderNode("particleCaptured-${child.javaClass.simpleName}").also { nodes += it }
                 pose(node, child, view)

@@ -14,15 +14,21 @@ internal object ParticleDialogVisibility {
         acquire(window, run).hide()
     }
 
-    fun acquire(window: Window, run: ParticlePresentationDiagnostics.Run?): Lease =
-        leases[window] ?: Lease(window, run).also { leases[window] = it }
+    /** 兼容音频窗口在 show 前就隐藏；系统暗层是独立图层，不靠留下窗口像素维持。 */
+    fun prepareSystemDim(window: Window) {
+        acquire(window, ParticlePresentationDiagnostics.of(window.context), forceContent = true).hide()
+    }
+
+    fun acquire(window: Window, run: ParticlePresentationDiagnostics.Run?, forceContent: Boolean = false): Lease =
+        leases[window] ?: Lease(window, run, forceContent).also { leases[window] = it }
 
     fun restore(window: Window?, reason: String) { window?.let { leases[it]?.restore(reason) } }
     fun elevation(window: Window) = leases[window]?.originalElevation ?: window.decorView.elevation
     fun translationZ(window: Window) = leases[window]?.originalTranslationZ ?: window.decorView.translationZ
 
     class Lease internal constructor(private val window: Window,
-                                     private val run: ParticlePresentationDiagnostics.Run?) {
+                                     private val run: ParticlePresentationDiagnostics.Run?,
+                                     private val forceContent: Boolean) {
         private val decor = window.decorView
         val originalWindowAlpha = window.attributes.alpha
         private val originalDecorAlpha = decor.alpha
@@ -30,7 +36,7 @@ internal object ParticleDialogVisibility {
         val originalTranslationZ = decor.translationZ
         private var restored = false
         private val mode = ParticlePresentationPolicy.of(window.context).dialogMode
-        val hidesContent = mode == ParticlePresentationDiagnostics.DialogMode.CONTENT
+        val hidesContent = forceContent || mode == ParticlePresentationDiagnostics.DialogMode.CONTENT
         private val attachment = object : View.OnAttachStateChangeListener {
             override fun onViewAttachedToWindow(v: View) = Unit
             override fun onViewDetachedFromWindow(v: View) { restore("detach") }
@@ -49,11 +55,15 @@ internal object ParticleDialogVisibility {
             record("dialog_hidden")
         }
 
-        fun record(event: String) = run?.event(event, mapOf(
-            "window" to System.identityHashCode(window), "mode" to mode.name,
-            "windowAlpha" to window.attributes.alpha, "decorAlpha" to decor.alpha,
-            "elevation" to decor.elevation, "windowAnimations" to window.attributes.windowAnimations,
-            "attached" to decor.isAttachedToWindow))
+        fun record(event: String) {
+            run?.event(event, mapOf(
+                "window" to System.identityHashCode(window), "mode" to mode.name,
+                "windowAlpha" to window.attributes.alpha, "decorAlpha" to decor.alpha,
+                "elevation" to decor.elevation, "windowAnimations" to window.attributes.windowAnimations,
+                "attached" to decor.isAttachedToWindow))
+            if (forceContent) ParticleSystemDimLog.record(window, event,
+                "windowAlpha=${window.attributes.alpha} decorAlpha=${decor.alpha} attached=${decor.isAttachedToWindow}")
+        }
 
         fun restore(reason: String) {
             if (restored) return

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- BaseDialogFragment 以 null parent 充气：根节点 layout_width/height 会被丢弃，
      必须用 minWidth/minHeight 声明固有尺寸，否则 FrameLayout 叠层会塌到最高子项（按钮行 96dp）。 -->
-<FrameLayout
+<com.ywwynm.everythingdone.views.recording.fablesol.FableSolForegroundLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="280dp"
@@ -227,4 +227,4 @@
 
     </LinearLayout>
 
-</FrameLayout>
+</com.ywwynm.everythingdone.views.recording.fablesol.FableSolForegroundLayout>

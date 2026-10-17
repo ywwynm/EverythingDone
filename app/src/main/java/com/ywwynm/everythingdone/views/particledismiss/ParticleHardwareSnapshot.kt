@@ -86,7 +86,7 @@ internal object ParticleHardwareSnapshot {
 
     private fun capture(view: View, clip: Rect?, shadow: ParticleCardSnapshot?, keepHardware: Boolean,
                         softwareContent: Bitmap? = null,
-                        surfaceFrames: Map<SurfaceView, Bitmap>? = null,
+                        surfaceFrames: Map<View, Bitmap>? = null,
                         omitFeedback: Boolean = false,
                         done: (Bitmap?) -> Unit) {
         if (softwareContent == null && surfaceFrames == null && ParticlePresentationPolicy.of(view).unified &&

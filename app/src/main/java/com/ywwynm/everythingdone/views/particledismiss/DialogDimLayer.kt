@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.doOnLayout
+import com.ywwynm.everythingdone.BuildConfig
 import java.util.WeakHashMap
 
 /**
@@ -89,6 +90,23 @@ internal class DialogDimLayer private constructor(
 
         /** 主题禁用系统 dim 后由这里统一给值（平台默认浓度）。 */
         const val DIM_AMOUNT = 0.6f
+
+        /**
+         * 仅 debug 合成对照调用：原窗口和 Surface 不变，只改变指定宿主的暗层。
+         * 等唯一暗层完成布局后操作，避免把旧弹窗正在淡出的层误当成当前层。
+         * amount=0 同时隐藏该 View，排除透明但仍参与绘制的层；不改持久化设置。
+         */
+        internal fun overrideForHdrDiagnostics(decor: View, amount: Float): Boolean {
+            if (!BuildConfig.DEBUG) return false
+            val views = synchronized(attached) {
+                attached.filter { (view, host) -> host === decor && view.isAttachedToWindow }.keys.toList()
+            }
+            val view = views.singleOrNull()?.takeIf { it.width > 0 && it.height > 0 } ?: return false
+            view.animate().cancel()
+            view.alpha = amount.coerceIn(0f, 1f)
+            view.visibility = if (amount > 0f) View.VISIBLE else View.GONE
+            return true
+        }
 
         fun attach(activity: Activity, animateIn: Boolean = true): DialogDimLayer? {
             if (activity.isFinishing || activity.isDestroyed) return null

@@ -13,16 +13,16 @@ import android.view.ViewGroup
 /** 对同一可见树并行取得独立生产者的内容；迟到结果只回收，不再次交付。 */
 internal object ParticleSurfaceFrames {
     private val main = Handler(Looper.getMainLooper())
-    fun capture(root: View, excluded: Set<View> = emptySet(), done: (Map<SurfaceView, Bitmap>?) -> Unit) {
-        val sources = mutableListOf<SurfaceView>()
+    fun capture(root: View, excluded: Set<View> = emptySet(), done: (Map<View, Bitmap>?) -> Unit) {
+        val sources = mutableListOf<View>()
         fun visit(view: View) {
             if (view in excluded || view.visibility != View.VISIBLE || view is ParticleOverlaySurfaceView) return
-            if (view is SurfaceView && view.width > 0 && view.height > 0 && view.getGlobalVisibleRect(Rect())) sources += view
+            if (ParticleSurfaceCopy.isSource(view) && view.width > 0 && view.height > 0 && view.getGlobalVisibleRect(Rect())) sources += view
             if (view is ViewGroup) for (i in 0 until view.childCount) visit(view.getChildAt(i))
         }
         visit(root)
         if (sources.isEmpty()) { done(emptyMap()); return }
-        val copies = LinkedHashMap<SurfaceView, Bitmap>()
+        val copies = LinkedHashMap<View, Bitmap>()
         var remaining = sources.size
         var closed = false
         val start = SystemClock.uptimeMillis()
@@ -49,7 +49,7 @@ internal object ParticleSurfaceFrames {
                 if (!source.isAttachedToWindow) { bitmap.recycle(); fail(); return }
                 try {
                     attempts++
-                    PixelCopy.request(source, bitmap, { status ->
+                    ParticleSurfaceCopy.request(source, bitmap, { status ->
                         lastStatus = status
                         if (closed) bitmap.recycle()
                         else if (status == PixelCopy.SUCCESS) {

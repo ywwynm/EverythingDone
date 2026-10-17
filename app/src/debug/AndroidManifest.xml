@@ -79,6 +79,10 @@
         android:usesCleartextTraffic="true"
         tools:replace="android:networkSecurityConfig">
 
+        <activity android:name=".views.recording.fablesol.FableSolHdrCompositionActivity"
+            android:enabled="false" android:exported="false"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar" />
+
         <activity android:name=".covergeneration.CoverGenerationProbeActivity"
             android:exported="false" android:theme="@style/EverythingDoneTheme.Settings" />
         <activity android:name=".listvalidation.GifLifecycleActivity"

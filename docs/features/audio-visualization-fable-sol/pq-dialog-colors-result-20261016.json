@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "baselineRef": "f98097520",
+  "renderer": "NVIDIA GeForce RTX 5090/PCIe/SSE2",
+  "unchangedSdrScrgbCases": 48,
+  "pqCases": 24,
+  "maximumAbsoluteError": 0.00048828125,
+  "roundedAlphaLevels": 20,
+  "transparentPixelsRgbZero": true,
+  "packedPqCases": 2,
+  "neutralPqCases": 8,
+  "sdrSnapshotCases": 42,
+  "sdrSnapshotMaxError": 0.002168404005513408,
+  "packedAlphaHasNoRgbLeak": true,
+  "deviceValidation": false
+}

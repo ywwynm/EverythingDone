@@ -10,7 +10,8 @@ class FableSolGlRenderTargetSourceTest {
     @Test
     fun `折射背景与合成场景使用两个独立离屏目标`() {
         val source = rendererSource()
-        val drawFrame = functionBody(source, "private fun drawFrame()", "private fun drawEnvironmentTo")
+        // 呈现前允许读取最新控件帧；参数不影响两个离屏目标的独立性检查。
+        val drawFrame = functionBody(source, "private fun drawFrame(", "private fun drawEnvironmentTo")
 
         assertTrue(source.contains("private var preWaterFramebufferId = 0"))
         assertTrue(source.contains("private var preWaterTextureId = 0"))

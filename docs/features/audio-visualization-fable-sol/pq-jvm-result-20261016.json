@@ -1,0 +1,9 @@
+{
+  "testClasses": 79,
+  "tests": 583,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 1,
+  "passed": 582,
+  "skippedReason": "既有 FableSolCpuFrameCostProbe 需要显式开启；本轮没有修改其性能测量对象"
+}

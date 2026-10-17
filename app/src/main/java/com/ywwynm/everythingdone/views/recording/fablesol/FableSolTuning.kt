@@ -20,6 +20,9 @@ import kotlin.math.abs
  */
 object FableSolTuning {
 
+    /** 兼容调试收尾后统一隐藏入口；旧 HUD 偏好也不能重新显示面板。 */
+    internal const val DEBUG_CONTROLS_ENABLED = false
+
     enum class Target {
         RENDERER,
         AUDIO_FRONT_END
@@ -336,7 +339,7 @@ object FableSolTuning {
      * 不是波浪参数）。release 构建不读它——HUD 整段被 BuildConfig.DEBUG 编译期移除。
      */
     fun isPerfHudEnabled(context: Context): Boolean =
-        prefs(context).getBoolean(KEY_SHOW_PERF_HUD, false)
+        DEBUG_CONTROLS_ENABLED && prefs(context).getBoolean(KEY_SHOW_PERF_HUD, false)
 
     fun setPerfHudEnabled(context: Context, enabled: Boolean) {
         prefs(context).edit().putBoolean(KEY_SHOW_PERF_HUD, enabled).apply()

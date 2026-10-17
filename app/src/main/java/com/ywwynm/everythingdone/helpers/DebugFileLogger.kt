@@ -21,6 +21,11 @@ object DebugFileLogger {
     private val executor = Executors.newSingleThreadExecutor()
     private val sessionStartedFiles: MutableSet<String> = HashSet()
 
+    /** 在已排队的日志落盘后执行快照；执行期间不轮转，避免导出丢失文件。 */
+    fun afterPendingWrites(snapshot: () -> Unit) {
+        executor.execute(snapshot)
+    }
+
     @JvmStatic
     @JvmOverloads
     fun log(

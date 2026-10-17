@@ -18,23 +18,42 @@ import com.ywwynm.everythingdone.helpers.DebugFileLogger
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.views.particledismiss.ParticleSnapshotParticipant
 import com.ywwynm.everythingdone.views.particledismiss.ParticleSurfaceRedrawParticipant
+import com.ywwynm.everythingdone.views.particledismiss.ParticleSurfaceSnapshotSource
 import kotlin.math.max
 import kotlin.math.min
 
 /** SurfaceView 宿主：UI 线程只投递 60Hz 时间戳，全部水体工作在 FableSolGles 线程。 */
-class WaveVisualizerFableSolGl @JvmOverloads constructor(
+internal class WaveVisualizerFableSolGl @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
 ) : SurfaceView(context, attrs), SurfaceHolder.Callback, FableSolFrameReceiver,
-    ParticleSnapshotParticipant, ParticleSurfaceRedrawParticipant {
+    ParticleSnapshotParticipant, ParticleSurfaceRedrawParticipant, ParticleSurfaceSnapshotSource, FableSolRenderView {
+
+    override val view: View get() = this
 
     private val density = resources.displayMetrics.density.toDouble()
+    private val pqCompatibility = FableSolDisplayPolicy.usesPqCompatibility(
+        Build.VERSION.SDK_INT, Build.MANUFACTURER, Build.DISPLAY)
+    private val windowClip = if (pqCompatibility) FableSolWindowSurfaceClip(this) else null
+    private var pqUnavailable = false
+    override val compatibilityHdrSupported: Boolean?
+        get() = if (pqCompatibility) !pqUnavailable else null
+    override var onHdrAvailabilityChanged: (() -> Unit)? = null
     private val renderThread = FableSolGlRenderThread(
         context,
         density,
-        onHdrStatus = { active, _ ->
+        onHdrStatus = { active, _, attemptedPq, sessionId ->
             post {
-                hdrContentAvailable = surfaceReady && active
+                if (!surfaceReady) return@post
+                if (pqCompatibility && sessionId != sessionGeneration) return@post
+                hdrContentAvailable = surfaceReady && active && (!pqCompatibility || hdrRequestedByUser())
+                if (FableSolDisplayPolicy.isPqFailure(attemptedPq, active) && !pqUnavailable) {
+                    pqUnavailable = true
+                    // 实际 PQ 或浮点场景失败才回退；本 View 生命周期内不反复探测／换格式。
+                    holder.setFormat(PixelFormat.RGBA_8888)
+                    updateSurfaceSession(PixelFormat.RGBA_8888, width, height)
+                    onHdrAvailabilityChanged?.invoke()
+                }
                 updateDesiredHdrHeadroom()
             }
         },
@@ -45,7 +64,7 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
             }
         }
     )
-    internal var onGlFailure: ((String) -> Unit)? = null
+    override var onGlFailure: ((String) -> Unit)? = null
     private var animating = false
     /**
      * 完全冻结。它是一道**门**而不是一次性命令：`ensureAnimating()` 有五个调用点
@@ -59,6 +78,9 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
     private var surfaceReady = false
     /** 当前 EGL 会话是按哪个缓冲格式建的；与 [desiredSurfaceFormat] 不一致就必须重建会话。 */
     private var attachedFormat = PixelFormat.UNKNOWN
+    private var attachedOutput = FableSolScreenOutput.SDR
+    private var sessionGeneration = 0L
+    private var formatPresentedAction: (() -> Unit)? = null
     private var votedFrameRate = 0f
     private var demotedPollStreak = 0
     private var lastRevoteUptimeMs = 0L
@@ -107,37 +129,37 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
     }
 
     /**
-     * 缓冲格式必须与 [canBuildHdrSurface] 同一个判据：HDR 关掉之后仍留 FP16，
-     * 这一层在合成器眼里依旧是个浮点层，用户看到的还是「颜色不对」。
+     * 卓易通 PQ 改用完整 8 位 alpha 的 RGBA8，避免 RGB10_A2 的兼容合成穿透。
+     * 关闭档仍要重建 SDR 色彩空间；普通设备保持原来的 FP16 scRGB。
      */
-    private fun desiredSurfaceFormat(): Int =
-        if (Build.VERSION.SDK_INT >= 34 && resources.configuration.isScreenHdr && hdrRequestedByUser()) {
-            PixelFormat.RGBA_F16
-        } else {
-            PixelFormat.RGBA_8888
-        }
+    private fun desiredSurfaceFormat(strength: Float = hdrStrength): Int =
+        if (desiredOutput(strength) == FableSolScreenOutput.SCRGB) PixelFormat.RGBA_F16
+        else PixelFormat.RGBA_8888
 
-    /** 用户把强度滑到最低（1.0 = 关闭）就是明确要求不要 HDR，屏上这一层必须整个退回 SDR。 */
+    private fun desiredOutput(strength: Float = hdrStrength) = FableSolDisplayPolicy.requestedOutput(
+        Build.VERSION.SDK_INT, pqCompatibility, pqUnavailable, resources.configuration.isScreenHdr, strength)
+
+    /** 关闭档同时控制内容增益与窗口色彩空间。 */
     private fun hdrRequestedByUser(): Boolean = hdrStrength > FableSolHdrPolicy.STRENGTH_OFF
 
-    fun setThingBackground(background: ThingBackground) {
+    override fun setThingBackground(background: ThingBackground) {
         renderThread.setThingBackground(background)
     }
 
-    fun setContainerGravity(x: Float, y: Float, z: Float) {
+    override fun setContainerGravity(x: Float, y: Float, z: Float) {
         renderThread.setGravity(x, y, z)
     }
 
-    internal fun setPerformanceMonitor(monitor: FableSolPerformanceMonitor?) {
+    override fun setPerformanceMonitor(monitor: FableSolPerformanceMonitor?) {
         performanceMonitor = monitor
         renderThread.setPerformanceMonitor(monitor)
     }
 
-    internal fun setPresentationAlpha(alpha: Float) {
+    override fun setPresentationAlpha(alpha: Float) {
         renderThread.setPresentationAlpha(alpha)
     }
 
-    internal fun setRecordingHdrActive(active: Boolean) {
+    override fun setRecordingHdrActive(active: Boolean) {
         recordingHdrRequested = active
         renderThread.setHdrRecordingRequested(active)
         updateDesiredHdrHeadroom()
@@ -147,19 +169,19 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
      * 这次强度变化会不会换缓冲格式。换格式意味着旧缓冲当场作废、新 EGL 会话交出第一帧
      * 之前合成器手上没有内容——调用方（[WaveVisualizerFableSolHost]）要先盖一张静止图。
      */
-    internal fun willChangeSurfaceFormat(strength: Float): Boolean {
+    override fun willChangeSurfaceFormat(strength: Float): Boolean {
         if (!surfaceReady) return false
         val value = strength.coerceIn(
             FableSolHdrPolicy.STRENGTH_OFF, FableSolHdrPolicy.MAX_STRENGTH
         )
         if (value == hdrStrength) return false
-        val wanted = if (Build.VERSION.SDK_INT >= 34 && resources.configuration.isScreenHdr &&
-            value > FableSolHdrPolicy.STRENGTH_OFF) PixelFormat.RGBA_F16 else PixelFormat.RGBA_8888
-        return wanted != attachedFormat
+        val wanted = desiredSurfaceFormat(value)
+        return wanted != attachedFormat || (pqCompatibility && desiredOutput(value) != attachedOutput)
     }
 
     /** 当前这一帧的静止拷贝，供换格式期间遮盖用；拿不到就回调 null（调用方照常切）。 */
-    internal fun copyCurrentFrame(done: (Bitmap?) -> Unit) {
+    override fun copyCurrentFrame(done: (Bitmap?) -> Unit) {
+        if (copySdrSnapshot(done)) return
         if (!surfaceReady || !holder.surface.isValid || width <= 0 || height <= 0) {
             done(null); return
         }
@@ -175,32 +197,55 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
     }
 
     /** 新会话在这条 Surface 上真正交出第一帧之后回调一次（主线程）。 */
-    internal fun onNextPresented(action: () -> Unit) {
-        renderThread.notifyOnNextPresented(action)
+    override fun onNextPresented(action: () -> Unit) {
+        if (!pqCompatibility) {
+            renderThread.notifyOnNextPresented(action)
+            return
+        }
+        // setFormat 到 surfaceChanged 之间旧会话还可能提交帧；不能用旧帧撤盖。
+        if (desiredSurfaceFormat() != attachedFormat || desiredOutput() != attachedOutput) formatPresentedAction = action
+        else {
+            formatPresentedAction = null
+            renderThread.notifyOnNextPresented(action)
+            // 冻结预览可能已交出新会话唯一一帧；注册回调后再补一次，避免等到遮盖超时。
+            if (frozen) renderThread.renderSingleFrame()
+        }
+    }
+
+    override fun copySdrSnapshot(done: (Bitmap?) -> Unit): Boolean {
+        if (!pqCompatibility) return false
+        if (!surfaceReady) done(null) else renderThread.copySdrSnapshot(done)
+        return true
     }
 
     /**
      * 用户 HDR 强度（1.0=关，9.6 封顶）：立即生效，已抬升的期望 headroom 同步改请求值。
      *
-     * 跨过「关闭」那一档时还要换缓冲格式：开与关分别对应 FP16 linear scRGB 与 sRGB 8 位
-     * 两种表面，光改着色器输出换不掉合成器对这块缓冲的解释。换格式会触发 surfaceChanged，
+     * 跨过关闭档同时换缓冲格式：HDR 使用原生 scRGB 或兼容 PQ，SDR 使用 sRGB 8 位。
+     * 光改着色器输出换不掉合成器对这块缓冲的解释。换格式会触发 surfaceChanged，
      * 那里按 [attachedFormat] 判出格式变了、整条重建 EGL 会话。**换格式会丢掉旧缓冲**，
      * 所以这条路要由 [WaveVisualizerFableSolHost] 先盖一张静止图再调（[willChangeSurfaceFormat]）。
      */
-    internal fun setHdrStrength(strength: Float) {
+    override fun setHdrStrength(strength: Float) {
         val value = strength.coerceIn(
             FableSolHdrPolicy.STRENGTH_OFF,
             FableSolHdrPolicy.MAX_STRENGTH
         )
         if (value == hdrStrength) return
+        val previousFormat = desiredSurfaceFormat()
         hdrStrength = value
         val format = desiredSurfaceFormat()
-        if (format != attachedFormat) holder.setFormat(format)
+        if (format != attachedFormat || (pqCompatibility && format != previousFormat)) holder.setFormat(format)
         renderThread.setHdrStrength(value)
+        // PQ/SDR 的像素格式现在相同，setFormat 不会通知 surfaceChanged；显式重建颜色会话。
+        // 宿主已在窗口 commit 后才调用本方法，重建与首帧交接仍处在快照遮盖下。
+        if (pqCompatibility && surfaceReady && desiredOutput() != attachedOutput) {
+            updateSurfaceSession(format, width, height)
+        }
         updateDesiredHdrHeadroom()
     }
 
-    internal fun setTuningValue(key: String, value: Double) {
+    override fun setTuningValue(key: String, value: Double) {
         renderThread.setTuningValue(key, value)
     }
 
@@ -208,7 +253,7 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
      * 暂停冻结（与 Python 模拟器同语义）：模拟与音频泵停住、画面静止，但渲染
      * 循环照跑——冻结画面上调参、换色、HDR 切换仍逐帧实时生效。
      */
-    internal fun setSimulationPaused(paused: Boolean) {
+    override fun setSimulationPaused(paused: Boolean) {
         renderThread.setSimulationPaused(paused)
     }
 
@@ -220,7 +265,7 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
      * 撤帧率投票是必须的：`stopFrameLoop()` 本身不动 `setFrameRate`，不撤的话面板会为一张
      * 静止画面继续被顶在 120Hz。
      */
-    internal fun setFrozen(value: Boolean) {
+    override fun setFrozen(value: Boolean) {
         hostFrozen = value
         applyFrozenState()
     }
@@ -258,15 +303,15 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
         }
     }
 
-    internal fun beginBackgroundTransition(background: ThingBackground) {
+    override fun beginBackgroundTransition(background: ThingBackground) {
         renderThread.beginBackgroundTransition(background)
     }
 
-    internal fun setContentVerticalOffsetDp(offsetDp: Float) {
+    override fun setContentVerticalOffsetDp(offsetDp: Float) {
         renderThread.setContentVerticalOffsetDp(offsetDp)
     }
 
-    internal fun setBottomCornerRadiusPx(radiusPx: Float) {
+    override fun setBottomCornerRadiusPx(radiusPx: Float) {
         renderThread.setBottomCornerRadiusPx(radiusPx)
     }
 
@@ -274,7 +319,7 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
         renderThread.onAudioFrames(frames, events)
     }
 
-    internal fun clearPendingAudio() {
+    override fun clearPendingAudio() {
         renderThread.clearPendingAudio()
     }
 
@@ -289,12 +334,16 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
         val preferHdr = canBuildHdrSurface()
         val hdrSdrRatio = currentHdrSdrRatio()
         attachedFormat = desiredSurfaceFormat()
+        attachedOutput = desiredOutput()
+        sessionGeneration++
         renderThread.attach(
             holder.surface,
             max(width, frame.width()).coerceAtLeast(1),
             max(height, frame.height()).coerceAtLeast(1),
             preferHdr,
-            hdrSdrRatio
+            hdrSdrRatio,
+            preferPq = pqCompatibility && !pqUnavailable,
+            sessionId = sessionGeneration
         )
         renderThread.setHdrStrength(hdrStrength)
         renderThread.setHdrRecordingRequested(recordingHdrRequested)
@@ -309,23 +358,41 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
                     "valid=${holder.surface.isValid} attachedFmt=$attachedFormat"
             )
         }
+        updateSurfaceSession(format, width, height)
+        windowClip?.request()
+    }
+
+    private fun updateSurfaceSession(format: Int, width: Int, height: Int) {
+        // 快速往返关闭档时，忽略已经被后一个 setFormat 替代的通知。
+        if (pqCompatibility && format != desiredSurfaceFormat()) return
         // 缓冲格式变了（用户在调参 Dialog 里把 HDR 强度拖过「关闭」那一档）只会走到
         // surfaceChanged——SurfaceView 不会为此重建 Surface，于是 surfaceReady 仍为 true。
         // EGL 会话是按旧格式与旧色彩空间建的，只 resize 换不掉它，必须整条重建。
-        val formatChanged = surfaceReady && format != attachedFormat && holder.surface.isValid
+        val formatChanged = surfaceReady && holder.surface.isValid &&
+            (format != attachedFormat || (pqCompatibility && desiredOutput() != attachedOutput))
         if ((!surfaceReady && holder.surface.isValid) || formatChanged) {
+            // attach 会停止 GL 线程的帧循环，同步重置 UI 侧状态，确保新会话重新开始提交。
+            if (pqCompatibility) stopFrameLoop()
             surfaceReady = true
             votedFrameRate = 0f   // Surface 已换新，旧票不再有效
             attachedFormat = format
+            attachedOutput = desiredOutput()
+            sessionGeneration++
             renderThread.attach(
                 holder.surface,
                 width.coerceAtLeast(1),
                 height.coerceAtLeast(1),
                 canBuildHdrSurface(),
-                currentHdrSdrRatio()
+                currentHdrSdrRatio(),
+                preferPq = pqCompatibility && !pqUnavailable,
+                sessionId = sessionGeneration
             )
             renderThread.setHdrStrength(hdrStrength)
             renderThread.setHdrRecordingRequested(recordingHdrRequested)
+            formatPresentedAction?.let {
+                formatPresentedAction = null
+                renderThread.notifyOnNextPresented(it)
+            }
         } else {
             renderThread.resize(width, height)
         }
@@ -333,6 +400,7 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
+        sessionGeneration++
         if (BuildConfig.DEBUG) Log.i(SURF_PROBE, "surfaceDestroyed ready=$surfaceReady")
         stopFrameLoop()
         clearSurfaceFrameRate()
@@ -345,10 +413,14 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        windowClip?.attach()
         ensureAnimating()
     }
 
     override fun onDetachedFromWindow() {
+        windowClip?.detach()
+        sessionGeneration++
+        formatPresentedAction = null
         stopFrameLoop()
         resetHdrSurfaceState()
         if (surfaceReady) {
@@ -362,6 +434,7 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
         super.onWindowVisibilityChanged(visibility)
         if (BuildConfig.DEBUG) Log.i(SURF_PROBE, "windowVisibility=$visibility")
         if (visibility == View.VISIBLE) ensureAnimating() else stopFrameLoop()
+        if (visibility == View.VISIBLE) windowClip?.request()
     }
 
     override fun onVisibilityAggregated(isVisible: Boolean) {
@@ -423,12 +496,17 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
     private fun canBuildHdrSurface(): Boolean {
         if (Build.VERSION.SDK_INT < 34) return false
         if (!hdrRequestedByUser()) return false
+        if (pqCompatibility) return !pqUnavailable
         val currentDisplay = display ?: return false
         return currentDisplay.isHdr && currentDisplay.isHdrSdrRatioAvailable
     }
 
     private fun currentHdrSdrRatio(): Float {
         if (Build.VERSION.SDK_INT < 34) return 1f
+        if (pqCompatibility) {
+            val currentDisplay = display
+            return if (currentDisplay?.isHdrSdrRatioAvailable == true) currentDisplay.hdrSdrRatio else Float.NaN
+        }
         val currentDisplay = display ?: return 1f
         if (!currentDisplay.isHdr || !currentDisplay.isHdrSdrRatioAvailable) return 1f
         return currentDisplay.hdrSdrRatio
@@ -593,6 +671,17 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
     private fun updateDesiredHdrHeadroom() {
         removeCallbacks(releaseHdrHeadroom)
         if (Build.VERSION.SDK_INT < 35) return
+        if (pqCompatibility && !hdrRequestedByUser()) {
+            desiredHdrHeadroomRaised = false
+            applyDesiredHdrHeadroom(1f)
+            return
+        }
+        if (pqCompatibility && hdrContentAvailable) {
+            // HDR 开启时沿用图片的自动映射，关闭档在上方明确退回 1。
+            desiredHdrHeadroomRaised = false
+            applyDesiredHdrHeadroom(0f)
+            return
+        }
         if (recordingHdrRequested && hdrContentAvailable) {
             desiredHdrHeadroomRaised = true
             // 只向系统申请内容实际会用到的余量：期望值 = 当前用户强度。
@@ -610,6 +699,7 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
             if (value == appliedDesiredHdrHeadroom) return
             appliedDesiredHdrHeadroom = value
             setDesiredHdrHeadroom(value)
+            windowClip?.request()
         }
     }
 

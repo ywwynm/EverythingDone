@@ -217,7 +217,8 @@ class FableSolGlShaderParityTest {
         assertTrue(source.contains("roundedRectCoverage"))
         assertTrue(source.contains("sceneColor = clamp(sceneColor"))
         assertTrue(source.contains("mix(srgbToLinear(uBackdropColor), sceneColor"))
-        assertFalse(source.contains("linearToSrgb"))
+        // 只有独立的 SDR 截图分支编码回 sRGB，原生 scRGB 屏幕输出仍保持线性。
+        assertTrue(source.contains("if (uOutputSdr && uSceneLinear) color = linearToSrgb(color);"))
         assertTrue(source.contains("vec4(color * coverage, coverage)"))
     }
 

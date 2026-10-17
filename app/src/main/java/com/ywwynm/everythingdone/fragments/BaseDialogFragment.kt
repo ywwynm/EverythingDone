@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.DialogInterface
 import android.graphics.Outline
 import android.graphics.PointF
+import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
 import android.util.Log
@@ -35,6 +36,8 @@ import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.interaction.UiInteractions
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.views.particledismiss.DialogSystemDim
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolDisplayPolicy
 import com.ywwynm.everythingdone.views.particledismiss.DialogDimLayer
 import com.ywwynm.everythingdone.views.particledismiss.ParticleDialogStack
 import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissController
@@ -112,14 +115,24 @@ abstract class BaseDialogFragment : DialogFragment() {
         return f(mContentView, id)
     }
 
+    /** 仅承载 FableSol 的三个弹窗显式选择；环境判定仍在基类统一执行。 */
+    protected open fun usesFableSolSystemDim(): Boolean = false
+
+    /** 兼容暗层需晚于内容移除窗口；音频不能因此多播放或录制一段。 */
+    protected open fun onSystemDimContentClosing() = Unit
+
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         // 与 super.onCreateDialog 唯一的差别是 dialog 实现类，主题、样式仍由 setStyle 决定
         val owner = interaction ?: UiInteractions.restore(requireActivity(), "${javaClass.name}:$tag").also {
             interaction = it
         }
         val dialog = GestureAnchoredDialog(requireContext(), theme, useParticleDismiss(),
-            javaClass.simpleName, owner)
+            javaClass.simpleName, owner, ::onSystemDimContentClosing)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        if (usesFableSolSystemDim() && FableSolDisplayPolicy.usesPqCompatibility(
+                Build.VERSION.SDK_INT, Build.MANUFACTURER, Build.DISPLAY)) {
+            dialog.window?.let { dialog.systemDim = DialogSystemDim(it, requireActivity(), javaClass.simpleName) }
+        }
         dialog.window?.let(owner::attach)
         return dialog
     }
@@ -135,6 +148,9 @@ abstract class BaseDialogFragment : DialogFragment() {
     override fun onStart() {
         // D1 只在明确受理出现动画的诊断实例上，早于 DialogFragment.show 建立窗口透明度。
         val pendingDialog = dialog as? GestureAnchoredDialog
+        if (pendingDialog?.systemDim != null && shouldAnimateAppearance(pendingDialog)) {
+            pendingDialog.window?.let(ParticleDialogVisibility::prepareSystemDim)
+        }
         if (pendingDialog != null && ParticlePresentationDiagnostics.of(pendingDialog.context)
                 ?.options?.dialogMode == ParticlePresentationDiagnostics.DialogMode.EARLY_WINDOW &&
             shouldAnimateAppearance(pendingDialog)) {
@@ -153,10 +169,11 @@ abstract class BaseDialogFragment : DialogFragment() {
         // 双保险：主题已声明禁用系统 dim，个别机型/解析路径若仍带上
         // FLAG_DIM_BEHIND，会与接管暗层叠加导致 show 期偏黑（dismiss 拦截后
         // 系统 dim 随 window 消失、亮度跳变）。主题生效时本调用是 no-op。
-        dialog.window?.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+        if ((dialog as? GestureAnchoredDialog)?.systemDim == null) {
+            dialog.window?.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+        }
 
-        // 背景暗层全程由应用接管（主题已禁用系统 dim）：show 时淡入，dismiss
-        // 时按路径淡出——单一图层无跨窗口交接，关闭瞬间不会闪烁
+        // 默认仍由应用接管暗层；三个卓易通音频弹窗使用整段生命周期固定的系统暗层。
         val gestureDialog = dialog as? GestureAnchoredDialog ?: return
         // 登记到弹窗栈：决定「在别的弹窗之上打开的弹窗」要不要把粒子抬到独立窗口上。
         activity?.let { ParticleDialogStack.onShown(gestureDialog, it) }
@@ -164,7 +181,8 @@ abstract class BaseDialogFragment : DialogFragment() {
         if (useParticleDismiss() && particleAnimationMode(gestureDialog.context) and (PARTICLE_ANIMATION_SHOW_BIT or PARTICLE_ANIMATION_DISMISS_BIT) != 0) {
             ParticleDismissController.warmDismissModel(gestureDialog.context)
         }
-        if (gestureDialog.dimLayer == null) {
+        gestureDialog.systemDim?.show(animateAppearance)
+        if (gestureDialog.systemDim == null && gestureDialog.dimLayer == null) {
             activity?.let { host -> host.window.decorView.doOnAttach {
                 if (dialog.isShowing && gestureDialog.dimLayer == null) {
                     val layer = DialogDimLayer.attach(host, animateIn = !animateAppearance)
@@ -188,7 +206,9 @@ abstract class BaseDialogFragment : DialogFragment() {
         if (animateAppearance) {
             gestureDialog.condenseAttempted = true
             val started = ParticleDismissController.startCondense(gestureDialog,
+                systemDim = gestureDialog.systemDim != null,
                 onAppearanceProgress = {
+                    gestureDialog.systemDim?.appearanceProgress(it)
                     gestureDialog.dimLayer?.setAppearanceProgress(it)
                     if (it >= 1f) settleAppearance()
                 }) { overlay ->
@@ -196,6 +216,7 @@ abstract class BaseDialogFragment : DialogFragment() {
             }
             if (!started) {
                 ParticleDialogVisibility.restore(gestureDialog.window, "start_rejected")
+                gestureDialog.systemDim?.appearanceProgress(1f)
                 gestureDialog.dimLayer?.setAppearanceProgress(1f)
                 settleAppearance()
             }
@@ -370,7 +391,8 @@ private class GestureAnchoredDialog(
     private val particleDismissEnabled: Boolean,
     /** 仅用于 debug 日志：出问题时要能一眼看出是哪个弹窗。 */
     private val ownerLabel: String,
-    private val interaction: UiInteractions.Modal
+    private val interaction: UiInteractions.Modal,
+    private val onSystemDimContentClosing: () -> Unit
 ) : ComponentDialog(context, themeResId) {
 
     /** 当前手势的起点是否在 dialog 之外。收不到 ACTION_DOWN 时保持系统默认行为 */
@@ -422,6 +444,9 @@ private class GestureAnchoredDialog(
     /** 应用接管的背景暗层，show 时由 fragment 注入；随 dismiss 路径淡出 */
     var dimLayer: DialogDimLayer? = null
 
+    var systemDim: DialogSystemDim? = null
+    private var systemDismissPending = false
+
     /** 凝聚出现动画只播一次（onStart 可能因可见性变化多次回调） */
     var condenseAttempted = false
 
@@ -434,8 +459,8 @@ private class GestureAnchoredDialog(
      * 也调 dismiss）。粒子动画接管成功后把窗口退出动画置空、暗层按动画等长
      * 淡出（前慢后快，粒子浓密期背景保持暗），并把真实 dismiss 推迟到动画层
      * 实际上屏后（约 1–2 帧、含 100ms 兜底）——先就位、后揭开，内容层才无缝。
-     * 普通路径暗层短淡出。window 自身无系统 dim（主题已禁用），移除时无可
-     * 过渡之物。
+     * 普通路径暗层短淡出。卓易通音频窗口保留系统暗层至归零提交，再真正移除；
+     * 其余窗口仍沿用无系统 dim 的默认路径。
      */
     /** 粒子流程已接管、真实 dismiss 等待异步回调统一执行 */
     private var particleFlowPending = false
@@ -452,6 +477,21 @@ private class GestureAnchoredDialog(
     }
 
     override fun dismiss() {
+        if (systemDim?.hostIsClosing() == true) {
+            systemDim?.removeImmediately()
+            condenseOverlay?.release()
+            condenseOverlay = null
+            window?.decorView?.let(ParticleDismissController::cancelAppearance)
+            super.dismiss()
+            onRealDismissed()
+            return
+        }
+        // 兼容窗口需继续承载暗层；重入不能恢复已隐藏的内容或重启消散。
+        if (systemDim != null && systemDismissPending) return
+        if (systemDim != null) {
+            systemDismissPending = true
+            systemDim?.prepareDismiss()
+        }
         interaction.closing()
         // 凝聚尚未收尾就 dismiss（如检查更新的 loading 快速完成）：先释放凝聚
         // 动画层，否则它的末帧会残留在界面上（"Dialog 凝固"）
@@ -468,15 +508,26 @@ private class GestureAnchoredDialog(
 
         val modeAllows = BaseDialogFragment.particleAnimationMode(context) and
             BaseDialogFragment.PARTICLE_ANIMATION_DISMISS_BIT != 0
+        systemDim?.record("dismiss_policy", "enabled=$particleDismissEnabled modeAllows=$modeAllows " +
+            "attempted=$particleDismissAttempted fromBack=$dismissFromBack")
         if (particleDismissEnabled && modeAllows && !particleDismissAttempted) {
             particleDismissAttempted = true
             animationFinished = false
             val startGate = ParticleDismissStartGate {
-                particleFlowPending = false
-                completeParticleDismiss()
+                val nativeDim = systemDim
+                if (nativeDim != null) {
+                    nativeDim.dismiss(particlesReady = true, onContentClosing = onSystemDimContentClosing) {
+                        particleFlowPending = false
+                        completeParticleDismiss()
+                    }
+                } else {
+                    particleFlowPending = false
+                    completeParticleDismiss()
+                }
             }
             val started = ParticleDismissController.start(
                 dialog = this,
+                systemDim = systemDim != null,
                 touchInWindow = dismissTouchAnchor(),
                 useDefaultTouchDistance = dismissFromBack,
                 onAnimationStarted = Runnable {
@@ -495,7 +546,14 @@ private class GestureAnchoredDialog(
                 onDone = Runnable {
                     animationFinished = true
                     releaseInteractionIfFinished()
-                }
+                },
+                onPreparationFailed = if (systemDim != null) ({ reason ->
+                    systemDim?.record("particle_preparation_failed", "reason=$reason")
+                    particleFlowPending = false
+                    systemDim?.dismiss(particlesReady = false, onContentClosing = onSystemDimContentClosing) {
+                        completeParticleDismiss()
+                    }
+                }) else null
             )
             if (started) {
                 particleFlowPending = true
@@ -515,6 +573,13 @@ private class GestureAnchoredDialog(
             Log.w(ParticleMicroflakeRenderer.TAG,
                 "消散未接管：$ownerLabel 开关=$particleDismissEnabled 档位允许=$modeAllows " +
                     "已尝试过=$particleDismissAttempted")
+        }
+        systemDim?.let { nativeDim ->
+            ParticleDialogStack.onLeaving(this)
+            nativeDim.dismiss(particlesReady = false, onContentClosing = onSystemDimContentClosing) {
+                completeParticleDismiss()
+            }
+            return
         }
         dimLayer?.fadeOutAndDetach(DialogDimLayer.FADE_OUT_MS)
         super.dismiss()

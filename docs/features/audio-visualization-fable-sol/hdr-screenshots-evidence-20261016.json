@@ -1,0 +1,350 @@
+{
+  "purpose": "核对本次系统截图的 HDR 容器及原生控件白色，不验证真实屏幕合成。",
+  "deviceValidation": false,
+  "reconstructionLimits": "仅统计白色区域；按 sRGB 传递函数、完整 ISO 增益和双线性采样计算。HDR 样本没有 ICC，useBaseColorSpace 为 false；不据此宣称彩色全图等于华为图库渲染。数值相对 SDR 白，不是屏幕 nit。",
+  "sources": [
+    "https://github.com/google/libultrahdr/blob/main/lib/src/gainmapmetadata.cpp",
+    "https://github.com/google/libultrahdr/blob/main/lib/src/gainmapmath.cpp"
+  ],
+  "samples": [
+    {
+      "index": 1,
+      "file": "codex-clipboard-a4080a13-1bcd-4493-a923-b4ea8a2424f5.jpg",
+      "userHdrState": true,
+      "bytes": 615088,
+      "sha256": "44158016a25b14af81a1ea662249f270012fb744e5c78a08941f93e8ed44d94d",
+      "size": [
+        1320,
+        2232
+      ],
+      "primaryIso": true,
+      "primaryVividApp8": true,
+      "primaryIccPresent": false,
+      "exifColorSpace": 65535,
+      "whiteRegion": {
+        "xyxy": [
+          610,
+          1600,
+          630,
+          1660
+        ],
+        "baseMeanRgb255": [
+          254.9891667,
+          254.9916667,
+          254.9866667
+        ],
+        "gainMeanRgb255": [
+          3.0,
+          3.0,
+          3.0
+        ],
+        "reconstructedMeanRgbRelative": [
+          1.0004341,
+          1.0004564,
+          1.0004122
+        ]
+      },
+      "gainmapPresent": true,
+      "gainmapOffset": 522138,
+      "gainmapSize": [
+        660,
+        1116
+      ],
+      "secondaryVividApp8": true,
+      "secondaryIccPresent": false,
+      "iso": {
+        "minVersion": 0,
+        "writerVersion": 0,
+        "flags": "0x80",
+        "useBaseColorSpace": false,
+        "headroomLog2": [
+          0.0,
+          2.300448
+        ],
+        "channelFields": [
+          "gainMinLog2",
+          "gainMaxLog2",
+          "gamma",
+          "baseOffset",
+          "alternateOffset"
+        ],
+        "channels": [
+          [
+            -0.0212,
+            1.8452,
+            1.0,
+            0.01,
+            0.01
+          ],
+          [
+            -0.0212,
+            1.8452,
+            1.0,
+            0.01,
+            0.01
+          ],
+          [
+            -0.0212,
+            1.8452,
+            1.0,
+            0.01,
+            0.01
+          ]
+        ]
+      },
+      "neutralBackdropRegion": {
+        "xyxy": [
+          450,
+          545,
+          550,
+          575
+        ],
+        "baseMeanRgb255": [
+          167.9996667,
+          167.9996667,
+          167.9996667
+        ],
+        "gainMeanRgb255": [
+          253.0,
+          253.0,
+          253.0
+        ],
+        "reconstructedMeanRgbRelative": [
+          1.4182888,
+          1.4182888,
+          1.4182888
+        ]
+      }
+    },
+    {
+      "index": 2,
+      "file": "codex-clipboard-08a76573-28cf-4591-a3d0-ebed9dad6563.jpg",
+      "userHdrState": false,
+      "bytes": 361693,
+      "sha256": "ffc232afdd290cc698f076924767aa40d28161aecdbd8259e0e2d2e61e8b18cd",
+      "size": [
+        1320,
+        2232
+      ],
+      "primaryIso": false,
+      "primaryVividApp8": false,
+      "primaryIccPresent": true,
+      "exifColorSpace": 65535,
+      "whiteRegion": {
+        "xyxy": [
+          800,
+          1210,
+          900,
+          1260
+        ],
+        "baseMeanRgb255": [
+          255.0,
+          255.0,
+          255.0
+        ]
+      },
+      "gainmapPresent": false
+    },
+    {
+      "index": 3,
+      "file": "codex-clipboard-56234484-1a74-4130-af0c-ec69cad43689.jpg",
+      "userHdrState": true,
+      "bytes": 594706,
+      "sha256": "08a1964d69ee16d84408b80c38127bfc5d946ce7842c67bee8ea80f0f6f18110",
+      "size": [
+        1320,
+        2232
+      ],
+      "primaryIso": true,
+      "primaryVividApp8": true,
+      "primaryIccPresent": false,
+      "exifColorSpace": 65535,
+      "whiteRegion": {
+        "xyxy": [
+          800,
+          1210,
+          900,
+          1260
+        ],
+        "baseMeanRgb255": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "gainMeanRgb255": [
+          4.0,
+          4.0,
+          4.0
+        ],
+        "reconstructedMeanRgbRelative": [
+          1.000761,
+          1.000761,
+          1.000761
+        ]
+      },
+      "gainmapPresent": true,
+      "gainmapOffset": 514138,
+      "gainmapSize": [
+        660,
+        1116
+      ],
+      "secondaryVividApp8": true,
+      "secondaryIccPresent": false,
+      "iso": {
+        "minVersion": 0,
+        "writerVersion": 0,
+        "flags": "0x80",
+        "useBaseColorSpace": false,
+        "headroomLog2": [
+          0.0,
+          2.300448
+        ],
+        "channelFields": [
+          "gainMinLog2",
+          "gainMaxLog2",
+          "gamma",
+          "baseOffset",
+          "alternateOffset"
+        ],
+        "channels": [
+          [
+            -0.0291,
+            1.8953,
+            1.0,
+            0.01,
+            0.01
+          ],
+          [
+            -0.0291,
+            1.8953,
+            1.0,
+            0.01,
+            0.01
+          ],
+          [
+            -0.0291,
+            1.8953,
+            1.0,
+            0.01,
+            0.01
+          ]
+        ]
+      }
+    },
+    {
+      "index": 4,
+      "file": "codex-clipboard-faf7e057-bdd9-404d-890d-1b3e6ed073aa.jpg",
+      "userHdrState": true,
+      "bytes": 733972,
+      "sha256": "bc6a75426c0e43c1490d179347a8b1910bc10b34262599791ffafc6ae8070be0",
+      "size": [
+        1320,
+        2232
+      ],
+      "primaryIso": true,
+      "primaryVividApp8": true,
+      "primaryIccPresent": false,
+      "exifColorSpace": 65535,
+      "whiteRegion": {
+        "xyxy": [
+          610,
+          1600,
+          630,
+          1660
+        ],
+        "baseMeanRgb255": [
+          254.995,
+          254.9883333,
+          254.99
+        ],
+        "gainMeanRgb255": [
+          3.0,
+          3.0,
+          3.0
+        ],
+        "reconstructedMeanRgbRelative": [
+          1.0007498,
+          1.0006904,
+          1.0007055
+        ]
+      },
+      "gainmapPresent": true,
+      "gainmapOffset": 619652,
+      "gainmapSize": [
+        660,
+        1116
+      ],
+      "secondaryVividApp8": true,
+      "secondaryIccPresent": false,
+      "iso": {
+        "minVersion": 0,
+        "writerVersion": 0,
+        "flags": "0x80",
+        "useBaseColorSpace": false,
+        "headroomLog2": [
+          0.0,
+          2.300448
+        ],
+        "channelFields": [
+          "gainMinLog2",
+          "gainMaxLog2",
+          "gamma",
+          "baseOffset",
+          "alternateOffset"
+        ],
+        "channels": [
+          [
+            -0.0212,
+            1.8772,
+            1.0,
+            0.01,
+            0.01
+          ],
+          [
+            -0.0212,
+            1.8772,
+            1.0,
+            0.01,
+            0.01
+          ],
+          [
+            -0.0212,
+            1.8772,
+            1.0,
+            0.01,
+            0.01
+          ]
+        ]
+      }
+    },
+    {
+      "index": 5,
+      "file": "codex-clipboard-e54c800d-a20d-4dec-b2fe-8e52bb4e716b.jpg",
+      "userHdrState": false,
+      "bytes": 401202,
+      "sha256": "29f67b5a5cf806d5f4c8a0d0ef47c2fef47f1c29f38ebf53427c539f2d9d9b24",
+      "size": [
+        1320,
+        2232
+      ],
+      "primaryIso": false,
+      "primaryVividApp8": false,
+      "primaryIccPresent": true,
+      "exifColorSpace": 65535,
+      "whiteRegion": {
+        "xyxy": [
+          610,
+          1600,
+          630,
+          1660
+        ],
+        "baseMeanRgb255": [
+          254.9933333,
+          254.99,
+          254.9833333
+        ]
+      },
+      "gainmapPresent": false
+    }
+  ]
+}

@@ -95,7 +95,7 @@ internal object ParticleSnapshot {
 
     fun hasVisibleSurface(root: View): Boolean {
         var found = false
-        visit(root) { if (it is SurfaceView && it.width > 0 && it.height > 0 && it.getGlobalVisibleRect(Rect())) found = true }
+        visit(root) { if (ParticleSurfaceCopy.isSource(it) && it.width > 0 && it.height > 0 && it.getGlobalVisibleRect(Rect())) found = true }
         return found
     }
 
@@ -192,8 +192,8 @@ internal object ParticleSnapshot {
             asyncOffscreen(done)
             return
         }
-        val surfaces = mutableListOf<SurfaceView>()
-        visit(root) { if (it is SurfaceView && it.width > 0 && it.height > 0 && it.getGlobalVisibleRect(Rect())) surfaces += it }
+        val surfaces = mutableListOf<View>()
+        visit(root) { if (ParticleSurfaceCopy.isSource(it) && it.width > 0 && it.height > 0 && it.getGlobalVisibleRect(Rect())) surfaces += it }
         // 同属窗口下方的 Surface 按前到后合成，避免后画的底层盖住高层。
         surfaces.reverse()
         val started = SystemClock.uptimeMillis()
@@ -222,7 +222,7 @@ internal object ParticleSnapshot {
                     buffer.recycle(); base.recycle(); complete(null); return
                 }
                 try {
-                    PixelCopy.request(surface, buffer, { status ->
+                    ParticleSurfaceCopy.request(surface, buffer, { status ->
                         if (finished) { buffer.recycle(); base.recycle() }
                         else if (status == PixelCopy.SUCCESS) {
                             val rootAt = IntArray(2); root.getLocationOnScreen(rootAt)

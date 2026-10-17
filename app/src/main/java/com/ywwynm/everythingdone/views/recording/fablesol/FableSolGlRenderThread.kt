@@ -1,6 +1,7 @@
 package com.ywwynm.everythingdone.views.recording.fablesol
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.opengl.EGL14
 import android.os.Build
 import android.os.Handler
@@ -24,7 +25,7 @@ import kotlin.math.abs
 internal class FableSolGlRenderThread(
     context: Context,
     density: Double,
-    private val onHdrStatus: (Boolean, String) -> Unit,
+    private val onHdrStatus: (Boolean, String, Boolean, Long) -> Unit,
     private val onFatalError: (String) -> Unit
 ) {
 
@@ -40,6 +41,7 @@ internal class FableSolGlRenderThread(
     // 仅 GL 线程读写：同一 surface 周期内的瞬态 swap 失败计数，成功一帧即清零。
     private var transientSwapFailures = 0
     private var submittedFrames = 0L
+    private var lastOutputTimestampNs = 0L
     // 帧节拍由 GL 线程自己的 Choreographer 驱动。原先在 UI 线程收 vsync、再
     // `handler.post` 到 GL 线程，每帧要多付一次跨线程唤醒与调度延迟；真机实测
     // 分段合计只有 6.4ms、120Hz 预算 8.33ms 仍系统性稳定在两个 vsync，
@@ -58,6 +60,7 @@ internal class FableSolGlRenderThread(
     private val framePacer = FableSolFramePacer(MAX_TARGET_FPS)
     private val adpf = FableSolAdpf(context)
     @Volatile private var monitor: FableSolPerformanceMonitor? = null
+    @Volatile private var compositionPerformance: FableSolCompositionPerformance? = null
     @Volatile private var lastLoggedHdrSdrRatio = Float.NaN
     @Volatile private var lastHdrRecordingRequested = false
     @Volatile private var lastLoggedHdrStrength = Float.NaN
@@ -65,6 +68,47 @@ internal class FableSolGlRenderThread(
     private var handler: Handler? = null
     private var egl: FableSolEglSession? = null
     private var rendererInitialized = false
+    private val foreground = FableSolForegroundTexture()
+    private var needsForeground = false
+    private var directBufferReady: ((FableSolScreenOutput) -> Unit)? = null
+    private data class PendingForeground(val frame: FableSolForegroundFrame, val done: () -> Unit,
+                                         val perf: FableSolCompositionPerformance?, val queuedAt: Long)
+    private val foregroundMailbox = FableSolForegroundMailbox<PendingForeground> {
+        it.perf?.count(FableSolPerfCount.FOREGROUND_MAILBOX_DISCARDED)
+        it.frame.close()
+    }
+    private val foregroundDrainPosted = AtomicBoolean()
+    private val beforePresentation: () -> Unit = {
+        if (consumeForeground()) compositionPerformance?.count(FableSolPerfCount.FOREGROUND_TAKEN_BEFORE_PRESENT)
+    }
+    private val foregroundDrain = Runnable {
+        foregroundDrainPosted.set(false)
+        if (acceptingFrames && rendererInitialized) {
+            try {
+                if (consumeForeground()) {
+                    if (directBufferReady != null) finishDirectBuffers()
+                    else if (!animating || !presentForegroundOnly()) renderFrame(System.nanoTime())
+                }
+            } catch (error: Throwable) { fail(error) }
+        }
+    }
+    private var foregroundPollPosted = false
+    private val foregroundPoll = Runnable {
+        foregroundPollPosted = false
+        if (egl != null && rendererInitialized) {
+            try {
+                foreground.pollRetiredBuffers()
+                scheduleForegroundPoll()
+            } catch (error: Throwable) { fail(error) }
+        }
+    }
+
+    /** 独立于海浪帧循环；暂停时也及时归还 HWUI 缓冲，且只保留一个待执行查询。 */
+    private fun scheduleForegroundPoll() {
+        if (!foregroundPollPosted && foreground.hasRetiredBuffers) {
+            foregroundPollPosted = handler?.postDelayed(foregroundPoll, 4L) == true
+        }
+    }
 
     /**
      * vsync 回调直接落在 GL 线程；**必须先申请下一拍，再渲染**。
@@ -91,6 +135,12 @@ internal class FableSolGlRenderThread(
                 if (previous == 0L) vsyncDeltaNs else (previous * 3 + vsyncDeltaNs) shr 2
         }
         val rendering = framePacer.shouldRender(frameTimeNanos)
+        compositionPerformance?.let { perf ->
+            perf.count(FableSolPerfCount.GL_CALLBACK)
+            if (!rendering) perf.count(FableSolPerfCount.GL_PACER_SKIP)
+            if (vsyncDeltaNs > 0) perf.sample(FableSolPerfMetric.GL_CALLBACK_INTERVAL, vsyncDeltaNs)
+            perf.sample(FableSolPerfMetric.GL_CALLBACK_LATE, armNs)
+        }
         monitor?.recordFrameCallback(vsyncDeltaNs, armNs, rendering)
         if (rendering) {
             adpf.onFrameStart()
@@ -98,6 +148,8 @@ internal class FableSolGlRenderThread(
         }
         val endNs = System.nanoTime()
         monitor?.recordCallbackSpan(endNs - enterNs, idleNs)
+        compositionPerformance?.sample(FableSolPerfMetric.GL_CALLBACK_WORK, endNs - enterNs)
+        if (lastCallbackEndNs > 0) compositionPerformance?.sample(FableSolPerfMetric.GL_CALLBACK_IDLE, idleNs)
         if (rendering) adpf.reportWork(endNs - enterNs)
         lastCallbackEndNs = endNs
     }
@@ -134,6 +186,11 @@ internal class FableSolGlRenderThread(
             val deadlineNs = preferred.deadlineNanos - frameTimeNanos
             owner.onFrameTick(frameTimeNanos)
             owner.monitor?.recordVsyncTimeline(gridNs, leadNs, deadlineNs, count)
+            owner.compositionPerformance?.let { perf ->
+                perf.sample(FableSolPerfMetric.GL_TIMELINE_GRID, gridNs)
+                perf.sample(FableSolPerfMetric.GL_TIMELINE_LEAD, leadNs)
+                perf.sample(FableSolPerfMetric.GL_TIMELINE_DEADLINE, deadlineNs)
+            }
         }
     }
 
@@ -192,12 +249,18 @@ internal class FableSolGlRenderThread(
         try {
             val session = egl
             if (acceptingFrames && frameTimeNanos != 0L && session != null) {
-                val timing = renderer.render(frameTimeNanos)
+                val perf = compositionPerformance
+                val frameStart = if (perf != null) System.nanoTime() else 0L
+                if (needsForeground) foreground.pollRetiredBuffers()
+                renderer.setForegroundTexture(foreground.texture())
+                val timing = renderer.render(frameTimeNanos, if (needsForeground) beforePresentation else null)
+                if (needsForeground) foreground.markSampled()
                 // 主线程的 surfaceDestroyed→detachBlocking 与本帧并发时，render 期间
                 // acceptingFrames 已被清掉，surface 随时失效——放弃 swap，等 detach 消息收尾。
                 if (!acceptingFrames) return
                 val swapStart = System.nanoTime()
-                if (!session.swapBuffers(frameTimeNanos)) {
+                if (!swapOutput(session, frameTimeNanos)) {
+                    perf?.count(FableSolPerfCount.GL_SWAP_FAILED)
                     handleSwapFailure()
                     return
                 }
@@ -205,6 +268,8 @@ internal class FableSolGlRenderThread(
                 submittedFrames++
                 presentedOnce()
                 val swapNs = System.nanoTime() - swapStart
+                perf?.swapped(timing, frameStart, swapNs, foreground.frame)
+                if (needsForeground) foreground.pollRetiredBuffers()
                 monitor?.recordGlStages(
                         timing.drainNs,
                         timing.physicsNs,
@@ -278,7 +343,11 @@ internal class FableSolGlRenderThread(
         width: Int,
         height: Int,
         preferHdr: Boolean,
-        initialHdrSdrRatio: Float
+        initialHdrSdrRatio: Float,
+        preferPq: Boolean = false,
+        sessionId: Long = 0L,
+        directReady: ((FableSolScreenOutput) -> Unit)? = null,
+        requireForeground: Boolean = false
     ) {
         if (BuildConfig.DEBUG) {
             Log.i(
@@ -298,12 +367,17 @@ internal class FableSolGlRenderThread(
         this.thread = thread
         this.handler = handler
         transientSwapFailures = 0
+        submittedFrames = 0L
+        lastOutputTimestampNs = 0L
+        foregroundMailbox.open()
         acceptingFrames = true
         handler.post {
             try {
+                needsForeground = requireForeground
                 renderer.setDisplayHdrSdrRatio(initialHdrSdrRatio)
-                val session = FableSolEglSession(surface, preferHdr)
+                val session = FableSolEglSession(surface, preferHdr, preferPq)
                 egl = session
+                renderer.setScreenOutput(session.output)
                 renderer.initialize(session.isHdrOutput)
                 rendererInitialized = true
                 renderer.resize(width, height)
@@ -322,7 +396,11 @@ internal class FableSolGlRenderThread(
                         startSession = true
                     )
                 }
-                onHdrStatus(hdrContent, diagnostic)
+                onHdrStatus(hdrContent, diagnostic, preferHdr && preferPq, sessionId)
+                if (directReady != null) {
+                    directBufferReady = directReady
+                    finishDirectBuffers()
+                }
             } catch (error: Throwable) {
                 fail(error)
             }
@@ -336,6 +414,165 @@ internal class FableSolGlRenderThread(
                 renderWidth = width; renderHeight = height
             }
         }
+    }
+
+    /** 直接图层保留旧缓冲；同一渲染队列重建输出，完成两次提交后才允许交接。 */
+    fun replaceDirectSurface(surface: Surface, width: Int, height: Int, preferPq: Boolean,
+                             ratio: Float, sessionId: Long,
+                             ready: (FableSolScreenOutput) -> Unit) {
+        val current = handler ?: return
+        current.post {
+            try {
+                animating = false
+                removeFrameCallback()
+                releaseOnGlThread(retainForeground = true)
+                acceptingFrames = true
+                transientSwapFailures = 0
+                val session = FableSolEglSession(surface, preferPq, preferPq)
+                egl = session
+                renderer.setDisplayHdrSdrRatio(ratio)
+                renderer.setScreenOutput(session.output)
+                renderer.initialize(session.isHdrOutput)
+                rendererInitialized = true
+                renderer.resize(width, height)
+                renderWidth = width; renderHeight = height
+                renderer.resetFrameTimeAnchor()
+                onHdrStatus(session.isHdrOutput && renderer.isHdrContentEnabled(), session.diagnostic,
+                    preferPq, sessionId)
+                directBufferReady = ready
+                finishDirectBuffers()
+            } catch (error: Throwable) { fail(error) }
+        }
+    }
+
+    /** 海浪与原生控件两者都就绪后才显示候选，换色彩空间时重用最后一份前景。 */
+    private fun finishDirectBuffers() {
+        val ready = directBufferReady ?: return
+        val session = egl ?: return
+        if (needsForeground) consumeForeground()
+        val buffer = foreground.frame?.buffer
+        if (needsForeground && (buffer == null || buffer.width != renderWidth || buffer.height != renderHeight)) return
+        val before = submittedFrames
+        renderFrame(System.nanoTime())
+        renderFrame(System.nanoTime())
+        check(submittedFrames >= before + 2) { "direct_first_buffers_missing" }
+        val finishStart = if (compositionPerformance != null) System.nanoTime() else 0L
+        android.opengl.GLES30.glFinish()
+        compositionPerformance?.sample(FableSolPerfMetric.FIRST_BUFFERS_FINISH, System.nanoTime() - finishStart)
+        directBufferReady = null
+        mainHandler.post { ready(session.output) }
+    }
+
+    fun submitForeground(frame: FableSolForegroundFrame, done: () -> Unit) {
+        val perf = compositionPerformance
+        val queuedAt = if (perf != null) System.nanoTime() else 0L
+        val current = handler
+        if (current == null || !acceptingFrames ||
+            !foregroundMailbox.offer(PendingForeground(frame, done, perf, queuedAt))) {
+            perf?.count(FableSolPerfCount.FOREGROUND_REJECTED)
+            frame.close()
+            return
+        }
+        if (foregroundDrainPosted.compareAndSet(false, true) && !current.post(foregroundDrain)) {
+            foregroundDrainPosted.set(false)
+            foregroundMailbox.close()
+        }
+    }
+
+    /** 同一个 GL 线程可以在消息回调或最终合成前取帧，不再被下一轮重建海浪挡住。 */
+    private fun consumeForeground(): Boolean {
+        val next = foregroundMailbox.take() ?: return false
+        val perf = next.perf
+        perf?.sample(FableSolPerfMetric.FOREGROUND_GL_QUEUE, System.nanoTime() - next.queuedAt)
+        val start = if (perf != null) System.nanoTime() else 0L
+        foreground.update(next.frame)
+        renderer.setForegroundTexture(foreground.texture())
+        scheduleForegroundPoll()
+        perf?.sample(FableSolPerfMetric.FOREGROUND_REPLACE, System.nanoTime() - start)
+        perf?.imported(next.frame.sequence)
+        val acknowledgedAt = if (perf != null) System.nanoTime() else 0L
+        mainHandler.post {
+            perf?.sample(FableSolPerfMetric.FOREGROUND_CONSUMED_CALLBACK_QUEUE, System.nanoTime() - acknowledgedAt)
+            next.frame.notifyConsumed()
+            next.done()
+        }
+        return true
+    }
+
+    private fun presentForegroundOnly(): Boolean {
+        if (!needsForeground || !acceptingFrames) return false
+        val session = egl ?: return false
+        val perf = compositionPerformance
+        val start = System.nanoTime()
+        if (!renderer.presentCachedScene()) return false
+        foreground.markSampled()
+        if (!acceptingFrames) return true
+        val swapStart = System.nanoTime()
+        if (!swapOutput(session, swapStart)) {
+            perf?.count(FableSolPerfCount.GL_SWAP_FAILED)
+            handleSwapFailure()
+            return true
+        }
+        transientSwapFailures = 0
+        submittedFrames++
+        presentedOnce()
+        perf?.foregroundSwapped(start, System.nanoTime() - swapStart, foreground.frame)
+        foreground.pollRetiredBuffers()
+        return true
+    }
+
+    private fun swapOutput(session: FableSolEglSession, requestedNs: Long): Boolean {
+        // UI 合成可以落在两个海浪 vsync 之间，避免下一帧的旧时间戳倒退。
+        val timestamp = if (needsForeground) maxOf(requestedNs, lastOutputTimestampNs + 1) else requestedNs
+        return session.swapBuffers(timestamp).also { if (it) lastOutputTimestampNs = timestamp }
+    }
+
+    /** 只供自有图层使用：GPU 释放确认后才回收 Surface，避免主线程等待或过早释放。 */
+    fun detachDirect(released: () -> Unit) {
+        val current = handler
+        val worker = thread
+        acceptingFrames = false
+        foregroundMailbox.close()
+        animating = false
+        onNextPresented.set(null)
+        if (current == null) { released(); return }
+        current.post {
+            try {
+                removeFrameCallback()
+                vsyncProbe = null
+                choreographer = null
+                releaseOnGlThread()
+            } finally {
+                worker?.quitSafely()
+                mainHandler.post {
+                    if (handler === current) { handler = null; thread = null }
+                    released()
+                }
+            }
+        }
+    }
+
+    /** 快照在本渲染队列内读同一帧，完成后才交回主线程；不会改变屏幕的颜色空间。 */
+    fun copySdrSnapshot(done: (Bitmap?) -> Unit) {
+        val currentHandler = handler
+        if (currentHandler == null) { mainHandler.post { done(null) }; return }
+        if (!currentHandler.post {
+                val perf = compositionPerformance
+                val start = if (perf != null) System.nanoTime() else 0L
+                val snapshot = try {
+                    if (acceptingFrames && rendererInitialized && egl != null) {
+                        renderer.copySdrSnapshot() ?: run {
+                            renderFrame(System.nanoTime())
+                            renderer.copySdrSnapshot()
+                        }
+                    } else null
+                } catch (error: Exception) {
+                    Log.w("FableSolSurfProbe", "SDR snapshot failed", error)
+                    null
+                }
+                perf?.sample(FableSolPerfMetric.PARTICLE_SNAPSHOT, System.nanoTime() - start)
+                mainHandler.post { done(snapshot) }
+            }) mainHandler.post { done(null) }
     }
 
     /**
@@ -446,6 +683,11 @@ internal class FableSolGlRenderThread(
         this.monitor = monitor
     }
 
+    fun setCompositionPerformance(performance: FableSolCompositionPerformance?) {
+        compositionPerformance = performance
+        foreground.performance = performance
+    }
+
     fun setPresentationAlpha(alpha: Float) {
         renderer.setPresentationAlpha(alpha)
     }
@@ -498,6 +740,7 @@ internal class FableSolGlRenderThread(
     }
 
     fun detachBlocking() {
+        foregroundMailbox.close()
         val currentHandler = handler ?: return
         if (BuildConfig.DEBUG) Log.i("FableSolSurfProbe", "detachBlocking")
         acceptingFrames = false
@@ -519,6 +762,7 @@ internal class FableSolGlRenderThread(
 
     private fun fail(error: Throwable) {
         acceptingFrames = false
+        foregroundMailbox.close()
         val eglError = EGL14.eglGetError()
         val message = error.message ?: error.javaClass.simpleName
         if (BuildConfig.DEBUG) {
@@ -538,9 +782,16 @@ internal class FableSolGlRenderThread(
         onFatalError(message)
     }
 
-    private fun releaseOnGlThread() {
+    private fun releaseOnGlThread(retainForeground: Boolean = false) {
+        if (!retainForeground) foregroundMailbox.close()
+        handler?.removeCallbacks(foregroundDrain)
+        foregroundDrainPosted.set(false)
+        handler?.removeCallbacks(foregroundPoll)
+        foregroundPollPosted = false
         adpf.release()
+        directBufferReady = null
         try {
+            if (retainForeground) foreground.releaseContext() else foreground.close()
             if (rendererInitialized) {
                 renderer.release()
                 rendererInitialized = false

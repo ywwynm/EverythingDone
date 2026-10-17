@@ -82,6 +82,22 @@ import kotlin.math.roundToInt
  */
 open class AudioRecordDialogFragment : BaseDialogFragment() {
 
+    override fun usesFableSolSystemDim(): Boolean = true
+
+    private var sessionFinishedBeforeWindowRemoval = false
+
+    override fun onSystemDimContentClosing() {
+        // 取消录音时不等待背景暗层淡出；保存流程仍由 onDismiss 原样处理。
+        mSessionClosing = true
+        if (!mConfirmClicked && mActivity?.isFinishing != true) {
+            mRecordingBinder?.let {
+                sessionFinishedBeforeWindowRemoval = true
+                it.finishSession(false)
+            }
+        }
+    }
+
+
     private var mActivity: DetailActivity? = null
 
     private var mState: Int = PREPARED
@@ -311,6 +327,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         }
         val window = dialog?.window ?: return
         val attributes = window.attributes
+        mVisualizer?.startCompositionPerformance(window, "record_dialog")
         attributes.preferredRefreshRate = TARGET_REFRESH_RATE
         window.attributes = attributes
         if (Build.VERSION.SDK_INT >= 35) {
@@ -421,7 +438,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         }
         // 宿主被系统清栈（singleTask 回首页等）时不结束会话：录音要作为前台服务继续，
         // 用户可从通知或桌面图标接力回来。只有存活宿主上的主动关闭才收尾。
-        if (mActivity?.isFinishing != true) {
+        if (mActivity?.isFinishing != true && !sessionFinishedBeforeWindowRemoval) {
             mRecordingBinder?.finishSession(keepFile)
         }
         stopClockTicker()

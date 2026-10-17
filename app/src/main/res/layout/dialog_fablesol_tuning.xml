@@ -8,7 +8,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <FrameLayout
+    <com.ywwynm.everythingdone.views.recording.fablesol.FableSolForegroundLayout
         android:layout_width="match_parent"
         android:layout_height="240dp">
 
@@ -56,7 +56,7 @@
 
         </LinearLayout>
 
-    </FrameLayout>
+    </com.ywwynm.everythingdone.views.recording.fablesol.FableSolForegroundLayout>
 
     <View
         android:id="@+id/view_fablesol_tuning_scroll_indicator"
