@@ -1,8 +1,14 @@
 # 动态封面生成进度
 
+2026-10-17 全面复核后修复完成回调交接遗漏、临时文件创建失败绕过重试，并将香港繁体 6 处“產生”按地区词表改为“生成”。两个用例修改前复现、修改后通过；7 项 JVM、OPPO 72 项卡片检查及 13 套语言资源检查通过。已发布并核验阿里云 debug `202610171520`；问题证据、逐语言结论和验证边界见 [审查记录](review-2026-10-17.md)。
+
+2026-10-17 已补齐全语言文案：为缺失的 9 套语言增加 72 条译文，全部 13 套语言覆盖生成状态、重试无障碍操作及后台通知共 8 项。完整资源检查和 APK 中 104 个文案值核验通过，已发布并核验阿里云 debug `202610171502`；本轮只修改语言资源，没有重复真机后台测试。详见 [国际化验证记录](localization-verification-2026-10-17.md)。
+
+2026-10-17 已完成大视频与长后台恢复修复：集中编码单独显示转圈；增加停止检查、同源互斥、执行轮次校验、过期源任务拒绝和前台媒体处理，并升级 WorkManager 修复前台服务恢复时的超时崩溃。三台指定设备的 9 组后台场景、各 72 项卡片回归通过；完整 JVM 测试 1685 项零失败／错误、3 项跳过。已发布并核验阿里云 debug `202610171449`，三机隔离包已清理，未创建 Git 提交。复现、最终矩阵和 ROM 限制见 [排查记录](background-progress-investigation-2026-10-17.md)。
+
 2026-10-15 追加的真实滑动、拖动、粒子与编辑并发检查见 [interaction-verification.md](interaction-verification.md)。补测修复了等待转圈在拖动软件快照中不可辨认的问题。
 
-当前状态：已重新发布阿里云 debug `202610151143`，并核对远端元数据、更新日志、APK 校验值和正常包名。两机补齐滑动、拖动、粒子、编辑与导航往返录像及视觉复核，修复 GIF 完成交接、关闭及重开自动播放的短暂空封面；隔离测试包已卸载。18 段录像及验证范围见 [visual-verification.md](visual-verification.md)，原方案与基础验证见 [design.md](design.md)、[verification.md](verification.md) 和 [interaction-verification.md](interaction-verification.md)。
+2026-10-15 历史版本：阿里云 debug `202610151143` 已核对远端元数据、更新日志、APK 校验值和正常包名。两机补齐滑动、拖动、粒子、编辑与导航往返录像及视觉复核，修复 GIF 完成交接、关闭及重开自动播放的短暂空封面。18 段录像及验证范围见 [visual-verification.md](visual-verification.md)，原方案与基础验证见 [design.md](design.md)、[verification.md](verification.md) 和 [interaction-verification.md](interaction-verification.md)。
 
 ## 已知需求
 
@@ -10,7 +16,8 @@
 
 ## 实现要点
 
-- `VideoCoverPreviewManager` 通过 WorkManager 按媒体及起始帧去重生成 GIF，提供可释放的状态订阅；Worker 按实际处理帧数反馈进度，文件最终写入成功前最多显示 99%。
+- `VideoCoverPreviewManager` 通过 WorkManager 按媒体及起始帧去重生成 GIF，提供可释放的状态订阅；Worker 按实际处理帧数反馈饼图进度，最后一帧处理完切换为“正在编码动态封面”及转圈，文件完成后恢复数量。
+- 同源生成串行且响应系统停止，临时文件、进度和源身份均按当前执行轮次核对；生成期间使用静默前台媒体处理通知。WorkManager 更新到 2.10.5，支持 Android 15 前台超时停止和命令交接。
 - `VideoCoverPreviewWorker` 可能等待系统调度或存储条件，失败后存在自动重试和最终失败；这些阶段与实际生成不同。
 - `MotionPhotoCoverHelper` 在生成 GIF 前检测动态照片并提取内嵌视频。普通图片检测期间保持数量；确认动态内容后展示准备状态，准备失败支持手动重试，同源多卡同步跟进。
 - 切换封面来源不会取消旧来源的后台任务；进度展示必须跟随当前来源，避免旧任务回调更新已经复用的卡片。

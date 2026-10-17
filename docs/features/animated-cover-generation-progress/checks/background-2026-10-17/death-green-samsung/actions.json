@@ -1,0 +1,37 @@
+[
+  {
+    "time": 1792247509.156505,
+    "action": "foreground",
+    "detail": "Starting: Intent { cmp=com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity (has extras) }\r\nStatus: ok\r\nLaunchState: COLD\r\nActivity: com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity\r\nTotalTime: 695\r\nWaitTime: 698\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247513.546852,
+    "action": "settings",
+    "detail": "Starting: Intent { act=android.settings.SETTINGS }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.android.settings/.homepage.SettingsHomepageActivity\r\nTotalTime: 128\r\nWaitTime: 131\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247513.6022582,
+    "action": "kill-own-test-process",
+    "detail": "7353"
+  },
+  {
+    "time": 1792247513.7514682,
+    "action": "settings",
+    "detail": "Starting: Intent { act=android.settings.SETTINGS }\r\nWarning: Activity not started, intent has been delivered to currently running top-most instance.\r\nStatus: ok\r\nLaunchState: UNKNOWN (0)\r\nActivity: com.android.settings/.homepage.SettingsHomepageActivity\r\nTotalTime: 0\r\nWaitTime: 14\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247513.7524662,
+    "action": "background-start",
+    "detail": 180
+  },
+  {
+    "time": 1792247693.7533967,
+    "action": "background-end",
+    "detail": null
+  },
+  {
+    "time": 1792247694.0632505,
+    "action": "foreground",
+    "detail": "Starting: Intent { cmp=com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity (has extras) }\r\nStatus: ok\r\nLaunchState: WARM\r\nActivity: com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity\r\nTotalTime: 229\r\nWaitTime: 231\r\nComplete\r\n"
+  }
+]

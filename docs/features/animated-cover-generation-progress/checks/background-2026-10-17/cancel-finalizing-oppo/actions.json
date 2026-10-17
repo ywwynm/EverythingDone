@@ -1,0 +1,37 @@
+[
+  {
+    "time": 1792247979.6525168,
+    "action": "foreground",
+    "detail": "Starting: Intent { cmp=com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity (has extras) }\r\nStatus: ok\r\nLaunchState: COLD\r\nActivity: com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity\r\nTotalTime: 396\r\nWaitTime: 398\r\nComplete\r\n"
+  },
+  {
+    "time": 1792248015.1653476,
+    "action": "cancel-during-native-close",
+    "detail": "Starting: Intent { cmp=com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity (has extras) }\r\n"
+  },
+  {
+    "time": 1792248015.2411358,
+    "action": "explicit-retry",
+    "detail": "Starting: Intent { cmp=com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity (has extras) }\r\nWarning: Activity not started, intent has been delivered to currently running top-most instance.\r\nStatus: ok\r\nLaunchState: UNKNOWN (0)\r\nActivity: com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity\r\nTotalTime: 0\r\nWaitTime: 5\r\nComplete\r\n"
+  },
+  {
+    "time": 1792248015.315716,
+    "action": "settings",
+    "detail": "Starting: Intent { act=android.settings.SETTINGS }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.android.settings/com.oplus.settings.feature.homepage.OplusSettingsHomepageActivity\r\nTotalTime: 31\r\nWaitTime: 33\r\nComplete\r\n"
+  },
+  {
+    "time": 1792248015.315716,
+    "action": "background-start",
+    "detail": 60
+  },
+  {
+    "time": 1792248075.3250852,
+    "action": "background-end",
+    "detail": null
+  },
+  {
+    "time": 1792248075.4054174,
+    "action": "foreground",
+    "detail": "Starting: Intent { cmp=com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity (has extras) }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity\r\nTotalTime: 31\r\nWaitTime: 43\r\nComplete\r\n"
+  }
+]

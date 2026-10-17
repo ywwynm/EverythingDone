@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cover_generation_channel">Generación de portadas dinámicas</string>
+    <string name="cover_generation_background">La portada se actualizará automáticamente cuando esté lista</string>
+    <string name="cover_generation_waiting">Esperando para generar la portada dinámica</string>
+    <string name="cover_generation_preparing">Preparando la portada dinámica</string>
+    <string name="cover_generation_running">Generando la portada dinámica</string>
+    <string name="cover_generation_finalizing">Codificando la portada dinámica</string>
+    <string name="cover_generation_failed">No se pudo generar la portada dinámica</string>
+    <string name="cover_generation_retry">Volver a generar la portada dinámica</string>
+</resources>

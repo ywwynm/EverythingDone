@@ -20,6 +20,7 @@ import java.io.File
 import java.io.Closeable
 import java.util.Collections
 import java.util.concurrent.Executors
+import java.util.concurrent.CancellationException
 import java.util.concurrent.TimeUnit
 import kotlin.math.max
 import kotlin.math.min
@@ -47,7 +48,7 @@ import kotlin.math.roundToInt
 object VideoCoverPreviewManager {
 
     // —— 可后调的内部 tuning 常量 ——
-    // 原生 NDK 编码很快、瓶颈转为取帧(~90ms/帧)，故总帧数是生成耗时主因；用户确认通畅后提画质。
+    // 取帧与最后的全局色表编码都可能耗时较长；保留已经确认的画质和内容参数。
     private const val DURATION_MS = 3000L                   // 单次循环时长 3s
     private const val FRAME_DELAY_MS = 40L                  // 25fps = 4 厘秒，GIF 厘秒延迟整除干净
     private const val MAX_LONG_EDGE = 720
@@ -55,19 +56,32 @@ object VideoCoverPreviewManager {
     private const val DIR_NAME = "video-cover-previews"
     private const val LOG_FILE = "video-cover-preview.log"
     private const val DEBUG_PREFIX = "[DEBUG-video-cover-preview]"
-    /** 孤儿 .gif.tmp 的清理年龄阈值：远大于一次生成耗时(~10–30s)，确保不会误删正在写入的 tmp。 */
+    /** 孤儿临时文件的清理年龄阈值；正在写入的文件另由 activeTempFiles 明确排除。 */
     private const val STALE_TMP_MS = 10L * 60L * 1000L
     /** 生成参数/逻辑变化时 +1，使旧缓存 key 失效。 */
     private const val VERSION = 10
 
     private fun failures(context: Context) =
         context.getSharedPreferences("video_cover_generation_failures", Context.MODE_PRIVATE)
+    private fun retryCounts(context: Context) =
+        context.getSharedPreferences("video_cover_generation_retries", Context.MODE_PRIVATE)
+
+    /** 只统计真正生成失败，不把系统调度停止或进程回收算作失败次数。 */
+    internal fun recordGenerationFailure(context: Context, key: String?): Int {
+        if (key == null) return Int.MAX_VALUE
+        val counts = retryCounts(context)
+        val count = counts.getInt(key, 0) + 1
+        counts.edit().putInt(key, count).commit()
+        return count
+    }
 
     // 生成迁到 WorkManager（见 services.VideoCoverPreviewWorker）；本执行器只用于轻量清理 IO。
     private val ioExecutor = Executors.newSingleThreadExecutor { r ->
         Thread(r, "VideoCoverPreviewIO").apply { priority = Thread.MIN_PRIORITY }
     }
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val generationGate = CoverGenerationGate()
+    private val activeTempFiles = Collections.synchronizedSet(HashSet<String>())
 
     /** key -> 该 key 生成完成后的"即时换装"回调（主线程触发，仅进程内有效）。 */
     private val callbacks = HashMap<String, MutableList<(File) -> Unit>>()
@@ -111,6 +125,9 @@ object VideoCoverPreviewManager {
         val key = cacheKey(videoPath, f.length(), f.lastModified(), videoFrameMs ?: 0L)
         return File(previewDir(context), "$key.gif")
     }
+
+    internal fun matchesSource(context: Context, videoPath: String, frameMs: Long?, outputName: String) =
+        previewFileFor(context, videoPath, frameMs)?.name == outputName
 
     /** 已就绪的派生预览文件，未生成/无效则返回 null。可在主线程调用（仅做文件存在性判断）。 */
     fun getReadyPreview(context: Context, videoPath: String, videoFrameMs: Long?): File? {
@@ -206,15 +223,13 @@ object VideoCoverPreviewManager {
         var delivered = false
         val observer = Observer<List<WorkInfo>> { infos ->
             val work = infos.firstOrNull { !it.state.isFinished } ?: infos.firstOrNull()
-            val state = when (work?.state) {
-                WorkInfo.State.RUNNING -> if (work.progress.getBoolean(KEY_GENERATING, false)) {
-                    CoverGenerationState(CoverGenerationState.Phase.GENERATING,
-                        work.progress.getInt(KEY_PERCENT, 0).coerceIn(0, 99))
-                } else CoverGenerationState.PREPARING
+            // 文件原子发布后，即使进程在 WorkManager 提交 SUCCEEDED 前被回收，也已经可用。
+            val state = if (out.exists() && out.length() > 0L) CoverGenerationState.READY else when (work?.state) {
+                WorkInfo.State.RUNNING -> CoverGenerationState.running(work.runAttemptCount,
+                    work.progress.getInt(KEY_ATTEMPT, -1), work.progress.getString(KEY_PHASE),
+                    work.progress.getInt(KEY_PERCENT, 0))
                 WorkInfo.State.FAILED, WorkInfo.State.CANCELLED -> CoverGenerationState.FAILED
-                WorkInfo.State.SUCCEEDED -> if (out.exists() && out.length() > 0L) {
-                    CoverGenerationState.READY
-                } else CoverGenerationState.WAITING // 缓存被系统回收后会重新生成。
+                WorkInfo.State.SUCCEEDED -> CoverGenerationState.WAITING // 缓存被系统回收后会重新生成。
                 else -> if (failures.getBoolean(out.name, false)) CoverGenerationState.FAILED
                     else CoverGenerationState.WAITING
             }
@@ -246,6 +261,12 @@ object VideoCoverPreviewManager {
     ) {
         // 查询和入队均离开主线程。失败保留到明确重试，不能因列表重绑而无限重启。
         ioExecutor.execute {
+            val out = File(previewDir(appContext), key)
+            if (out.exists() && out.length() > 0L) {
+                // 完成通知可能早于 requestPreview 登记回调，不能只跳过入队而遗漏交付。
+                notifyGenerated(appContext, key, out)
+                return@execute
+            }
             val manager = WorkManager.getInstance(appContext)
             val previous = manager.getWorkInfosForUniqueWork(key).get()
             if (previous.any { !it.state.isFinished }) return@execute
@@ -256,7 +277,10 @@ object VideoCoverPreviewManager {
                 notifyGenerationFailed(appContext, key)
                 return@execute
             }
-            if (retry) failures.edit().remove(key).apply()
+            if (retry) {
+                failures.edit().remove(key).apply()
+                retryCounts(appContext).edit().remove(key).apply()
+            }
             val data = Data.Builder()
                 .putString(VideoCoverPreviewWorker.KEY_VIDEO_PATH, videoPath)
                 .putLong(VideoCoverPreviewWorker.KEY_VIDEO_FRAME_MS, videoFrameMs ?: -1L)
@@ -278,19 +302,35 @@ object VideoCoverPreviewManager {
 
     /** 由 Worker 在后台线程调用：阻塞生成。已就绪直接返回；否则生成并执行 LRU 上限。 */
     fun generateBlocking(context: Context, videoPath: String, videoFrameMs: Long?,
+        isStopped: () -> Boolean = { false },
+        expectedOutputName: String? = null,
         onProgress: (CoverGenerationState) -> Unit = {}): File? {
         val out = previewFileFor(context, videoPath, videoFrameMs) ?: return null
-        if (out.exists() && out.length() > 0L) return out
-        enforceLruCap(previewDir(context))   // 生成前先腾空间（目录超限/设备低存储兜底）
-        onProgress(CoverGenerationState.PREPARING)
-        val result = generate(videoPath, videoFrameMs, out, onProgress)
-        if (result != null) enforceLruCap(previewDir(context))
-        return result
+        if (expectedOutputName != null && expectedOutputName != out.name) return null
+        onProgress(CoverGenerationState.WAITING)
+        return generationGate.run(out.absolutePath, isStopped) { checkActive ->
+            if (!matchesSource(context, videoPath, videoFrameMs, out.name)) return@run null
+            // 持有同源互斥后，残留同 key 临时文件只能属于上次被杀的进程，可以安全清理。
+            out.parentFile?.listFiles { f -> f.name.startsWith(out.name + ".") && f.name.endsWith(".tmp") }
+                ?.filter { it.absolutePath !in activeTempFiles }?.forEach { it.delete() }
+            if (out.exists() && out.length() > 0L) return@run out
+            enforceLruCap(previewDir(context))
+            checkActive()
+            onProgress(CoverGenerationState.PREPARING)
+            val result = generate(videoPath, videoFrameMs, out, {
+                checkActive()
+                check(matchesSource(context, videoPath, videoFrameMs, out.name)) { "源视频身份已改变" }
+            }, onProgress)
+            checkActive()
+            if (result != null) enforceLruCap(previewDir(context))
+            result
+        }
     }
 
     /** 由 Worker 在生成成功后调用：触发该 key 登记的即时换装回调（仅进程内有效）。 */
     fun notifyGenerated(context: Context, key: String, file: File) {
         failures(context).edit().remove(key).apply()
+        retryCounts(context).edit().remove(key).apply()
         val cbs = synchronized(callbacks) { callbacks.remove(key) } ?: return
         if (cbs.isEmpty()) return
         mainHandler.post { cbs.forEach { it(file) } }
@@ -332,29 +372,39 @@ object VideoCoverPreviewManager {
             val edit = failures.edit()
             failures.all.keys.filter { it.startsWith(prefix) }.forEach { edit.remove(it) }
             edit.apply()
+            val counts = retryCounts(appContext)
+            val countEdit = counts.edit()
+            counts.all.keys.filter { it.startsWith(prefix) }.forEach { countEdit.remove(it) }
+            countEdit.apply()
         }
     }
 
     // —— 生成 ——
 
-    private fun generate(videoPath: String, videoFrameMs: Long?, out: File,
+    private fun generate(videoPath: String, videoFrameMs: Long?, out: File, checkActive: () -> Unit,
         onProgress: (CoverGenerationState) -> Unit): File? {
-        // 只清理本 key 自己的残留 tmp（同 key 由 WorkManager KEEP 保证唯一、不并发，安全）。
-        // 绝不扫整目录删别的 .gif.tmp——并发的其它 Worker 可能正在写它们的 tmp。
-        // 孤儿 tmp 由 enforceLruCap 按年龄清理（见 STALE_TMP_MS）。
-        val tmp = File(out.absolutePath + ".tmp")
-        if (tmp.exists()) tmp.delete()
-        val retriever = MediaMetadataRetriever()
+        checkActive()
+        var tempToClean: File? = null
+        var retrieverToRelease: MediaMetadataRetriever? = null
         var encoder: GifEncoder? = null
         var needClose = false
         var framesEncoded = 0
         var decodeMs = 0L
         var encodeMs = 0L
+        var finalizeMs = 0L
         var targetW = 0
         var targetH = 0
         val startedAt = SystemClock.elapsedRealtime()
         try {
+            // 创建文件和媒体资源也可能失败，必须走同一失败返回与清理路径，才能有限重试。
+            // KEEP 不会终止旧 Worker 的原生调用；临时文件不得由重调度的新一轮删除或复用。
+            val tmp = File.createTempFile(out.name + ".", ".tmp", out.parentFile)
+            tempToClean = tmp
+            activeTempFiles.add(tmp.absolutePath)
+            val retriever = MediaMetadataRetriever()
+            retrieverToRelease = retriever
             retriever.setDataSource(videoPath)
+            checkActive()
             val durationMs = retriever
                 .extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
                 ?.toLongOrNull() ?: 0L
@@ -375,6 +425,7 @@ object VideoCoverPreviewManager {
             )
 
             for (i in 0 until frameCount) {
+                checkActive()
                 val tUs = (startMs + i * FRAME_DELAY_MS) * 1000L
                 debugLog("f$i decoding tMs=${tUs / 1000}")
                 val d0 = SystemClock.elapsedRealtime()
@@ -382,53 +433,68 @@ object VideoCoverPreviewManager {
                 val dt = SystemClock.elapsedRealtime() - d0
                 decodeMs += dt
                 if (frame == null) {
+                    checkActive()
                     debugLog("f$i decoded dt=${dt}ms NULL")
                     onProgress(CoverGenerationState.framesProcessed(i + 1, frameCount))
                     continue
                 }
                 debugLog("f$i decoded dt=${dt}ms ${frame.width}x${frame.height}")
 
-                val scaled = scaleToLongEdge(frame, MAX_LONG_EDGE)
-                if (encoder == null) {
-                    targetW = scaled.width
-                    targetH = scaled.height
-                    encoder = GifEncoder()
-                    encoder!!.init(
-                        targetW, targetH, tmp.absolutePath,
-                        GifEncoder.EncodingType.ENCODING_TYPE_STABLE_HIGH_MEMORY
-                    )
-                    needClose = true
-                    debugLog("encoder init ${targetW}x$targetH file=${tmp.name}")
-                }
-                // 原生编码器要求 ARGB_8888，且每帧尺寸与 init 一致。
-                val sized = if (scaled.width == targetW && scaled.height == targetH) {
-                    scaled
-                } else {
-                    Bitmap.createScaledBitmap(scaled, targetW, targetH, true)
-                }
-                val argb = if (sized.config == Bitmap.Config.ARGB_8888) {
-                    sized
-                } else {
-                    sized.copy(Bitmap.Config.ARGB_8888, false)
-                }
+                var scaled: Bitmap? = null
+                var sized: Bitmap? = null
+                var argb: Bitmap? = null
+                try {
+                    checkActive()
+                    scaled = scaleToLongEdge(frame, MAX_LONG_EDGE)
+                    if (encoder == null) {
+                        targetW = scaled.width
+                        targetH = scaled.height
+                        encoder = GifEncoder()
+                        encoder!!.init(
+                            targetW, targetH, tmp.absolutePath,
+                            GifEncoder.EncodingType.ENCODING_TYPE_STABLE_HIGH_MEMORY
+                        )
+                        needClose = true
+                        debugLog("encoder init ${targetW}x$targetH file=${tmp.name}")
+                    }
+                    // 原生编码器要求 ARGB_8888，且每帧尺寸与 init 一致。
+                    sized = if (scaled.width == targetW && scaled.height == targetH) {
+                        scaled
+                    } else {
+                        Bitmap.createScaledBitmap(scaled, targetW, targetH, true)
+                    }
+                    argb = if (sized.config == Bitmap.Config.ARGB_8888) {
+                        sized
+                    } else {
+                        sized.copy(Bitmap.Config.ARGB_8888, false)
+                    }
 
-                val e0 = SystemClock.elapsedRealtime()
-                encoder!!.encodeFrame(argb, FRAME_DELAY_MS.toInt())
-                val et = SystemClock.elapsedRealtime() - e0
-                encodeMs += et
-                framesEncoded++
+                    val e0 = SystemClock.elapsedRealtime()
+                    checkActive()
+                    encoder!!.encodeFrame(argb, FRAME_DELAY_MS.toInt())
+                    val et = SystemClock.elapsedRealtime() - e0
+                    encodeMs += et
+                    framesEncoded++
 
-                if (argb !== sized) argb.recycle()
-                if (sized !== scaled) sized.recycle()
-                if (scaled !== frame) scaled.recycle()
-                frame.recycle()
-                debugLog("f$i encoded et=${et}ms cum d=$decodeMs e=$encodeMs")
+                } finally {
+                    if (argb !== sized) argb?.recycle()
+                    if (sized !== scaled) sized?.recycle()
+                    if (scaled !== frame) scaled?.recycle()
+                    frame.recycle()
+                }
+                checkActive()
+                debugLog("f$i buffered cum d=$decodeMs e=$encodeMs")
                 onProgress(CoverGenerationState.framesProcessed(i + 1, frameCount))
             }
             if (needClose) {
-                encoder?.close()
+                checkActive()
+                onProgress(CoverGenerationState.FINALIZING)
+                val finalizeStarted = SystemClock.elapsedRealtime()
                 needClose = false
+                encoder?.close()
+                finalizeMs = SystemClock.elapsedRealtime() - finalizeStarted
             }
+            checkActive()
 
             if (framesEncoded == 0 || !tmp.exists() || tmp.length() == 0L) {
                 debugLog(
@@ -437,27 +503,37 @@ object VideoCoverPreviewManager {
                 tmp.delete()
                 return null
             }
+            checkActive()
             if (out.exists()) out.delete()
             return if (tmp.renameTo(out)) {
                 debugLog(
                     "GEN done name=${File(videoPath).name} frames=$framesEncoded ${targetW}x$targetH " +
-                            "totalMs=${SystemClock.elapsedRealtime() - startedAt} decodeMs=$decodeMs encodeMs=$encodeMs bytes=${out.length()}"
+                            "totalMs=${SystemClock.elapsedRealtime() - startedAt} decodeMs=$decodeMs bufferMs=$encodeMs finalizeMs=$finalizeMs bytes=${out.length()}"
                 )
                 out
             } else {
                 debugLog("GEN abort name=${File(videoPath).name} reason=rename-failed")
                 tmp.delete(); null
             }
+        } catch (cancelled: CancellationException) {
+            debugLog("GEN stopped name=${File(videoPath).name} frames=$framesEncoded")
+            throw cancelled
         } catch (t: Throwable) {
             debugLog("GEN exception name=${File(videoPath).name} err=${t.javaClass.simpleName}:${t.message}")
-            if (needClose) {
-                try { encoder?.close() } catch (_: Throwable) {}
-            }
-            tmp.delete()
             return null
         } finally {
+            if (needClose) {
+                // 上游没有 abort API；close 才释放缓存帧，不能在另一线程同时关闭。
+                try { encoder?.close() } catch (t: Throwable) {
+                    debugLog("GEN release-failed name=${File(videoPath).name} err=${t.javaClass.simpleName}")
+                }
+            }
+            tempToClean?.let {
+                it.delete()
+                activeTempFiles.remove(it.absolutePath)
+            }
             try {
-                retriever.release()
+                retrieverToRelease?.release()
             } catch (_: Exception) {
             }
         }
@@ -475,6 +551,8 @@ object VideoCoverPreviewManager {
 
     internal const val KEY_GENERATING = "cover_generating"
     internal const val KEY_PERCENT = "cover_percent"
+    internal const val KEY_PHASE = "cover_phase"
+    internal const val KEY_ATTEMPT = "cover_attempt"
 
     private fun scaleToLongEdge(bmp: Bitmap, maxEdge: Int): Bitmap {
         val longEdge = max(bmp.width, bmp.height)
@@ -488,8 +566,8 @@ object VideoCoverPreviewManager {
     private fun enforceLruCap(dir: File) {
         // 顺带清理孤儿 .gif.tmp（崩溃/被杀留下的）：只删足够旧的，绝不碰近期/正在写入的 tmp。
         val now = System.currentTimeMillis()
-        dir.listFiles { f -> f.isFile && f.name.endsWith(".gif.tmp") }?.forEach { f ->
-            if (now - f.lastModified() > STALE_TMP_MS) f.delete()
+        dir.listFiles { f -> f.isFile && f.name.endsWith(".tmp") }?.forEach { f ->
+            if (f.absolutePath !in activeTempFiles && now - f.lastModified() > STALE_TMP_MS) f.delete()
         }
         val files = dir.listFiles { f -> f.isFile && f.name.endsWith(".gif") } ?: return
         var total = files.sumOf { it.length() }

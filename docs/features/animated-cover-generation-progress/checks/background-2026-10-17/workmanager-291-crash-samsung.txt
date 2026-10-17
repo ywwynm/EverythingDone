@@ -1,0 +1,16 @@
+--------- beginning of crash
+10-17 22:20:33.920 30130 30130 E AndroidRuntime: FATAL EXCEPTION: main
+10-17 22:20:33.920 30130 30130 E AndroidRuntime: Process: com.ywwynm.everythingdone.covervalidation, PID: 30130
+10-17 22:20:33.920 30130 30130 E AndroidRuntime: android.app.RemoteServiceException$ForegroundServiceDidNotStopInTimeException: A foreground service of type mediaProcessing did not stop within its timeout: ComponentInfo{com.ywwynm.everythingdone.covervalidation/androidx.work.impl.foreground.SystemForegroundService}
+10-17 22:20:33.920 30130 30130 E AndroidRuntime: 	at android.app.ActivityThread.generateForegroundServiceDidNotStopInTimeException(ActivityThread.java:2819)
+10-17 22:20:33.920 30130 30130 E AndroidRuntime: 	at android.app.ActivityThread.throwRemoteServiceException(ActivityThread.java:2781)
+10-17 22:20:33.920 30130 30130 E AndroidRuntime: 	at android.app.ActivityThread.-$$Nest$mthrowRemoteServiceException(Unknown Source:0)
+10-17 22:20:33.920 30130 30130 E AndroidRuntime: 	at android.app.ActivityThread$H.handleMessage(ActivityThread.java:3205)
+10-17 22:20:33.920 30130 30130 E AndroidRuntime: 	at android.os.Handler.dispatchMessage(Handler.java:132)
+10-17 22:20:33.920 30130 30130 E AndroidRuntime: 	at android.os.Looper.dispatchMessage(Looper.java:358)
+10-17 22:20:33.920 30130 30130 E AndroidRuntime: 	at android.os.Looper.loopOnce(Looper.java:288)
+10-17 22:20:33.920 30130 30130 E AndroidRuntime: 	at android.os.Looper.loop(Looper.java:392)
+10-17 22:20:33.920 30130 30130 E AndroidRuntime: 	at android.app.ActivityThread.main(ActivityThread.java:10346)
+10-17 22:20:33.920 30130 30130 E AndroidRuntime: 	at java.lang.reflect.Method.invoke(Native Method)
+10-17 22:20:33.920 30130 30130 E AndroidRuntime: 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:638)
+10-17 22:20:33.920 30130 30130 E AndroidRuntime: 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:972)

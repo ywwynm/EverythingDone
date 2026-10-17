@@ -1,0 +1,10 @@
+2026-10-17 22:36:03.024 [DEBUG-video-cover-preview] GEN done name=complex-4k.mp4 frames=75 720x405 totalMs=71173 decodeMs=47264 bufferMs=102 finalizeMs=23064 bytes=1728846
+2026-10-17 22:36:09.992 [DEBUG-video-cover-preview] WORKER run name=complex-4k.mp4 frameMs=12000 attempt=0
+2026-10-17 22:36:10.214 [DEBUG-video-cover-preview] GEN start name=complex-4k.mp4 durationMs=24000 startMs=12000 frameCount=75 longEdge=720
+2026-10-17 22:40:11.567 [DEBUG-video-cover-preview] GEN done name=complex-4k.mp4 frames=75 720x405 totalMs=241399 decodeMs=46431 bufferMs=123 finalizeMs=193409 bytes=1728846
+2026-10-17 22:40:16.831 [DEBUG-video-cover-preview] WORKER run name=complex-4k.mp4 frameMs=12000 attempt=0
+2026-10-17 22:40:16.997 [DEBUG-video-cover-preview] GEN start name=complex-4k.mp4 durationMs=24000 startMs=12000 frameCount=75 longEdge=720
+2026-10-17 22:41:07.804 [DEBUG-video-cover-preview] WORKER run name=complex-4k.mp4 frameMs=12000 attempt=0
+2026-10-17 22:41:23.581 [DEBUG-video-cover-preview] GEN stopped name=complex-4k.mp4 frames=75
+2026-10-17 22:41:23.642 [DEBUG-video-cover-preview] GEN start name=complex-4k.mp4 durationMs=24000 startMs=12000 frameCount=75 longEdge=720
+2026-10-17 22:42:47.906 [DEBUG-video-cover-preview] GEN done name=complex-4k.mp4 frames=75 720x405 totalMs=84303 decodeMs=65317 bufferMs=109 finalizeMs=17985 bytes=1728846

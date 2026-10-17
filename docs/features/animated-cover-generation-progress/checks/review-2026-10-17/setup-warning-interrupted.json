@@ -1,0 +1,5 @@
+{
+  "ok": false,
+  "error": "java.lang.IllegalStateException: 等待超时：测试活动获得焦点\n\tat com.ywwynm.everythingdone.covergeneration.CoverGenerationProbe.await(CoverGenerationProbe.kt:76)\n\tat com.ywwynm.everythingdone.covergeneration.CoverGenerationProbe.onStart(CoverGenerationProbe.kt:118)\n\tat android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2672)\n",
+  "checks": []
+}

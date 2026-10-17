@@ -1,0 +1,11 @@
+gradle.beforeProject { project ->
+    if (project.path == ':app') {
+        project.plugins.withId('com.android.application') {
+            project.extensions.getByName('androidComponents').finalizeDsl { android ->
+                android.defaultConfig.applicationId = 'com.ywwynm.everythingdone.covervalidation'
+                android.sourceSets.main.manifest.srcFile(project.rootProject.file('tmp/cover-recovery/main-manifest.xml'))
+                android.sourceSets.debug.manifest.srcFile(project.rootProject.file('tmp/cover-recovery/debug-manifest.xml'))
+            }
+        }
+    }
+}

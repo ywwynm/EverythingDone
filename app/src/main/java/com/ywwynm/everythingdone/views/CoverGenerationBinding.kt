@@ -81,6 +81,7 @@ internal class CoverGenerationBinding(
             CoverGenerationState.Phase.WAITING -> R.string.cover_generation_waiting
             CoverGenerationState.Phase.PREPARING -> R.string.cover_generation_preparing
             CoverGenerationState.Phase.GENERATING -> R.string.cover_generation_running
+            CoverGenerationState.Phase.FINALIZING -> R.string.cover_generation_finalizing
             CoverGenerationState.Phase.FAILED -> R.string.cover_generation_failed
             else -> 0
         }
@@ -89,7 +90,8 @@ internal class CoverGenerationBinding(
         val glyphText = label.toString()
         text.paint.getTextBounds(glyphText, 0, glyphText.length, glyphBounds)
         val icon = when (state.phase) {
-            CoverGenerationState.Phase.WAITING, CoverGenerationState.Phase.PREPARING -> spinner
+            CoverGenerationState.Phase.WAITING, CoverGenerationState.Phase.PREPARING,
+            CoverGenerationState.Phase.FINALIZING -> spinner
             CoverGenerationState.Phase.GENERATING, CoverGenerationState.Phase.FAILED -> pieIcon
             else -> null
         }

@@ -63,6 +63,8 @@ class CoverGenerationGateWorker(context: Context, params: WorkerParameters) : Wo
             gate.percent = state.percent
             if (state.phase == CoverGenerationState.Phase.GENERATING) {
                 setProgressAsync(Data.Builder().putBoolean(VideoCoverPreviewManager.KEY_GENERATING, true)
+                    .putString(VideoCoverPreviewManager.KEY_PHASE, state.phase.name)
+                    .putInt(VideoCoverPreviewManager.KEY_ATTEMPT, runAttemptCount + 1)
                     .putInt(VideoCoverPreviewManager.KEY_PERCENT, state.percent).build()).get()
                 if (!held && state.percent >= 50) {
                     held = true; gate.halfway.countDown()

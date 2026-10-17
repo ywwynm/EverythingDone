@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="cover_generation_waiting">等待產生動態封面</string>
+    <string name="cover_generation_channel">動態封面生成</string>
+    <string name="cover_generation_background">生成完成後將自動更新封面</string>
+    <string name="cover_generation_finalizing">正在編碼動態封面</string>
+    <string name="cover_generation_waiting">等待生成動態封面</string>
     <string name="cover_generation_preparing">準備動態封面</string>
-    <string name="cover_generation_running">正在產生動態封面</string>
-    <string name="cover_generation_failed">動態封面產生失敗</string>
-    <string name="cover_generation_retry">重新產生動態封面</string>
+    <string name="cover_generation_running">正在生成動態封面</string>
+    <string name="cover_generation_failed">動態封面生成失敗</string>
+    <string name="cover_generation_retry">重新生成動態封面</string>
 </resources>

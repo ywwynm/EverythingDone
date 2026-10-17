@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="cover_generation_channel">Animated cover generation</string>
+    <string name="cover_generation_background">The cover will update automatically when ready</string>
     <string name="cover_generation_waiting">Waiting to generate animated cover</string>
     <string name="cover_generation_preparing">Preparing animated cover</string>
     <string name="cover_generation_running">Generating animated cover</string>
+    <string name="cover_generation_finalizing">Encoding animated cover</string>
     <string name="cover_generation_failed">Animated cover generation failed</string>
     <string name="cover_generation_retry">Retry generating animated cover</string>
 </resources>

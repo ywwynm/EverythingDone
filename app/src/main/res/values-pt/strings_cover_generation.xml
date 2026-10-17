@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cover_generation_channel">Geração de capas dinâmicas</string>
+    <string name="cover_generation_background">A capa será atualizada automaticamente quando estiver pronta</string>
+    <string name="cover_generation_waiting">Aguardando para gerar a capa dinâmica</string>
+    <string name="cover_generation_preparing">Preparando a capa dinâmica</string>
+    <string name="cover_generation_running">Gerando a capa dinâmica</string>
+    <string name="cover_generation_finalizing">Codificando a capa dinâmica</string>
+    <string name="cover_generation_failed">Falha ao gerar a capa dinâmica</string>
+    <string name="cover_generation_retry">Gerar a capa dinâmica novamente</string>
+</resources>

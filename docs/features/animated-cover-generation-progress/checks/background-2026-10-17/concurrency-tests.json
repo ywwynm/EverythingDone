@@ -1,0 +1,16 @@
+[
+  {
+    "name": "com.ywwynm.everythingdone.helpers.CoverGenerationGateTest",
+    "tests": "3",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ywwynm.everythingdone.helpers.CoverGenerationStateTest",
+    "tests": "4",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  }
+]

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cover_generation_channel">एनिमेटेड कवर बनाना</string>
+    <string name="cover_generation_background">तैयार होने पर कवर अपने आप अपडेट हो जाएगा</string>
+    <string name="cover_generation_waiting">एनिमेटेड कवर बनाने का इंतज़ार है</string>
+    <string name="cover_generation_preparing">एनिमेटेड कवर की तैयारी हो रही है</string>
+    <string name="cover_generation_running">एनिमेटेड कवर बन रहा है</string>
+    <string name="cover_generation_finalizing">एनिमेटेड कवर एन्कोड हो रहा है</string>
+    <string name="cover_generation_failed">एनिमेटेड कवर नहीं बन पाया</string>
+    <string name="cover_generation_retry">एनिमेटेड कवर दोबारा बनाएँ</string>
+</resources>

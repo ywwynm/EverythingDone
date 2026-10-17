@@ -1,0 +1,293 @@
+{
+  "ok": true,
+  "checks": [
+    {
+      "name": "视频成功恢复数量",
+      "ok": true
+    },
+    {
+      "name": "真实任务包含等待与确定进度-false",
+      "ok": true
+    },
+    {
+      "name": "离屏重新挂载后仍播放-false",
+      "ok": true
+    },
+    {
+      "name": "回收释放订阅-false",
+      "ok": true
+    },
+    {
+      "name": "动态照片夹具被真实检测器识别",
+      "ok": true
+    },
+    {
+      "name": "动态照片成功恢复数量",
+      "ok": true
+    },
+    {
+      "name": "真实任务包含等待与确定进度-true",
+      "ok": true
+    },
+    {
+      "name": "离屏重新挂载后仍播放-true",
+      "ok": true
+    },
+    {
+      "name": "回收释放订阅-true",
+      "ok": true
+    },
+    {
+      "name": "同源动态照片保留准备失败",
+      "ok": true
+    },
+    {
+      "name": "一处重试后同源卡片全部恢复",
+      "ok": true
+    },
+    {
+      "name": "布局0-转圈正在运行",
+      "ok": true
+    },
+    {
+      "name": "布局0-WAITING不增高",
+      "ok": true
+    },
+    {
+      "name": "布局0-PREPARING不增高",
+      "ok": true
+    },
+    {
+      "name": "布局0-GENERATING不增高",
+      "ok": true
+    },
+    {
+      "name": "布局0-FINALIZING不增高",
+      "ok": true
+    },
+    {
+      "name": "布局0-FAILED不增高",
+      "ok": true
+    },
+    {
+      "name": "布局0-READY不增高",
+      "ok": true
+    },
+    {
+      "name": "布局0-失败行点击重试",
+      "ok": true
+    },
+    {
+      "name": "布局0-非普通模式保留卡片点击",
+      "ok": true
+    },
+    {
+      "name": "布局0-长按不重试",
+      "ok": true
+    },
+    {
+      "name": "布局1-WAITING不增高",
+      "ok": true
+    },
+    {
+      "name": "布局1-PREPARING不增高",
+      "ok": true
+    },
+    {
+      "name": "布局1-GENERATING不增高",
+      "ok": true
+    },
+    {
+      "name": "布局1-FINALIZING不增高",
+      "ok": true
+    },
+    {
+      "name": "布局1-FAILED不增高",
+      "ok": true
+    },
+    {
+      "name": "布局1-READY不增高",
+      "ok": true
+    },
+    {
+      "name": "布局1-失败行点击重试",
+      "ok": true
+    },
+    {
+      "name": "布局1-非普通模式保留卡片点击",
+      "ok": true
+    },
+    {
+      "name": "布局1-长按不重试",
+      "ok": true
+    },
+    {
+      "name": "布局2-确为左右侧图",
+      "ok": true
+    },
+    {
+      "name": "布局2-WAITING不增高",
+      "ok": true
+    },
+    {
+      "name": "布局2-PREPARING不增高",
+      "ok": true
+    },
+    {
+      "name": "布局2-GENERATING不增高",
+      "ok": true
+    },
+    {
+      "name": "布局2-FINALIZING不增高",
+      "ok": true
+    },
+    {
+      "name": "布局2-FAILED不增高",
+      "ok": true
+    },
+    {
+      "name": "布局2-READY不增高",
+      "ok": true
+    },
+    {
+      "name": "布局2-失败行点击重试",
+      "ok": true
+    },
+    {
+      "name": "布局2-非普通模式保留卡片点击",
+      "ok": true
+    },
+    {
+      "name": "布局2-长按不重试",
+      "ok": true
+    },
+    {
+      "name": "布局3-确为左右侧图",
+      "ok": true
+    },
+    {
+      "name": "布局3-WAITING不增高",
+      "ok": true
+    },
+    {
+      "name": "布局3-PREPARING不增高",
+      "ok": true
+    },
+    {
+      "name": "布局3-GENERATING不增高",
+      "ok": true
+    },
+    {
+      "name": "布局3-FINALIZING不增高",
+      "ok": true
+    },
+    {
+      "name": "布局3-FAILED不增高",
+      "ok": true
+    },
+    {
+      "name": "布局3-READY不增高",
+      "ok": true
+    },
+    {
+      "name": "布局3-失败行点击重试",
+      "ok": true
+    },
+    {
+      "name": "布局3-非普通模式保留卡片点击",
+      "ok": true
+    },
+    {
+      "name": "布局3-长按不重试",
+      "ok": true
+    },
+    {
+      "name": "布局4-转圈正在运行",
+      "ok": true
+    },
+    {
+      "name": "布局4-WAITING不增高",
+      "ok": true
+    },
+    {
+      "name": "布局4-PREPARING不增高",
+      "ok": true
+    },
+    {
+      "name": "布局4-GENERATING不增高",
+      "ok": true
+    },
+    {
+      "name": "布局4-FINALIZING不增高",
+      "ok": true
+    },
+    {
+      "name": "布局4-FAILED不增高",
+      "ok": true
+    },
+    {
+      "name": "布局4-READY不增高",
+      "ok": true
+    },
+    {
+      "name": "布局4-失败行点击重试",
+      "ok": true
+    },
+    {
+      "name": "布局4-非普通模式保留卡片点击",
+      "ok": true
+    },
+    {
+      "name": "布局4-长按不重试",
+      "ok": true
+    },
+    {
+      "name": "重新显示不自动重试",
+      "ok": true
+    },
+    {
+      "name": "历史清理不抹去失败",
+      "ok": true
+    },
+    {
+      "name": "点击重试成功恢复数量",
+      "ok": true
+    },
+    {
+      "name": "列表加入窗口",
+      "ok": true
+    },
+    {
+      "name": "列表初次布局完成",
+      "ok": true
+    },
+    {
+      "name": "列表开始切换来源",
+      "ok": true
+    },
+    {
+      "name": "切换到普通图片后不被旧任务覆盖",
+      "ok": true
+    },
+    {
+      "name": "滚动复用后无错误失败提示",
+      "ok": true
+    },
+    {
+      "name": "同源另一卡片完成且持续播放",
+      "ok": true
+    },
+    {
+      "name": "关闭播放／私密／隐藏封面不订阅-0",
+      "ok": true
+    },
+    {
+      "name": "关闭播放／私密／隐藏封面不订阅-1",
+      "ok": true
+    },
+    {
+      "name": "关闭播放／私密／隐藏封面不订阅-2",
+      "ok": true
+    }
+  ]
+}

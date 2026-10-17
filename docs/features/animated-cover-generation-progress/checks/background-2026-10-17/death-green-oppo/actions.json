@@ -1,0 +1,37 @@
+[
+  {
+    "time": 1792247509.4304342,
+    "action": "foreground",
+    "detail": "Starting: Intent { cmp=com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity (has extras) }\r\nStatus: ok\r\nLaunchState: COLD\r\nActivity: com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity\r\nTotalTime: 477\r\nWaitTime: 479\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247511.7411835,
+    "action": "settings",
+    "detail": "Starting: Intent { act=android.settings.SETTINGS }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.android.settings/com.oplus.settings.feature.homepage.OplusSettingsHomepageActivity\r\nTotalTime: 30\r\nWaitTime: 33\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247511.784801,
+    "action": "kill-own-test-process",
+    "detail": "24423"
+  },
+  {
+    "time": 1792247511.8741834,
+    "action": "settings",
+    "detail": "Starting: Intent { act=android.settings.SETTINGS }\r\nWarning: Activity not started, intent has been delivered to currently running top-most instance.\r\nStatus: ok\r\nLaunchState: UNKNOWN (0)\r\nActivity: com.android.settings/com.oplus.settings.feature.homepage.OplusSettingsHomepageActivity\r\nTotalTime: 0\r\nWaitTime: 3\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247511.8741834,
+    "action": "background-start",
+    "detail": 180
+  },
+  {
+    "time": 1792247691.8740342,
+    "action": "background-end",
+    "detail": null
+  },
+  {
+    "time": 1792247692.0699258,
+    "action": "foreground",
+    "detail": "Starting: Intent { cmp=com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity (has extras) }\r\nStatus: ok\r\nLaunchState: WARM\r\nActivity: com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity\r\nTotalTime: 127\r\nWaitTime: 130\r\nComplete\r\n"
+  }
+]

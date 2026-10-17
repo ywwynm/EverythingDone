@@ -1,0 +1,10 @@
+2026-10-17 22:29:37.343 [DEBUG-video-cover-preview] WORKER run name=cover-reuse-506107683.mp4 frameMs=null attempt=0
+2026-10-17 22:29:37.371 [DEBUG-video-cover-preview] GEN start name=cover-reuse-506107683.mp4 durationMs=1000 startMs=0 frameCount=25 longEdge=720
+2026-10-17 22:29:40.267 [DEBUG-video-cover-preview] GEN done name=cover-reuse-506107683.mp4 frames=25 192x128 totalMs=2903 decodeMs=2379 bufferMs=14 finalizeMs=426 bytes=180603
+2026-10-17 22:31:49.049 [DEBUG-video-cover-preview] WORKER run name=complex-4k.mp4 frameMs=12000 attempt=0
+2026-10-17 22:31:49.179 [DEBUG-video-cover-preview] GEN start name=complex-4k.mp4 durationMs=24000 startMs=12000 frameCount=75 longEdge=720
+2026-10-17 22:32:03.996 [DEBUG-video-cover-preview] WORKER run name=complex-4k.mp4 frameMs=12000 attempt=1
+2026-10-17 22:32:04.016 [DEBUG-video-cover-preview] WORKER waiting(foreground restricted) work=65b64aee-b63f-4356-8b37-82219ea63340
+2026-10-17 22:34:53.857 [DEBUG-video-cover-preview] WORKER run name=complex-4k.mp4 frameMs=12000 attempt=2
+2026-10-17 22:34:53.891 [DEBUG-video-cover-preview] GEN start name=complex-4k.mp4 durationMs=24000 startMs=12000 frameCount=75 longEdge=720
+2026-10-17 22:37:22.597 [DEBUG-video-cover-preview] GEN done name=complex-4k.mp4 frames=75 720x405 totalMs=148717 decodeMs=130279 bufferMs=93 finalizeMs=17648 bytes=12674609

@@ -1,0 +1,152 @@
+[
+  {
+    "time": 1792247752.2961862,
+    "action": "install",
+    "detail": "Performing Streamed Install\r\nSuccess\r\n"
+  },
+  {
+    "time": 1792247753.0337641,
+    "action": "foreground",
+    "detail": "Starting: Intent { cmp=com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity (has extras) }\r\nStatus: ok\r\nLaunchState: COLD\r\nActivity: com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity\r\nTotalTime: 475\r\nWaitTime: 477\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247755.3000546,
+    "action": "settings",
+    "detail": "Starting: Intent { act=android.settings.SETTINGS }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.android.settings/com.oplus.settings.feature.homepage.OplusSettingsHomepageActivity\r\nTotalTime: 33\r\nWaitTime: 35\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247757.3835294,
+    "action": "foreground",
+    "detail": "Starting: Intent { cmp=com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity (has extras) }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity\r\nTotalTime: 24\r\nWaitTime: 36\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247758.4682245,
+    "action": "settings",
+    "detail": "Starting: Intent { act=android.settings.SETTINGS }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.android.settings/com.oplus.settings.feature.homepage.OplusSettingsHomepageActivity\r\nTotalTime: 31\r\nWaitTime: 33\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247760.5701988,
+    "action": "foreground",
+    "detail": "Starting: Intent { cmp=com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity (has extras) }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity\r\nTotalTime: 38\r\nWaitTime: 41\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247761.6566372,
+    "action": "settings",
+    "detail": "Starting: Intent { act=android.settings.SETTINGS }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.android.settings/com.oplus.settings.feature.homepage.OplusSettingsHomepageActivity\r\nTotalTime: 30\r\nWaitTime: 31\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247763.7681618,
+    "action": "foreground",
+    "detail": "Starting: Intent { cmp=com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity (has extras) }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity\r\nTotalTime: 41\r\nWaitTime: 44\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247764.8478305,
+    "action": "settings",
+    "detail": "Starting: Intent { act=android.settings.SETTINGS }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.android.settings/com.oplus.settings.feature.homepage.OplusSettingsHomepageActivity\r\nTotalTime: 31\r\nWaitTime: 34\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247766.956907,
+    "action": "foreground",
+    "detail": "Starting: Intent { cmp=com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity (has extras) }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity\r\nTotalTime: 40\r\nWaitTime: 42\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247768.0664968,
+    "action": "settings",
+    "detail": "Starting: Intent { act=android.settings.SETTINGS }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.android.settings/com.oplus.settings.feature.homepage.OplusSettingsHomepageActivity\r\nTotalTime: 38\r\nWaitTime: 40\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247770.1730657,
+    "action": "foreground",
+    "detail": "Starting: Intent { cmp=com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity (has extras) }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity\r\nTotalTime: 29\r\nWaitTime: 45\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247771.2796516,
+    "action": "settings",
+    "detail": "Starting: Intent { act=android.settings.SETTINGS }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.android.settings/com.oplus.settings.feature.homepage.OplusSettingsHomepageActivity\r\nTotalTime: 35\r\nWaitTime: 38\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247773.3762116,
+    "action": "foreground",
+    "detail": "Starting: Intent { cmp=com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity (has extras) }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity\r\nTotalTime: 26\r\nWaitTime: 39\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247774.5011766,
+    "action": "settings",
+    "detail": "Starting: Intent { act=android.settings.SETTINGS }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.android.settings/com.oplus.settings.feature.homepage.OplusSettingsHomepageActivity\r\nTotalTime: 44\r\nWaitTime: 46\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247776.595025,
+    "action": "foreground",
+    "detail": "Starting: Intent { cmp=com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity (has extras) }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity\r\nTotalTime: 41\r\nWaitTime: 43\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247777.7011003,
+    "action": "settings",
+    "detail": "Starting: Intent { act=android.settings.SETTINGS }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.android.settings/com.oplus.settings.feature.homepage.OplusSettingsHomepageActivity\r\nTotalTime: 33\r\nWaitTime: 35\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247779.7803335,
+    "action": "foreground",
+    "detail": "Starting: Intent { cmp=com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity (has extras) }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity\r\nTotalTime: 34\r\nWaitTime: 36\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247780.8742208,
+    "action": "settings",
+    "detail": "Starting: Intent { act=android.settings.SETTINGS }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.android.settings/com.oplus.settings.feature.homepage.OplusSettingsHomepageActivity\r\nTotalTime: 32\r\nWaitTime: 34\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247782.9748669,
+    "action": "foreground",
+    "detail": "Starting: Intent { cmp=com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity (has extras) }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity\r\nTotalTime: 24\r\nWaitTime: 38\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247784.0483422,
+    "action": "settings",
+    "detail": "Starting: Intent { act=android.settings.SETTINGS }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.android.settings/com.oplus.settings.feature.homepage.OplusSettingsHomepageActivity\r\nTotalTime: 24\r\nWaitTime: 27\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247786.1470685,
+    "action": "foreground",
+    "detail": "Starting: Intent { cmp=com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity (has extras) }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity\r\nTotalTime: 21\r\nWaitTime: 33\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247787.2415903,
+    "action": "settings",
+    "detail": "Starting: Intent { act=android.settings.SETTINGS }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.android.settings/com.oplus.settings.feature.homepage.OplusSettingsHomepageActivity\r\nTotalTime: 31\r\nWaitTime: 33\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247789.3303823,
+    "action": "foreground",
+    "detail": "Starting: Intent { cmp=com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity (has extras) }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity\r\nTotalTime: 22\r\nWaitTime: 32\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247790.4072428,
+    "action": "settings",
+    "detail": "Starting: Intent { act=android.settings.SETTINGS }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.android.settings/com.oplus.settings.feature.homepage.OplusSettingsHomepageActivity\r\nTotalTime: 26\r\nWaitTime: 28\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247792.4999976,
+    "action": "foreground",
+    "detail": "Starting: Intent { cmp=com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity (has extras) }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity\r\nTotalTime: 20\r\nWaitTime: 33\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247793.6554797,
+    "action": "settings",
+    "detail": "Starting: Intent { act=android.settings.SETTINGS }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.android.settings/com.oplus.settings.feature.homepage.OplusSettingsHomepageActivity\r\nTotalTime: 28\r\nWaitTime: 31\r\nComplete\r\n"
+  },
+  {
+    "time": 1792247793.6564837,
+    "action": "background-start",
+    "detail": 180
+  },
+  {
+    "time": 1792247973.6673372,
+    "action": "background-end",
+    "detail": null
+  },
+  {
+    "time": 1792247973.7913043,
+    "action": "foreground",
+    "detail": "Starting: Intent { cmp=com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity (has extras) }\r\nWarning: Activity not started, its current task has been brought to the front\r\nStatus: ok\r\nLaunchState: HOT\r\nActivity: com.ywwynm.everythingdone.covervalidation/com.ywwynm.everythingdone.covergeneration.CoverRecoveryProbeActivity\r\nTotalTime: 49\r\nWaitTime: 51\r\nComplete\r\n"
+  }
+]

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cover_generation_channel">Creazione delle copertine animate</string>
+    <string name="cover_generation_background">La copertina si aggiornerà automaticamente quando sarà pronta</string>
+    <string name="cover_generation_waiting">In attesa di creare la copertina animata</string>
+    <string name="cover_generation_preparing">Preparazione della copertina animata</string>
+    <string name="cover_generation_running">Creazione della copertina animata</string>
+    <string name="cover_generation_finalizing">Codifica della copertina animata</string>
+    <string name="cover_generation_failed">Creazione della copertina animata non riuscita</string>
+    <string name="cover_generation_retry">Riprova a creare la copertina animata</string>
+</resources>

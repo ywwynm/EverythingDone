@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cover_generation_channel">Создание динамических обложек</string>
+    <string name="cover_generation_background">Обложка обновится автоматически после создания</string>
+    <string name="cover_generation_waiting">Ожидание создания динамической обложки</string>
+    <string name="cover_generation_preparing">Подготовка динамической обложки</string>
+    <string name="cover_generation_running">Создание динамической обложки</string>
+    <string name="cover_generation_finalizing">Кодирование динамической обложки</string>
+    <string name="cover_generation_failed">Не удалось создать динамическую обложку</string>
+    <string name="cover_generation_retry">Повторить создание динамической обложки</string>
+</resources>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cover_generation_channel">움직이는 표지 생성</string>
+    <string name="cover_generation_background">생성이 완료되면 표지가 자동으로 업데이트됩니다</string>
+    <string name="cover_generation_waiting">움직이는 표지 생성 대기 중</string>
+    <string name="cover_generation_preparing">움직이는 표지 준비 중</string>
+    <string name="cover_generation_running">움직이는 표지 생성 중</string>
+    <string name="cover_generation_finalizing">움직이는 표지 인코딩 중</string>
+    <string name="cover_generation_failed">움직이는 표지 생성 실패</string>
+    <string name="cover_generation_retry">움직이는 표지 다시 생성</string>
+</resources>

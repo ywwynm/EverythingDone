@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="cover_generation_channel">动态封面生成</string>
+    <string name="cover_generation_background">生成完成后将自动更新封面</string>
     <string name="cover_generation_waiting">等待生成动态封面</string>
     <string name="cover_generation_preparing">准备动态封面</string>
     <string name="cover_generation_running">动态封面生成中</string>
+    <string name="cover_generation_finalizing">正在编码动态封面</string>
     <string name="cover_generation_failed">动态封面生成失败</string>
     <string name="cover_generation_retry">重新生成动态封面</string>
 </resources>

@@ -83,6 +83,9 @@
             android:enabled="false" android:exported="false"
             android:theme="@android:style/Theme.Material.Light.NoActionBar" />
 
+        <activity android:name=".covergeneration.CoverRecoveryProbeActivity"
+            android:exported="false" android:launchMode="singleTask"
+            android:theme="@style/EverythingDoneTheme.Settings" />
         <activity android:name=".covergeneration.CoverGenerationProbeActivity"
             android:exported="false" android:theme="@style/EverythingDoneTheme.Settings" />
         <activity android:name=".listvalidation.GifLifecycleActivity"

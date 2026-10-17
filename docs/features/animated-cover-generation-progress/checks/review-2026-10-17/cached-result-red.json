@@ -1,0 +1,10 @@
+{
+  "ok": false,
+  "error": "java.lang.IllegalStateException: 完成通知早于回调登记时仍恰好回调一次\n\tat com.ywwynm.everythingdone.covergeneration.CoverGenerationProbe.record(CoverGenerationProbe.kt:81)\n\tat com.ywwynm.everythingdone.covergeneration.CoverGenerationProbe.cachedResultCallbackRace(CoverGenerationProbe.kt:195)\n\tat com.ywwynm.everythingdone.covergeneration.CoverGenerationProbe.onStart(CoverGenerationProbe.kt:125)\n\tat android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2672)\n",
+  "checks": [
+    {
+      "name": "完成通知早于回调登记时仍恰好回调一次",
+      "ok": false
+    }
+  ]
+}

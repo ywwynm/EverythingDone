@@ -1,0 +1,14 @@
+[
+  {
+    "device": "oppo",
+    "newAppCrashProcesses": 0
+  },
+  {
+    "device": "samsung",
+    "newAppCrashProcesses": 0
+  },
+  {
+    "device": "meizu",
+    "newAppCrashProcesses": 0
+  }
+]

@@ -1,0 +1,13 @@
+{
+  "debugUpdateCode": 202610171520,
+  "apkUrl": "http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202610171520.apk",
+  "sizeBytes": 27980197,
+  "sha256": "8ce80eff97f4e41a26f68603e58944d8ea6f29bf80f1b3e4e5a3da501cc12d3f",
+  "publishedAt": "2026-10-17T15:20:22.555180900Z",
+  "remote_metadata_matches": true,
+  "release_notes_match": true,
+  "apk_zip_crc_valid": true,
+  "package": "com.ywwynm.everythingdone",
+  "compiled_translation_count": 104,
+  "compiled_values_match_source": true
+}

@@ -1,0 +1,67 @@
+{
+  "supported_language_count": 13,
+  "localized_key_count": 8,
+  "compiled_translation_count": 104,
+  "added_language_count": 9,
+  "added_translation_count": 72,
+  "compiled_values_match_source": true,
+  "source_resource_validation": {
+    "baseline": 1614,
+    "locales": {
+      "values": {
+        "resources": 1643,
+        "missing": 0
+      },
+      "values-zh-rCN": {
+        "resources": 1618,
+        "missing": 0
+      },
+      "values-zh-rTW": {
+        "resources": 1619,
+        "missing": 0
+      },
+      "values-zh-rHK": {
+        "resources": 1619,
+        "missing": 0
+      },
+      "values-de": {
+        "resources": 1616,
+        "missing": 0
+      },
+      "values-es": {
+        "resources": 1616,
+        "missing": 0
+      },
+      "values-fr": {
+        "resources": 1616,
+        "missing": 0
+      },
+      "values-hi": {
+        "resources": 1616,
+        "missing": 0
+      },
+      "values-it": {
+        "resources": 1616,
+        "missing": 0
+      },
+      "values-ja": {
+        "resources": 1616,
+        "missing": 0
+      },
+      "values-ko": {
+        "resources": 1616,
+        "missing": 0
+      },
+      "values-pt": {
+        "resources": 1616,
+        "missing": 0
+      },
+      "values-ru": {
+        "resources": 1616,
+        "missing": 0
+      }
+    },
+    "errors": []
+  },
+  "device_tests_in_this_localization_round": false
+}

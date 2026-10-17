@@ -1,0 +1,542 @@
+[
+  {
+    "device": "oppo",
+    "scenario": "death-green",
+    "backgroundSeconds": 180.0,
+    "summary": {
+      "events": 268,
+      "timesMs": {
+        "0": 179,
+        "25": 193247,
+        "50": 202765,
+        "75": 209345,
+        "90": 213977,
+        "95": 215713,
+        "ready": 237147,
+        "gif": 237291
+      },
+      "pids": [
+        24423,
+        25802
+      ],
+      "finalizingTimesMs": [
+        217078
+      ],
+      "has99": false,
+      "failures": []
+    },
+    "finalUi": {
+      "phase": "READY",
+      "percent": 100,
+      "text": "1 个视频",
+      "gif": true,
+      "playing": true
+    },
+    "media": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "gif",
+          "width": 720,
+          "height": 405,
+          "duration": "3.000000",
+          "nb_read_frames": "75"
+        }
+      ],
+      "format": {
+        "duration": "3.000000"
+      }
+    },
+    "uniqueDecodedFrames": 75,
+    "bytes": 6072880,
+    "sha256": "71b242b7c4c27e0d1b63fdf43f6748a418b4e8d8fb92efed0508d504c6a4e68f",
+    "newAppCrashes": 0
+  },
+  {
+    "device": "oppo",
+    "scenario": "final-switch",
+    "backgroundSeconds": 180.011,
+    "summary": {
+      "events": 264,
+      "timesMs": {
+        "0": 160,
+        "25": 10288,
+        "50": 18728,
+        "75": 24157,
+        "90": 28115,
+        "95": 29778,
+        "ready": 45865,
+        "gif": 46019
+      },
+      "pids": [
+        29467
+      ],
+      "finalizingTimesMs": [
+        30907
+      ],
+      "has99": false,
+      "failures": []
+    },
+    "finalUi": {
+      "phase": "READY",
+      "percent": 100,
+      "text": "1 个视频",
+      "gif": true,
+      "playing": true
+    },
+    "media": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "gif",
+          "width": 720,
+          "height": 405,
+          "duration": "3.000000",
+          "nb_read_frames": "75"
+        }
+      ],
+      "format": {
+        "duration": "3.000000"
+      }
+    },
+    "uniqueDecodedFrames": 75,
+    "bytes": 6072880,
+    "sha256": "71b242b7c4c27e0d1b63fdf43f6748a418b4e8d8fb92efed0508d504c6a4e68f",
+    "newAppCrashes": 0
+  },
+  {
+    "device": "oppo",
+    "scenario": "cancel-finalizing",
+    "backgroundSeconds": 60.009,
+    "summary": {
+      "events": 494,
+      "timesMs": {
+        "0": 77,
+        "25": 10870,
+        "50": 20257,
+        "75": 26819,
+        "90": 31384,
+        "95": 33135,
+        "ready": 109927,
+        "gif": 110081
+      },
+      "pids": [
+        1046
+      ],
+      "finalizingTimesMs": [
+        34501,
+        90581
+      ],
+      "has99": false,
+      "failures": [
+        {
+          "time": 395901332,
+          "pid": 1046,
+          "event": "state",
+          "data": {
+            "phase": "FAILED",
+            "percent": 0
+          }
+        },
+        {
+          "time": 395901424,
+          "pid": 1046,
+          "event": "state",
+          "data": {
+            "phase": "FAILED",
+            "percent": 0
+          }
+        }
+      ]
+    },
+    "finalUi": {
+      "phase": "READY",
+      "percent": 100,
+      "text": "1 个视频",
+      "gif": true,
+      "playing": true
+    },
+    "media": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "gif",
+          "width": 720,
+          "height": 405,
+          "duration": "3.000000",
+          "nb_read_frames": "75"
+        }
+      ],
+      "format": {
+        "duration": "3.000000"
+      }
+    },
+    "uniqueDecodedFrames": 75,
+    "bytes": 6072880,
+    "sha256": "71b242b7c4c27e0d1b63fdf43f6748a418b4e8d8fb92efed0508d504c6a4e68f",
+    "newAppCrashes": 0
+  },
+  {
+    "device": "samsung",
+    "scenario": "death-green",
+    "backgroundSeconds": 180.001,
+    "summary": {
+      "events": 254,
+      "timesMs": {
+        "0": 289,
+        "25": 223500,
+        "50": 268080,
+        "75": 287479,
+        "90": 303677,
+        "95": 310601,
+        "ready": 333701,
+        "gif": 333925
+      },
+      "pids": [
+        7353,
+        7610
+      ],
+      "finalizingTimesMs": [
+        316023
+      ],
+      "has99": false,
+      "failures": []
+    },
+    "finalUi": {
+      "phase": "READY",
+      "percent": 100,
+      "text": "1 个视频",
+      "gif": true,
+      "playing": true
+    },
+    "media": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "gif",
+          "width": 720,
+          "height": 405,
+          "duration": "3.000000",
+          "nb_read_frames": "75"
+        }
+      ],
+      "format": {
+        "duration": "3.000000"
+      }
+    },
+    "uniqueDecodedFrames": 75,
+    "bytes": 12674609,
+    "sha256": "a88968cf11ce4922ca2ea2d987e4a589678efd51bef8b793f909610b9c9c4d68",
+    "newAppCrashes": 0
+  },
+  {
+    "device": "samsung",
+    "scenario": "final-switch",
+    "backgroundSeconds": 180.009,
+    "summary": {
+      "events": 270,
+      "timesMs": {
+        "0": 254,
+        "25": 50671,
+        "50": 196520,
+        "75": 212599,
+        "90": 227088,
+        "95": 233452,
+        "ready": 256571,
+        "gif": 256785
+      },
+      "pids": [
+        10897
+      ],
+      "finalizingTimesMs": [
+        238925
+      ],
+      "has99": false,
+      "failures": []
+    },
+    "finalUi": {
+      "phase": "READY",
+      "percent": 100,
+      "text": "1 个视频",
+      "gif": true,
+      "playing": true
+    },
+    "media": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "gif",
+          "width": 720,
+          "height": 405,
+          "duration": "3.000000",
+          "nb_read_frames": "75"
+        }
+      ],
+      "format": {
+        "duration": "3.000000"
+      }
+    },
+    "uniqueDecodedFrames": 75,
+    "bytes": 11689637,
+    "sha256": "7e338037983dbbfdee1e5b692fd2b21ebb9ee2bc95a153b02ab13993964e5fe6",
+    "newAppCrashes": 0
+  },
+  {
+    "device": "samsung",
+    "scenario": "cancel-finalizing",
+    "backgroundSeconds": 60.0,
+    "summary": {
+      "events": 497,
+      "timesMs": {
+        "0": 178,
+        "25": 57770,
+        "50": 104402,
+        "75": 123726,
+        "90": 139920,
+        "95": 146805,
+        "ready": 337980,
+        "gif": 338144
+      },
+      "pids": [
+        13529
+      ],
+      "finalizingTimesMs": [
+        152301,
+        320320
+      ],
+      "has99": false,
+      "failures": [
+        {
+          "time": 534854245,
+          "pid": 13529,
+          "event": "state",
+          "data": {
+            "phase": "FAILED",
+            "percent": 0
+          }
+        },
+        {
+          "time": 534854377,
+          "pid": 13529,
+          "event": "state",
+          "data": {
+            "phase": "FAILED",
+            "percent": 0
+          }
+        }
+      ]
+    },
+    "finalUi": {
+      "phase": "READY",
+      "percent": 100,
+      "text": "1 个视频",
+      "gif": true,
+      "playing": true
+    },
+    "media": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "gif",
+          "width": 720,
+          "height": 405,
+          "duration": "3.000000",
+          "nb_read_frames": "75"
+        }
+      ],
+      "format": {
+        "duration": "3.000000"
+      }
+    },
+    "uniqueDecodedFrames": 75,
+    "bytes": 12674609,
+    "sha256": "a88968cf11ce4922ca2ea2d987e4a589678efd51bef8b793f909610b9c9c4d68",
+    "newAppCrashes": 0
+  },
+  {
+    "device": "meizu",
+    "scenario": "death-green",
+    "backgroundSeconds": 180.002,
+    "summary": {
+      "events": 263,
+      "timesMs": {
+        "0": 405,
+        "25": 199992,
+        "50": 213481,
+        "75": 221134,
+        "90": 227277,
+        "95": 229706,
+        "ready": 254696,
+        "gif": 254894
+      },
+      "pids": [
+        22323,
+        22552
+      ],
+      "finalizingTimesMs": [
+        231596
+      ],
+      "has99": false,
+      "failures": []
+    },
+    "finalUi": {
+      "phase": "READY",
+      "percent": 100,
+      "text": "1 个视频",
+      "gif": true,
+      "playing": true
+    },
+    "media": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "gif",
+          "width": 720,
+          "height": 405,
+          "duration": "3.000000",
+          "nb_read_frames": "75"
+        }
+      ],
+      "format": {
+        "duration": "3.000000"
+      }
+    },
+    "uniqueDecodedFrames": 75,
+    "bytes": 1728846,
+    "sha256": "101a85d88ca317d9221ae67c88f3d8021aea47e9b363a2b9ce6c27528424f450",
+    "newAppCrashes": 0
+  },
+  {
+    "device": "meizu",
+    "scenario": "final-switch",
+    "backgroundSeconds": 179.998,
+    "summary": {
+      "events": 272,
+      "timesMs": {
+        "0": 396,
+        "25": 17200,
+        "50": 30470,
+        "75": 38128,
+        "90": 43973,
+        "95": 46409,
+        "ready": 241743,
+        "gif": 241936
+      },
+      "pids": [
+        25103
+      ],
+      "finalizingTimesMs": [
+        48313
+      ],
+      "has99": false,
+      "failures": []
+    },
+    "finalUi": {
+      "phase": "READY",
+      "percent": 100,
+      "text": "1 个视频",
+      "gif": true,
+      "playing": true
+    },
+    "media": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "gif",
+          "width": 720,
+          "height": 405,
+          "duration": "3.000000",
+          "nb_read_frames": "75"
+        }
+      ],
+      "format": {
+        "duration": "3.000000"
+      }
+    },
+    "uniqueDecodedFrames": 75,
+    "bytes": 1728846,
+    "sha256": "101a85d88ca317d9221ae67c88f3d8021aea47e9b363a2b9ce6c27528424f450",
+    "newAppCrashes": 0
+  },
+  {
+    "device": "meizu",
+    "scenario": "cancel-finalizing",
+    "backgroundSeconds": 60.009,
+    "summary": {
+      "events": 490,
+      "timesMs": {
+        "0": 346,
+        "25": 17538,
+        "50": 31352,
+        "75": 39334,
+        "90": 45586,
+        "95": 48111,
+        "ready": 151257,
+        "gif": 151440
+      },
+      "pids": [
+        27778
+      ],
+      "finalizingTimesMs": [
+        50098,
+        133236
+      ],
+      "has99": false,
+      "failures": [
+        {
+          "time": 2777072693,
+          "pid": 27778,
+          "event": "state",
+          "data": {
+            "phase": "FAILED",
+            "percent": 0
+          }
+        },
+        {
+          "time": 2777072893,
+          "pid": 27778,
+          "event": "state",
+          "data": {
+            "phase": "FAILED",
+            "percent": 0
+          }
+        }
+      ]
+    },
+    "finalUi": {
+      "phase": "READY",
+      "percent": 100,
+      "text": "1 个视频",
+      "gif": true,
+      "playing": true
+    },
+    "media": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "gif",
+          "width": 720,
+          "height": 405,
+          "duration": "3.000000",
+          "nb_read_frames": "75"
+        }
+      ],
+      "format": {
+        "duration": "3.000000"
+      }
+    },
+    "uniqueDecodedFrames": 75,
+    "bytes": 1728846,
+    "sha256": "101a85d88ca317d9221ae67c88f3d8021aea47e9b363a2b9ce6c27528424f450",
+    "newAppCrashes": 0
+  }
+]

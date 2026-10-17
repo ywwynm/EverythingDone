@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cover_generation_channel">Erstellung dynamischer Titelbilder</string>
+    <string name="cover_generation_background">Das Titelbild wird nach der Erstellung automatisch aktualisiert</string>
+    <string name="cover_generation_waiting">Warten auf Erstellung des dynamischen Titelbilds</string>
+    <string name="cover_generation_preparing">Dynamisches Titelbild wird vorbereitet</string>
+    <string name="cover_generation_running">Dynamisches Titelbild wird erstellt</string>
+    <string name="cover_generation_finalizing">Dynamisches Titelbild wird kodiert</string>
+    <string name="cover_generation_failed">Dynamisches Titelbild konnte nicht erstellt werden</string>
+    <string name="cover_generation_retry">Dynamisches Titelbild erneut erstellen</string>
+</resources>

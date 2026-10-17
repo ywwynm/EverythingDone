@@ -120,6 +120,14 @@ class CoverGenerationProbe : Instrumentation() {
             targetContext.assets.open("selection-appearance/media.mp4").use { input ->
                 source.outputStream().use(input::copyTo)
             }
+            if (testCase == "cached-result" || testCase == "output-io-failure") {
+                try {
+                    if (testCase == "cached-result") cachedResultCallbackRace(source)
+                    else outputCreationFailure(source)
+                    result.put("ok", true)
+                } finally { source.delete() }
+                return
+            }
             if (testCase in listOf("list", "baseline")) {
                 sourceChangeAndScroll(source, testCase == "baseline")
                 result.put("ok", true)
@@ -150,6 +158,62 @@ class CoverGenerationProbe : Instrumentation() {
             finish(if (result.optBoolean("ok")) Activity.RESULT_OK else Activity.RESULT_CANCELED,
                 Bundle().apply { putString("result", result.toString()) })
         }
+    }
+
+    /** 按真实请求入口的交错顺序复现：首次查缓存未命中，完成通知先于回调登记。 */
+    private fun cachedResultCallbackRace(source: File) {
+        val manager = VideoCoverPreviewManager
+        val clazz = manager.javaClass
+        val previewMethod = clazz.getDeclaredMethod("previewFileFor",
+            android.content.Context::class.java, String::class.java, java.lang.Long::class.java)
+            .apply { isAccessible = true }
+        val preview = previewMethod.invoke(manager, targetContext, source.path, null) as File
+        val callbacks = clazz.getDeclaredField("callbacks").apply { isAccessible = true }.get(manager) as MutableMap<*, *>
+        val io = clazz.getDeclaredField("ioExecutor").apply { isAccessible = true }.get(manager) as java.util.concurrent.ExecutorService
+        val calls = java.util.concurrent.atomic.AtomicInteger()
+        val error = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+        val requester = Thread {
+            try { manager.requestPreview(targetContext, source.path, null) { calls.incrementAndGet() } }
+            catch (t: Throwable) { error.set(t) }
+        }
+        try {
+            synchronized(callbacks) {
+                requester.start()
+                val deadline = SystemClock.uptimeMillis() + 5000L
+                while (requester.state != Thread.State.BLOCKED && requester.isAlive &&
+                    SystemClock.uptimeMillis() < deadline) SystemClock.sleep(10)
+                check(requester.state == Thread.State.BLOCKED) { "请求未到达回调登记点：${error.get()}" }
+                // 文件可用性分支只检查非空；合法的最小 GIF 不进入解码或媒体生成。
+                preview.writeBytes(android.util.Base64.decode(
+                    "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", android.util.Base64.DEFAULT))
+                manager.notifyGenerated(targetContext, preview.name, preview)
+            }
+            requester.join(5000)
+            check(!requester.isAlive && error.get() == null) { "请求未结束：${error.get()}" }
+            io.submit {}.get(5, java.util.concurrent.TimeUnit.SECONDS)
+            main {} // 等待已提交的主线程完成回调。
+            record("完成通知早于回调登记时仍恰好回调一次", calls.get() == 1)
+            record("缓存已就绪不重新入队生成", androidx.work.WorkManager.getInstance(targetContext)
+                .getWorkInfosForUniqueWork(preview.name).get().isEmpty())
+        } finally {
+            requester.join(5000)
+            preview.delete()
+            synchronized(callbacks) { callbacks.remove(preview.name) }
+        }
+    }
+
+    private fun outputCreationFailure(source: File) {
+        val cache = File(targetContext.cacheDir, "cover-unwritable-${SystemClock.uptimeMillis()}").apply { mkdirs() }
+        val blockedDirectory = File(cache, "video-cover-previews").apply { writeText("not a directory") }
+        val context = object : android.content.ContextWrapper(targetContext) {
+            override fun getApplicationContext(): android.content.Context = this
+            override fun getExternalCacheDir(): File = cache
+            override fun getCacheDir(): File = cache
+        }
+        try {
+            val result = VideoCoverPreviewManager.generateBlocking(context, source.path, null)
+            record("临时文件创建失败返回可重试结果而不抛出未处理异常", result == null)
+        } finally { blockedDirectory.delete(); cache.delete() }
     }
 
     private fun thing(source: File, background: Boolean = false, placement: Int = Thing.THING_CARD_IMAGE_PLACEMENT_TOP) =
@@ -245,7 +309,8 @@ class CoverGenerationProbe : Instrumentation() {
                     { retry, _, _ -> if (retry) retries++; Closeable {} }, { normal }, {})
             }
             for (state in listOf(CoverGenerationState.WAITING, CoverGenerationState.PREPARING,
-                CoverGenerationState.framesProcessed(27, 75), CoverGenerationState.FAILED, CoverGenerationState.READY)) {
+                CoverGenerationState.framesProcessed(27, 75), CoverGenerationState.FINALIZING,
+                CoverGenerationState.FAILED, CoverGenerationState.READY)) {
                 main { binding.showState(state) }
                 waitForIdleSync()
                 if (state == CoverGenerationState.WAITING && layout in listOf(0, 4)) {
@@ -311,7 +376,7 @@ class CoverGenerationProbe : Instrumentation() {
         val manager = androidx.work.WorkManager.getInstance(targetContext)
         manager.enqueueUniqueWork(out.name, androidx.work.ExistingWorkPolicy.KEEP, work).result.get()
         val deadline = SystemClock.uptimeMillis() + 10000
-        while (!manager.getWorkInfoById(work.id).get().state.isFinished && SystemClock.uptimeMillis() < deadline) SystemClock.sleep(32)
+        while (manager.getWorkInfoById(work.id).get()?.state?.isFinished != true && SystemClock.uptimeMillis() < deadline) SystemClock.sleep(32)
         val model = thing(broken)
         val adapter = adapter(model)
         lateinit var holder: BaseThingsAdapter.BaseThingViewHolder

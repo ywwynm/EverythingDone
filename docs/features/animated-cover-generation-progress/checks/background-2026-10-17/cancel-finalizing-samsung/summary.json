@@ -1,0 +1,41 @@
+{
+  "events": 497,
+  "timesMs": {
+    "0": 178,
+    "25": 57770,
+    "50": 104402,
+    "75": 123726,
+    "90": 139920,
+    "95": 146805,
+    "ready": 337980,
+    "gif": 338144
+  },
+  "pids": [
+    13529
+  ],
+  "finalizingTimesMs": [
+    152301,
+    320320
+  ],
+  "has99": false,
+  "failures": [
+    {
+      "time": 534854245,
+      "pid": 13529,
+      "event": "state",
+      "data": {
+        "phase": "FAILED",
+        "percent": 0
+      }
+    },
+    {
+      "time": 534854377,
+      "pid": 13529,
+      "event": "state",
+      "data": {
+        "phase": "FAILED",
+        "percent": 0
+      }
+    }
+  ]
+}
