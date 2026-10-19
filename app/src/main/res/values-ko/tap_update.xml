@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="tap_update_receive_button">받아서 항목 업데이트</string>
     <string name="act_tap_update">터치하여 항목 업데이트</string>
     <string name="tap_update_single_only">이 항목을 업데이트하려면 항목 하나만 공유하세요</string>
     <string name="tap_update_failed">항목을 업데이트하지 못했습니다. 다시 시도하세요.</string>

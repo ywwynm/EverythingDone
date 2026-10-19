@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="tap_update_receive_button">Recibir y actualizar esta cosa</string>
     <string name="act_tap_update">Actualizar por toque</string>
     <string name="tap_update_single_only">Comparte solo una cosa para actualizar esta</string>
     <string name="tap_update_failed">No se pudo actualizar. Inténtalo de nuevo.</string>

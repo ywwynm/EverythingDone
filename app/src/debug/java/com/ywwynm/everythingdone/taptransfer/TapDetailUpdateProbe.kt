@@ -3,6 +3,7 @@ package com.ywwynm.everythingdone.taptransfer
 import android.app.Instrumentation
 import android.content.ContentValues
 import android.content.Intent
+import android.content.res.Configuration
 import android.database.DatabaseUtils
 import android.database.sqlite.SQLiteDatabase
 import android.graphics.Color
@@ -14,9 +15,13 @@ import android.os.Bundle
 import android.os.SystemClock
 import android.view.View
 import android.view.MotionEvent
+import android.view.ViewTreeObserver
 import android.widget.EditText
 import android.widget.TextView
+import android.widget.FrameLayout
 import androidx.activity.ComponentDialog
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.DefaultItemAnimator
@@ -32,6 +37,7 @@ import com.ywwynm.everythingdone.helpers.AlarmHelper
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.helpers.CheckListHelper
 import com.ywwynm.everythingdone.helpers.VideoCoverPreviewManager
+import com.ywwynm.everythingdone.utils.KeyboardUtil
 import com.ywwynm.everythingdone.managers.ThingManager
 import com.ywwynm.everythingdone.model.*
 import com.ywwynm.everythingdone.taptransfer.transport.TapIncomingOffer
@@ -53,6 +59,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
+import java.util.Locale
 
 /** 只建立并清理本次临时行；驱动脚本另对原有各表做前后核对。传输回调可控，渲染与业务路径均为生产代码。 */
 class TapDetailUpdateProbe : Instrumentation() {
@@ -63,6 +70,9 @@ class TapDetailUpdateProbe : Instrumentation() {
     private val cases = JSONArray()
     private val mediaEntryMeasurements = JSONArray()
     private val homeMeasurements = JSONArray()
+    private val pullMeasurements = JSONArray()
+    private val expansionMeasurements = JSONArray()
+    private val expansionFrames = JSONObject()
     private var current: DetailActivity? = null
     private lateinit var helper: DBHelper
     private lateinit var db: SQLiteDatabase
@@ -82,7 +92,9 @@ class TapDetailUpdateProbe : Instrumentation() {
             helper = DBHelper(targetContext); db = helper.writableDatabase
             dir = File(targetContext.cacheDir, "tap-update-probe-${System.currentTimeMillis()}").apply { mkdirs() }
             prefs.edit().putBoolean("simulate", true).commit()
-            if (args.getString("suite") == "home") homeReturnCases()
+            if (args.getString("suite") == "pull-expansion") pullExpansionCases()
+            else if (args.getString("suite") == "pull-entry") pullEntryCases()
+            else if (args.getString("suite") == "home") homeReturnCases()
             else if (args.getString("suite") == "reuse") { attachmentReuseCases(); readerCases(); reviewCases() }
             else if (args.getString("suite") == "media-entry") mediaEntryCases()
             else if (args.getString("suite") == "review") reviewCases()
@@ -118,6 +130,10 @@ class TapDetailUpdateProbe : Instrumentation() {
             report.put("cases", cases).put("fixtures_removed", JSONArray(ids))
                 .put("media_entry_measurements", mediaEntryMeasurements)
                 .put("home_measurements", homeMeasurements)
+                .put("pull_measurements", pullMeasurements)
+                .put("expansion_measurements", expansionMeasurements)
+            if (expansionFrames.length() > 0) File(targetContext.getExternalFilesDir(null),
+                "tap-pull-expansion.json").writeText(expansionFrames.toString(2))
             finish(if (report.optBoolean("passed")) 0 else 1, Bundle().apply { putString("result", report.toString()) })
         }
     }
@@ -587,8 +603,246 @@ class TapDetailUpdateProbe : Instrumentation() {
         }
     }
 
+    /** 走真实按钮的退出回调，检查收起动画开始前就已经显示更新当前记事的文案。 */
+    private fun pullEntryCases() {
+        val original = fixture().apply { content = "下拉入口测试正文。\n".repeat(64) }
+        ThingFileUpdate.write(targetContext, original, null)
+        val activity = open(original.id)
+        val receiver = begin(activity)
+        val pull = main { field<TapReceivePull>(receiver, "pull") }
+        await { !pull.isMoving && pull.currentOffset > 0f }
+        main {
+            val button = activity.findViewById<TextView>(R.id.tv_tap_receive)
+            check(button.performClick())
+            check(!receiver.isReceiving)
+            check(button.text.toString() != activity.getString(R.string.tap_receive_button)) {
+                "详情退出接收后仍显示首页文案：${button.text}"
+            }
+            check(button.text.toString() == activity.getString(R.string.tap_update_receive_button))
+        }
+        await { !pull.isMoving && pull.currentOffset == 0f }
+        cases.put("详情退出接收的第一帧使用更新当前记事的专用文案")
+        main { activity.finish() }; await { activity.isDestroyed }; current = null
+
+        val fresh = open(original.id)
+        val list = fresh.findViewById<RecyclerView>(R.id.sv_detail)
+        val controller = main { field<TapDetailReceiveController?>(fresh, "tapUpdateReceiver") }
+            ?: error("首次打开详情没有安装下拉入口")
+        val freshPull = main { field<TapReceivePull>(controller, "pull") }
+        val density = fresh.resources.displayMetrics.density
+        await { list.height > 0 && !list.isLayoutRequested }
+        main { check(freshPull.currentOffset == 0f && freshPull.button.visibility != View.VISIBLE) }
+        swipeDetail(fresh, 0f, 36 * density)
+        await { !freshPull.isMoving }
+        check(main { freshPull.currentOffset == 0f }) { "小幅下拉应回弹收起" }
+        swipeDetail(fresh, 100 * density, 6 * density)
+        check(main { freshPull.currentOffset == 0f }) { "横滑不应展开接收入口" }
+        main {
+            KeyboardUtil.hideKeyboard(fresh.window)
+            fresh.currentFocus?.clearFocus()
+            list.scrollToPosition(0)
+        }
+        await { !list.canScrollVertically(-1) && !list.isLayoutRequested &&
+            ViewCompat.getRootWindowInsets(list)?.isVisible(WindowInsetsCompat.Type.ime()) != true }
+        swipeDetail(fresh, 0f, 240 * density)
+        main {
+            pullMeasurements.put(JSONObject().put("case", "首次下拉")
+                .put("offset", freshPull.currentOffset).put("moving", freshPull.isMoving)
+                .put("can_scroll_up", list.canScrollVertically(-1))
+                .put("ime_visible", ViewCompat.getRootWindowInsets(list)?.isVisible(WindowInsetsCompat.Type.ime()))
+                .put("down_at_top", field<Boolean>(freshPull, "downAtTop")))
+        }
+        await { !freshPull.isMoving && freshPull.currentOffset > 0f }
+        main {
+            check(!controller.isReceiving)
+            check(fresh.findViewById<TextView>(R.id.tv_tap_receive).text.toString() == fresh.getString(R.string.tap_update_receive_button))
+            check(list.clipBounds?.bottom?.let { it < list.height } == true)
+        }
+        savePullScreenshot("text-entry")
+        cases.put("首次打开即可下拉展示入口；小幅下拉回弹、横滑不触发，内容底部避开操作栏")
+
+        main {
+            fresh.findViewById<View>(R.id.tv_tap_receive).performClick()
+            check(controller.isReceiving)
+            field<TapReceiverTransport?>(controller, "transport")?.stop()
+        }
+        await { !freshPull.isMoving }
+        main { fresh.findViewById<View>(R.id.tv_tap_receive).performClick() }
+        await { !freshPull.isMoving && freshPull.currentOffset == 0f }
+        check(main { list.translationY == 0f && list.clipBounds == null })
+        check(read(original.id).content == original.content)
+        cases.put("下拉按钮实际进入接收，退出后复位且原内容不变")
+
+        // 列表中途向下滑到顶部的同一次手势不能直接带出入口。
+        main { list.scrollBy(0, (80 * density).toInt()) }
+        check(main { list.canScrollVertically(-1) })
+        swipeDetail(fresh, 0f, 240 * density)
+        await { list.scrollState == RecyclerView.SCROLL_STATE_IDLE }
+        check(main { freshPull.currentOffset == 0f }) { "从列表中途回顶的手势不应展开入口" }
+        main { list.scrollToPosition(0) }
+        await { !list.canScrollVertically(-1) && !list.isLayoutRequested }
+        swipeDetail(fresh, 0f, 240 * density)
+        await { !freshPull.isMoving && freshPull.currentOffset > 0f }
+        swipeDetail(fresh, 0f, -220 * density, startFraction = .6f)
+        await { !freshPull.isMoving && freshPull.currentOffset == 0f }
+        check(main { list.translationY == 0f && list.clipBounds == null })
+        cases.put("必须先回顶再下拉；展开后上滑收起并继续滚动正文")
+
+        main { list.scrollToPosition(0) }
+        await { !list.canScrollVertically(-1) && !list.isLayoutRequested }
+        swipeDetail(fresh, 0f, 240 * density)
+        await { !freshPull.isMoving && freshPull.currentOffset > 0f }
+        main { controller.exit(immediate = true) }
+        check(main { list.translationY == 0f && list.clipBounds == null && freshPull.currentOffset == 0f })
+        cases.put("未进入接收的下拉入口在生命周期清理时完全复位")
+        main { fresh.finish() }; await { fresh.isDestroyed }; current = null
+
+        val finished = fixture(state = Thing.FINISHED)
+        val finishedActivity = open(finished.id)
+        val finishedPull = main { field<TapReceivePull>(field<TapDetailReceiveController>(finishedActivity, "tapUpdateReceiver"), "pull") }
+        swipeDetail(finishedActivity, 0f, 240 * density)
+        await { !finishedPull.isMoving && finishedPull.currentOffset > 0f }
+        cases.put("已完成记事也支持下拉更新入口")
+        main { finishedActivity.finish() }; await { finishedActivity.isDestroyed }; current = null
+
+        pullLocaleCases()
+        mediaEntryCases(testPull = true)
+        // 更新和撤销／重做继续走既有生产流程；本次只补查手势及退出，不复制业务用例。
+        detailCases()
+    }
+
+    /** 注入完整屏幕触摸序列，由 Activity、RecyclerView 和实际子控件处理，不直接调用手势监听器。 */
+    private fun swipeDetail(activity: DetailActivity, dx: Float, dy: Float, startFraction: Float = .25f) {
+        val list = activity.findViewById<RecyclerView>(R.id.sv_detail)
+        val start = main {
+            val at = IntArray(2).also(list::getLocationOnScreen)
+            floatArrayOf(at[0] + list.width * .55f, at[1] + list.height * startFraction)
+        }
+        val down = SystemClock.uptimeMillis()
+        fun send(action: Int, fraction: Float) {
+            val event = MotionEvent.obtain(down, SystemClock.uptimeMillis(), action,
+                start[0] + dx * fraction, start[1] + dy * fraction, 0)
+            try { sendPointerSync(event) } finally { event.recycle() }
+        }
+        send(MotionEvent.ACTION_DOWN, 0f)
+        repeat(16) { SystemClock.sleep(16); send(MotionEvent.ACTION_MOVE, (it + 1) / 16f) }
+        send(MotionEvent.ACTION_UP, 1f)
+        waitForIdleSync()
+    }
+
+    private fun savePullScreenshot(name: String) {
+        uiAutomation.takeScreenshot()?.let { bitmap ->
+            File(targetContext.getExternalFilesDir(null), "tap-pull-$name.png").outputStream().use {
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
+            }
+            bitmap.recycle()
+        }
+    }
+
+    private fun pullLocaleCases() {
+        main {
+            for (tag in listOf("en", "zh-CN", "zh-TW", "zh-HK", "de", "es", "fr", "hi", "it", "ja", "ko", "pt", "ru")) {
+                val config = Configuration(targetContext.resources.configuration).apply {
+                    setLocale(Locale.forLanguageTag(tag))
+                    fontScale = 1f
+                }
+                val context = targetContext.createConfigurationContext(config)
+                val container = FrameLayout(context)
+                val list = RecyclerView(context)
+                val toolbar = View(context)
+                container.addView(list); container.addView(toolbar)
+                val width = (320 * context.resources.displayMetrics.density).toInt()
+                container.layout(0, 0, width, width * 2)
+                val pull = TapReceivePull(container, list, null, toolbar, { true },
+                    receiveButtonText = R.string.tap_update_receive_button, closeOnReceiveExit = true) {}
+                pull.attach()
+                val pill = pull.button.findViewById<TextView>(R.id.tv_tap_receive)
+                val expected = context.getString(R.string.tap_update_receive_button)
+                check(pill.text.toString() == expected && expected != context.getString(R.string.tap_receive_button))
+                pull.setReceiving(true, animate = false)
+                check(pill.text.toString() == context.getString(R.string.tap_receive_exit))
+                pull.setReceiving(false, animate = false)
+                check(pill.text.toString() == expected)
+                pull.button.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.AT_MOST),
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+                pull.button.layout(0, 0, pull.button.measuredWidth, pull.button.measuredHeight)
+                check(pill.layout.height <= pill.height - pill.compoundPaddingTop - pill.compoundPaddingBottom) {
+                    "$tag 的入口文字高度超出按钮：${pill.text}"
+                }
+                val homePull = TapReceivePull(container, list, null, toolbar, { true }) {}
+                homePull.attach()
+                homePull.setReceiving(true, animate = false); homePull.setReceiving(false, animate = false)
+                check(homePull.button.findViewById<TextView>(R.id.tv_tap_receive).text.toString() == context.getString(R.string.tap_receive_button))
+            }
+        }
+        cases.put("全部 13 个语言／地区的入口、接收、退出文案正确，320dp 宽度下文字不裁切，首页文案保持原样")
+    }
+
+    private fun pullExpansionCases() {
+        val original = fixture()
+        val activity = open(original.id)
+        val pull = main { field<TapReceivePull>(field<TapDetailReceiveController>(activity, "tapUpdateReceiver"), "pull") }
+        swipeDetail(activity, 0f, 240 * activity.resources.displayMetrics.density)
+        await { !pull.isMoving && pull.currentOffset > 0f }
+        measurePullExpansion(activity, "text")
+        main { activity.finish() }; await { activity.isDestroyed }; current = null
+        mediaEntryCases(testPull = true, testExpansion = true)
+        check((0 until expansionMeasurements.length()).all { expansionMeasurements.getJSONObject(it).getBoolean("passed") }) {
+            "展开提示时出现回移或胶囊重新进场：$expansionMeasurements"
+        }
+        cases.put("正文、图片、视频入口逐帧验证：复用原胶囊，内容只向下展开，提示逐步显现")
+    }
+
+    /** 采样真实绘制帧，包含点击前状态，避免仅检查动画结束位置漏掉瞬间回移。 */
+    private fun measurePullExpansion(activity: DetailActivity, label: String): TapDetailReceiveController {
+        val receiver = main { field<TapDetailReceiveController>(activity, "tapUpdateReceiver") }
+        val pull = main { field<TapReceivePull>(receiver, "pull") }
+        val list = activity.findViewById<RecyclerView>(R.id.sv_detail)
+        val pill = activity.findViewById<TextView>(R.id.tv_tap_receive)
+        val hint = activity.findViewById<TextView>(R.id.tv_tap_receive_hint)
+        val frames = JSONArray()
+        val start = SystemClock.uptimeMillis()
+        fun sample() {
+            val at = IntArray(2).also(pill::getLocationOnScreen)
+            frames.put(JSONObject().put("ms", SystemClock.uptimeMillis() - start)
+                .put("content_y", list.translationY).put("pill_y", at[1])
+                .put("scale", pull.button.scaleY).put("alpha", pull.button.alpha)
+                .put("clip_bottom", pull.button.clipBounds?.bottom ?: pull.button.height)
+                .put("hint_top", hint.top).put("hint_bottom", hint.bottom)
+                .put("hint_visible", hint.visibility == View.VISIBLE))
+        }
+        val listener = ViewTreeObserver.OnPreDrawListener { sample(); true }
+        main {
+            sample()
+            list.viewTreeObserver.addOnPreDrawListener(listener)
+            check(pill.performClick() && receiver.isReceiving)
+            check(activity.findViewById<View>(R.id.tv_tap_receive) === pill)
+            field<TapReceiverTransport?>(receiver, "transport")?.stop()
+        }
+        SystemClock.sleep(600)
+        main { list.viewTreeObserver.removeOnPreDrawListener(listener) }
+        val samples = (0 until frames.length()).map(frames::getJSONObject)
+        val initialY = samples.first().getDouble("content_y")
+        val upwardStep = samples.zipWithNext().maxOf { (a, b) ->
+            a.getDouble("content_y") - b.getDouble("content_y")
+        }.coerceAtLeast(0.0)
+        val pillRange = samples.maxOf { it.getInt("pill_y") } - samples.minOf { it.getInt("pill_y") }
+        val minScale = samples.minOf { it.getDouble("scale") }
+        val minAlpha = samples.minOf { it.getDouble("alpha") }
+        val partialHintFrames = samples.count { it.getBoolean("hint_visible") &&
+            it.getInt("clip_bottom") > it.getInt("hint_top") && it.getInt("clip_bottom") < it.getInt("hint_bottom") }
+        val passed = samples.size >= 4 && upwardStep <= 1 && pillRange <= 1 && minScale >= .999 &&
+            minAlpha >= .999 && samples.last().getDouble("content_y") > initialY && partialHintFrames > 0
+        expansionFrames.put(label, frames)
+        expansionMeasurements.put(JSONObject().put("case", label).put("frames", samples.size)
+            .put("upward_step_px", upwardStep).put("pill_range_px", pillRange)
+            .put("min_scale", minScale).put("min_alpha", minAlpha)
+            .put("partial_hint_frames", partialHintFrames).put("passed", passed))
+        return receiver
+    }
+
     /** 通过生产详情与菜单验证：接收让位不能删掉顶部附件的一段像素。 */
-    private fun mediaEntryCases() {
+    private fun mediaEntryCases(testPull: Boolean = false, testExpansion: Boolean = false) {
         var failures = 0
         for (video in listOf(false, true)) {
             val source = File(dir, if (video) "entry.mp4" else "entry.png")
@@ -622,7 +876,21 @@ class TapDetailUpdateProbe : Instrumentation() {
             val beforeHeight = main { list.findViewById<View>(R.id.iv_image_attachment).height }
             SystemClock.sleep(900)
             repeat(2) { attempt ->
-                val receiver = begin(activity)
+                if (testPull) {
+                    val pull = main { field<TapReceivePull>(field<TapDetailReceiveController>(activity, "tapUpdateReceiver"), "pull") }
+                    swipeDetail(activity, 0f, 240 * activity.resources.displayMetrics.density)
+                    await { !pull.isMoving && pull.currentOffset > 0f }
+                    main {
+                        val media = list.findViewById<View>(R.id.iv_image_attachment)
+                        val mediaAt = IntArray(2).also(media::getLocationOnScreen)
+                        val panelAt = IntArray(2).also(pull.button::getLocationOnScreen)
+                        check(media.height == beforeHeight && (list.clipBounds?.top ?: 0) == 0 &&
+                            mediaAt[1] >= panelAt[1] + pull.button.height) { "下拉入口遮挡了附件顶部" }
+                    }
+                    if (attempt == 0) savePullScreenshot(if (video) "video-entry" else "image-entry")
+                }
+                val receiver = if (testExpansion) measurePullExpansion(activity, "${if (video) "video" else "image"}-$attempt")
+                    else begin(activity)
                 await { !field<TapReceivePull>(receiver, "pull").isMoving && list.translationY > 0 }
                 SystemClock.sleep(900)
                 val valid = main {

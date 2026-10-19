@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="tap_update_receive_button">Ricevi e aggiorna questo elemento</string>
     <string name="act_tap_update">Aggiorna al tocco</string>
     <string name="tap_update_single_only">Condividi un solo elemento per aggiornare questo</string>
     <string name="tap_update_failed">Impossibile aggiornare questo elemento. Riprova.</string>

@@ -462,6 +462,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             recordRenderedThingSnapshot()
             setActionbar()
             setEvents()
+            setupTapUpdate()
             mark("detail-events")
 
             creationTransition = ThingCreationTransition
@@ -2156,9 +2157,9 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             com.ywwynm.everythingdone.taptransfer.TapTransfer.isEntryAvailable(this)
     }
 
-    private fun startTapUpdate() {
-        if (!canTapUpdate()) return
-        val controller = tapUpdateReceiver ?: TapDetailReceiveController(this,
+    private fun setupTapUpdate() {
+        if (tapUpdateReceiver != null || !canTapUpdate()) return
+        tapUpdateReceiver = TapDetailReceiveController(this,
             object : TapDetailReceiveController.Host {
                 override val container: FrameLayout get() = mFlRoot!!
                 override val recyclerView: RecyclerView get() = mDetailList!!
@@ -2167,6 +2168,9 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 override val accentBackground: ThingBackground get() =
                     getAccentBackground() ?: ThingBackground.pure(getAccentColor())
                 override fun canReceive() = canTapUpdate()
+                override fun canPullToReceive() = canTapUpdate() && mTapShareOverlay == null &&
+                    mDetailCropPreviewModal == null && !isChecklistMoveMode() &&
+                    ViewCompat.getRootWindowInsets(mFlRoot!!)?.isVisible(WindowInsetsCompat.Type.ime()) != true
                 override fun existingAttachments(): List<TapFileTransfer.LocalAttachment> {
                     val snapshot = if (mEditable) buildShareSnapshot() else Thing(mThing!!)
                     retainReceivedAttachments(snapshot)
@@ -2199,8 +2203,12 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 override fun apply(prepared: ThingFileUpdate.Prepared, settings: ThingFileUpdate.Settings) {
                     applyReceivedContent(prepared, settings)
                 }
-            }).also { tapUpdateReceiver = it }
-        controller.start()
+            })
+    }
+
+    private fun startTapUpdate() {
+        setupTapUpdate()
+        tapUpdateReceiver?.start()
     }
 
     private fun captureReceivedState(includeAlarms: Boolean): ReceivedEditState {

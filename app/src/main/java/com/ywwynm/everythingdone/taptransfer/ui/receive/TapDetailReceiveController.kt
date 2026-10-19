@@ -55,6 +55,7 @@ class TapDetailReceiveController(private val activity: FragmentActivity, private
         val foregroundColor: Int
         val accentBackground: ThingBackground
         fun canReceive(): Boolean
+        fun canPullToReceive(): Boolean
         fun existingAttachments(): List<TapFileTransfer.LocalAttachment>
         fun prepareForReceive()
         fun needsSettingsChoice(pending: PendingThing): Boolean
@@ -74,10 +75,12 @@ class TapDetailReceiveController(private val activity: FragmentActivity, private
     private val density = activity.resources.displayMetrics.density
     private var stage: TapReceiveStageView? = null
     private val pull = TapReceivePull(host.container, host.recyclerView, null, host.actionbar,
-        host::canReceive, allowPullGesture = false, onOffsetChanged = ::onReceiveOffsetChanged) { exit() }
+        host::canPullToReceive, receiveButtonText = R.string.tap_update_receive_button,
+        closeOnReceiveExit = true, onOffsetChanged = ::onReceiveOffsetChanged) {
+        if (isReceiving) exit() else start()
+    }
     private var contentClipBeforeReceive: Rect? = null
     private var contentClipCaptured = false
-    private var receiveSlotHeight = 1f
     private var frozen: ImageView? = null
     private var frozenBitmap: Bitmap? = null
     private var receiveClipToPadding: Boolean? = null
@@ -132,7 +135,7 @@ class TapDetailReceiveController(private val activity: FragmentActivity, private
             }
         })
         host.container.addOnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
-            if (isReceiving && oldRight > oldLeft && oldBottom > oldTop &&
+            if (oldRight > oldLeft && oldBottom > oldTop &&
                 (right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop)) exit(immediate = true)
         }
     }
@@ -188,7 +191,6 @@ class TapDetailReceiveController(private val activity: FragmentActivity, private
         }
         pull.setHintTextColor(host.foregroundColor)
         pull.setReceiving(true)
-        receiveSlotHeight = pull.slotHeight.coerceAtLeast(1f)
         val surface = TapReceiveStageView(activity, this).apply {
             keepScreenOn = true
             // 原背景直接留在底下，避免默认首页罩层改变旧记事的颜色。
@@ -541,8 +543,12 @@ class TapDetailReceiveController(private val activity: FragmentActivity, private
      * 让位时补齐前者缺少的顶栏间距，完整平移附件；仅限制下边缘，不能裁掉顶部来腾空间。
      */
     private fun onReceiveOffsetChanged(offset: Float) {
-        if (!contentClipCaptured) return
         val list = host.recyclerView
+        if (!contentClipCaptured) {
+            if (offset <= .5f) return
+            contentClipBeforeReceive = list.clipBounds?.let(::Rect)
+            contentClipCaptured = true
+        }
         if (offset <= .5f) {
             list.clipBounds = contentClipBeforeReceive
             if (!isReceiving) contentClipCaptured = false
@@ -552,7 +558,7 @@ class TapDetailReceiveController(private val activity: FragmentActivity, private
         val top = Rect(0, 0, toolbar.width, toolbar.height)
         host.container.offsetDescendantRectToMyCoords(toolbar, top)
         val missingTopInset = maxOf(0, top.bottom - list.top)
-        val progress = (offset / receiveSlotHeight).coerceIn(0f, 1f)
+        val progress = pull.buttonRevealProgress
         val translation = offset + missingTopInset * progress
         list.translationY = translation
         val clip = contentClipBeforeReceive?.let(::Rect) ?: Rect(0, 0, list.width, list.height)

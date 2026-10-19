@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="tap_update_receive_button">प्राप्त करके इस चीज़ को अपडेट करें</string>
     <string name="act_tap_update">टैप करके अपडेट करें</string>
     <string name="tap_update_single_only">अपडेट करने के लिए केवल एक चीज़ साझा करें</string>
     <string name="tap_update_failed">अपडेट नहीं किया जा सका। फिर से कोशिश करें।</string>

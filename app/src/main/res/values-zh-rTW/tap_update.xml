@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="tap_update_receive_button">接收並更新記事</string>
     <string name="act_tap_update">碰一碰以更新記事</string>
     <string name="tap_update_single_only">更新記事時，請只分享一則記事</string>
     <string name="tap_update_failed">更新記事失敗，請重試</string>

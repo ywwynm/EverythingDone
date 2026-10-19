@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="tap_update_receive_button">Empfangen und Eintrag aktualisieren</string>
     <string name="act_tap_update">Per Antippen aktualisieren</string>
     <string name="tap_update_single_only">Teile zum Aktualisieren nur einen Eintrag</string>
     <string name="tap_update_failed">Der Eintrag konnte nicht aktualisiert werden. Versuche es erneut.</string>

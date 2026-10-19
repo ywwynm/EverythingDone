@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="tap_update_receive_button">Получить и обновить запись</string>
     <string name="act_tap_update">Обновить касанием</string>
     <string name="tap_update_single_only">Для обновления этой записи отправьте только одну запись</string>
     <string name="tap_update_failed">Не удалось обновить запись. Попробуйте ещё раз.</string>

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="tap_update_receive_button">Receive and update this thing</string>
     <item name="act_tap_update" type="id" />
     <string name="act_tap_update">Tap to update this thing</string>
     <string name="tap_update_single_only">Share only one thing to update this thing</string>

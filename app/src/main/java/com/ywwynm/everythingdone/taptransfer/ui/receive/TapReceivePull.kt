@@ -14,10 +14,12 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
+import android.view.ViewGroup
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.animation.PathInterpolator
 import android.widget.FrameLayout
 import android.widget.TextView
+import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
 import androidx.core.view.AccessibilityDelegateCompat
 import androidx.core.view.ViewCompat
@@ -34,7 +36,7 @@ import kotlin.math.abs
 import kotlin.math.min
 
 /**
- * 首页列表滑到顶之后再往下拉，拉出「接收记事」按钮（决策 2026-09-24）。
+ * 列表滑到顶之后再往下拉，拉出接收按钮；首页接收新记事，详情页接收并更新当前记事。
  *
  * 拉的时候列表与头部一起往下移，在 actionbar 下方让出一条空位，按钮在空位里逐渐显出来；松手时
  * 拉过一大半就停在打开的位置，否则收回。打开之后往上滑先收起按钮，收完再接着滚动列表。
@@ -49,8 +51,9 @@ class TapReceivePull(
     private val header: ActivityHeader?,
     private val actionbar: View,
     private val isEligible: () -> Boolean,
-    /** 详情页通过菜单进入，共用位移、按钮和提示，不安装首页下拉手势。 */
-    private val allowPullGesture: Boolean = true,
+    @StringRes private val receiveButtonText: Int = R.string.tap_receive_button,
+    /** 详情页退出接收后恢复原位置，首页在列表顶部时保留入口。 */
+    private val closeOnReceiveExit: Boolean = false,
     private val onOffsetChanged: (Float) -> Unit = {},
     private val onClick: () -> Unit
 ) : RecyclerView.OnItemTouchListener {
@@ -99,15 +102,14 @@ class TapReceivePull(
         container.addView(button, lp)
         button.visibility = View.INVISIBLE
         button.setOnClickListener(null)
+        pill.setText(receiveButtonText)
         pill.setOnClickListener { onClick() }
         (context as? FragmentActivity)?.let {
             TapDiagnosticsDialog.bind(button.findViewById(R.id.tap_diagnostic_open), it)
         }
         applyStyle()
-        if (allowPullGesture) {
-            recyclerView.addOnItemTouchListener(this)
-            recyclerView.addOnScrollListener(scrollListener)
-        }
+        recyclerView.addOnItemTouchListener(this)
+        recyclerView.addOnScrollListener(scrollListener)
         header?.setOnPullResetListener {
             if (receiving) {
                 // 旋转屏幕等情况下头部会复位；接收状态下按钮不收，头部的位移补回来
@@ -118,7 +120,7 @@ class TapReceivePull(
         }
         actionbar.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> positionButton() }
         positionButton()
-        if (allowPullGesture) installAccessibilityAction()
+        installAccessibilityAction()
     }
 
     /**
@@ -128,7 +130,7 @@ class TapReceivePull(
      */
     private fun installAccessibilityAction() {
         val header = header ?: return
-        val label = context.getString(R.string.tap_receive_button)
+        val label = context.getString(receiveButtonText)
         ViewCompat.setAccessibilityDelegate(header.titleView, object : AccessibilityDelegateCompat() {
             override fun onInitializeAccessibilityNodeInfo(host: View, info: AccessibilityNodeInfoCompat) {
                 super.onInitializeAccessibilityNodeInfo(host, info)
@@ -185,7 +187,7 @@ class TapReceivePull(
      */
     fun setReceiving(receiving: Boolean, animate: Boolean = true) {
         this.receiving = receiving
-        pill.setText(if (receiving) R.string.tap_receive_exit else R.string.tap_receive_button)
+        pill.setText(if (receiving) R.string.tap_receive_exit else receiveButtonText)
         setHint(if (receiving) context.getString(R.string.tap_receive_hint) else null)
         applyStyle()
         if (!animate) {
@@ -197,7 +199,7 @@ class TapReceivePull(
         button.post {
             when {
                 this.receiving -> animateTo(slot())
-                !allowPullGesture -> animateTo(0f)
+                closeOnReceiveExit -> animateTo(0f)
                 offset > 0f -> animateTo(if (recyclerView.canScrollVertically(-1)) 0f else slot())
             }
         }
@@ -218,6 +220,8 @@ class TapReceivePull(
     }
 
     private fun renderHint() {
+        val hadHint = hint.visibility == View.VISIBLE
+        val previousSlot = slot()
         val text = if (preparing) context.getString(R.string.tap_receive_preparing) else requestedHint
         TapSessionRecorder.current?.captureSoon("pull", button, 60L)
         buttonHeight = -1f
@@ -226,6 +230,11 @@ class TapReceivePull(
         } else {
             hint.text = text
             hint.visibility = View.VISIBLE
+        }
+        updateHintClip()
+        // 进度等后续文案换行时继续从当前位移调整，不能把新文字留在尚未展开的空间之外。
+        if (receiving && hadHint && slot() != previousSlot) {
+            button.post { if (receiving) animateTo(slot()) }
         }
     }
 
@@ -238,6 +247,8 @@ class TapReceivePull(
     /** 调试（会话记录）：列表当前的下移量与空位高度。 */
     val currentOffset: Float get() = offset
     val slotHeight: Float get() = slot()
+    /** 胶囊显现只取决于不含提示的高度，追加提示不会把已经显示的胶囊重新缩小、上移。 */
+    val buttonRevealProgress: Float get() = (offset / collapsedSlot()).coerceIn(0f, 1f)
     val isMoving: Boolean get() = animator != null
 
     /** 按钮（含提示）打开后的下边缘，容器坐标：接收状态的轮廓从这里往下排。 */
@@ -366,14 +377,33 @@ class TapReceivePull(
         offset = px
         recyclerView.translationY = px
         header?.setPullOffset(px)
-        val f = (px / slot()).coerceIn(0f, 1f)
+        val f = buttonRevealProgress
         button.visibility = if (px > 0.5f) View.VISIBLE else View.INVISIBLE
         button.alpha = f * f
         val scale = 0.86f + 0.14f * f
         button.scaleX = scale
         button.scaleY = scale
         button.translationY = (1f - f) * -APPEAR_SHIFT_DP * density
+        updateHintClip()
         onOffsetChanged(px)
+    }
+
+    private fun collapsedSlot(): Float {
+        val fullHeight = slot()
+        if (hint.visibility != View.VISIBLE) return fullHeight
+        val margins = hint.layoutParams as ViewGroup.MarginLayoutParams
+        return (fullHeight - hint.measuredHeight - margins.topMargin - margins.bottomMargin).coerceAtLeast(1f)
+    }
+
+    /** 提示只绘制已让出的区域，胶囊保持完整；内容下移多少，文字就向下展开多少。 */
+    private fun updateHintClip() {
+        if (hint.visibility != View.VISIBLE || offset >= slot()) {
+            button.clipBounds = null
+            return
+        }
+        val available = (offset - (TOP_GAP_DP + BOTTOM_GAP_DP) * density)
+            .coerceAtLeast(pill.measuredHeight.toFloat()).toInt()
+        button.clipBounds = Rect(0, 0, button.measuredWidth, available)
     }
 
     /** 空位高度：按钮（含提示行）加上下留白。 */

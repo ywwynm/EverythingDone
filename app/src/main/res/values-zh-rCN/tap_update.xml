@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="tap_update_receive_button">接收并更新记事</string>
     <string name="act_tap_update">碰一碰以更新记事</string>
     <string name="tap_update_single_only">更新记事时，请只分享一条记事</string>
     <string name="tap_update_failed">更新记事失败，请重试</string>

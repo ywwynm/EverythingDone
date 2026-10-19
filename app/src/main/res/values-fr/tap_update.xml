@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="tap_update_receive_button">Recevoir et mettre à jour cet élément</string>
     <string name="act_tap_update">Mettre à jour par contact</string>
     <string name="tap_update_single_only">Partagez un seul élément pour mettre celui-ci à jour</string>
     <string name="tap_update_failed">Impossible de mettre à jour cet élément. Réessayez.</string>
