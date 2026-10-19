@@ -620,13 +620,9 @@ private class GestureAnchoredDialog(
         }
     }
 
-    /** 返回使用左上虚拟触点；其他关闭先取分发中或刚抬手的真实触点。 */
+    /** 返回不提供真实触点，由共用入口随机向左上或正上消散；其余关闭优先沿用本次触点。 */
     private fun dismissTouchAnchor(): PointF? {
-        if (dismissFromBack) {
-            val decor = window?.decorView ?: return null
-            val reach = maxOf(decor.width, decor.height).toFloat()
-            return PointF(decor.width / 2f - reach, decor.height / 2f - reach)
-        }
+        if (dismissFromBack) return null
         dismissTouchInDispatch?.let { return it }
         val up = lastUpTouch ?: return null
         val elapsed = SystemClock.uptimeMillis() - lastUpTouchUptimeMs

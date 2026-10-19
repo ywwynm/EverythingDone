@@ -4,6 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <instrumentation android:name=".views.particledismiss.ParticleDefaultDirectionProbe"
+        android:targetPackage="${applicationId}" android:label="隔离数据的消散方向回归" />
     <instrumentation android:name=".covergeneration.CoverGenerationInteractionProbe"
         android:targetPackage="${applicationId}" />
     <instrumentation android:name=".covergeneration.CoverGenerationProbe"
@@ -100,6 +102,8 @@
             android:exported="true" android:theme="@style/EverythingDoneTheme.Settings" />
 
         <activity android:name=".views.particledismiss.ParticlePresentationDiagnosticsActivity"
+            android:exported="false" android:theme="@style/EverythingDoneTheme.Settings" />
+        <activity android:name=".views.particledismiss.ParticleDirectionFixtureActivity"
             android:exported="false" android:theme="@style/EverythingDoneTheme.Settings" />
         <activity android:name=".views.particledismiss.ParticlePresentationCaseActivity"
             android:exported="false" android:theme="@style/EverythingDoneTheme.Settings" />

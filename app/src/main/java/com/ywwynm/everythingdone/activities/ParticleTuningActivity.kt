@@ -41,6 +41,7 @@ import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissController
+import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissDirection
 import com.ywwynm.everythingdone.views.particledismiss.ParticleFrameStats
 import com.ywwynm.everythingdone.views.particledismiss.ParticlePanelAnimator
 import com.ywwynm.everythingdone.views.particledismiss.ParticleStyle
@@ -109,10 +110,12 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
     private var directionAnimator: ValueAnimator? = null
 
     /**
-     * 示例对话框的粒子方向（度，0 = 右、90 = 上、180 = 左、270 = 下），默认左上。
-     * **只作用于预览**：不落盘、不进用户设置，换个页面回来仍是左上。
+     * 示例对话框的粒子方向（度，0 = 右、90 = 上、180 = 左、270 = 下）。
+     * 默认每次消散随机左上或正上，后续出现沿同一方向倒放；手动选择后固定到所选方向。
+     * 只作用于本页预览，不落盘；重新进入页面恢复随机选择。
      */
-    private var dialogDirection = DEFAULT_DIRECTION
+    private var dialogDirection = ParticleDismissDirection.randomDegrees()
+    private var hasExplicitDialogDirection = false
 
     private val main = Handler(Looper.getMainLooper())
     private val swipeAnimator by lazy { ParticleSwipeAnimator(this, allowRightSwipe = true) }
@@ -690,6 +693,8 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
      * 「出现 → 消散 → 出现」三步，观感正是用户说的「瞬间消失，然后出现、消散、又出现」。
      */
     private fun applyDirection(degrees: Float) {
+        // 即使选中当前自动抽到的方向，也表示用户要求后续固定使用它。
+        hasExplicitDialogDirection = true
         if (dialogDirection == degrees) return
         dialogDirection = degrees
         updateDirectionButton(animated = true)
@@ -1133,6 +1138,10 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
         val elevation = resources.getDimension(R.dimen.particle_tuning_dialog_elevation)
         val settled = { finishDialogStep() }
         if (dialogShowing) {
+            if (!hasExplicitDialogDirection) {
+                dialogDirection = ParticleDismissDirection.randomDegrees()
+                updateDirectionButton(animated = true)
+            }
             dialogShowing = false
             if (!panelAnimator.dismiss(target, dialogDirection, elevation, settled, {
                     target.visibility = View.INVISIBLE
@@ -1500,8 +1509,6 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
         const val DIRECTION_BUTTON_GAP_DP = 8f
         /** 换方向时箭头转到新角度的时长，与按钮张开 / 收起取同一档。 */
         const val DIRECTION_ROTATE_MS = 256L
-        /** 默认方向：左上。度数约定见 [dialogDirection]。 */
-        const val DEFAULT_DIRECTION = 135f
         /** 九宫格里八个格子各自代表的方向。 */
         val DIRECTION_CELLS = listOf(
             R.id.iv_particle_direction_lt to 135f,

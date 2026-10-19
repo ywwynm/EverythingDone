@@ -128,8 +128,8 @@ internal object ParticleDismissController {
      *
      * 返回 false 表示环境不满足，调用方保持系统默认退出行为（不会回调）。
      *
-     * [touchInWindow] 表示直接触发本次关闭的触点，返回分发可传入左上虚拟触点；其他
-     * 异步完成和代码关闭传 null，统一使用右上虚拟触点。
+     * [touchInWindow] 表示直接触发本次关闭的触点。系统返回、异步完成和无有效触点的
+     * 代码关闭传 null，每次等概率选择左上或正上方向。
      */
     fun start(
         dialog: Dialog, touchInWindow: PointF?, onAnimationStarted: Runnable,
@@ -427,18 +427,17 @@ internal object ParticleDismissController {
         hostDecor.getWindowVisibleDisplayFrame(visibleScreen)
 
         // 消散主方向严格朝直接因果触点。真实方向不设置宽阈值：只在向量
-        // 数值上无法归一化时回退。所有无触点关闭统一从正上向右偏 30°，
-        // 即右上但仍以上行为主。
+        // 数值上无法归一化时回退。无触点或中心触点关闭，每次随机选择左上或正上。
         val baseAngle = if (touchInWindow != null) {
             val dx = touchInWindow.x - decor.width / 2f
             val dy = touchInWindow.y - decor.height / 2f
             if (hypot(dx, dy) > DIRECTION_EPSILON_PX) {
                 atan2(dy, dx)
             } else {
-                DEFAULT_DISMISS_ANGLE_RAD
+                ParticleDismissDirection.randomRadians()
             }
         } else {
-            DEFAULT_DISMISS_ANGLE_RAD
+            ParticleDismissDirection.randomRadians()
         }
         val tiltRadians = baseAngle
         val reach = VIRTUAL_TOUCH_FACTOR *
@@ -1075,9 +1074,6 @@ internal object ParticleDismissController {
 
     /** 虚拟远触点距离 = 因子 × 快照对角线：越小方向汇聚感越强。 */
     private const val VIRTUAL_TOUCH_FACTOR = 1.1f
-
-    /** 无触点或真实触点恰在中心时：从正上向右偏 30°。 */
-    private val DEFAULT_DISMISS_ANGLE_RAD = Math.toRadians(-60.0).toFloat()
 
     /** 只防止零向量归一化，不形成用户可感知的中心回退区域。 */
     private const val DIRECTION_EPSILON_PX = 0.001f

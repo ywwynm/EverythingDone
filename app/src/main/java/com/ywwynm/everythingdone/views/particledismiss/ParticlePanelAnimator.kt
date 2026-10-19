@@ -95,10 +95,8 @@ internal class ParticlePanelAnimator(private val activity: Activity) {
             PointF(panel.width / 2f + (cos(radians) * reach).toFloat(),
                 panel.height / 2f + (sin(radians) * reach).toFloat())
         }
-        val anchor = aimed ?: if (back) {
-            val reach = maxOf(panel.width, panel.height).toFloat()
-            PointF(panel.width / 2f - reach, panel.height / 2f - reach)
-        } else lastTouch?.takeIf { SystemClock.uptimeMillis() - lastTouchAt in 0..300 }?.let {
+        // 返回不沿用此前触点，让共用关闭入口选择本次默认方向。
+        val anchor = aimed ?: if (back) null else lastTouch?.takeIf { SystemClock.uptimeMillis() - lastTouchAt in 0..300 }?.let {
             PointF(it.x - origin[0], it.y - origin[1])
         }
         val gate = ParticleDismissStartGate { onHidden() }

@@ -69,7 +69,8 @@ class SelectionBatchTransitionProbe : Instrumentation() {
     }
 
     override fun onStart() {
-        require(targetContext.packageName == "com.ywwynm.everythingdone.batchvalidation") {
+        require(targetContext.packageName in setOf("com.ywwynm.everythingdone.batchvalidation",
+            "com.ywwynm.everythingdone.directionvalidation")) {
             "拒绝在用户应用中创建或变更测试记事"
         }
         val run = args.getString("run_id") ?: "batch"
@@ -90,6 +91,7 @@ class SelectionBatchTransitionProbe : Instrumentation() {
             val toolbarEntry = args.getString("entry") == "toolbar"
             val requestedStyle = ParticleStyle.of((args.getString("style") ?: "drift").lowercase(java.util.Locale.ROOT))
             val observedCardStyles = mutableSetOf<ParticleStyle>()
+            val observedDirections = mutableSetOf<Int>()
             val status = when { action == "restore" || toolbarEntry && action == "delete" -> Def.ThingStatus.FINISHED
                 action == "untrash" || action == "forever" -> Def.ThingStatus.DELETED; else -> Def.ThingStatus.UNDERWAY }
             val after = when (action) { "finish" -> Thing.FINISHED; "delete" -> Thing.DELETED
@@ -267,6 +269,7 @@ class SelectionBatchTransitionProbe : Instrumentation() {
                 val notePositions = entries.indices.filter { (entries[it] as? ThingListEntry.ThingEntry)?.thing?.type == Thing.NOTE &&
                     (args.getString("select_doing") == "true" || entries[it].stableId != App.getDoingThingId()) }
                 val selected = when (args.getString("selection")) {
+                    "single" -> visible.filter { it in notePositions }.take(1)
                     "all" -> notePositions
                     "offscreen" -> notePositions.filter { it !in visible }.take(3)
                     "mixed" -> visible.take(2) + notePositions.filter { it !in visible }.takeLast(2)
@@ -337,7 +340,17 @@ class SelectionBatchTransitionProbe : Instrumentation() {
                     check(toolbar.menu.findItem(menuId)?.isVisible == true) { "普通工具栏动作不可见" }
                     // 经过 Toolbar 的真实菜单分发，不能直接调用范围操作或动画 helper。
                     toolbar.menu.performIdentifierAction(menuId, 0)
-                } else invoke(activity, "confirmSelectedStateChange", after)
+                } else {
+                    val menuId = when (action) {
+                        "finish" -> R.id.act_finish_selected
+                        "delete" -> R.id.act_delete_selected
+                        "forever" -> R.id.act_delete_selected_forever
+                        else -> R.id.act_restore_selected
+                    }
+                    val toolbar = activity.findViewById<Toolbar>(R.id.contextual_toolbar)
+                    check(toolbar.menu.findItem(menuId)?.isVisible == true) { "选择工具栏动作不可见" }
+                    toolbar.menu.performIdentifierAction(menuId, 0)
+                }
             }
             val appearance = com.ywwynm.everythingdone.fragments.BaseDialogFragment::class.java
                 .getDeclaredField("appearanceSettled").apply { isAccessible = true }
@@ -369,7 +382,11 @@ class SelectionBatchTransitionProbe : Instrumentation() {
                         val matrix = FloatArray(9); transform.matrix.getValues(matrix)
                         val items = JSONArray()
                         if (list.isLayoutSuppressed) ParticleDismissOverlay.activeIn(activity).forEach {
-                            observedCardStyles += (field(it, "spec") as ParticleDismissSpec).style
+                            val spec = field(it, "spec") as ParticleDismissSpec
+                            observedCardStyles += spec.style
+                            val dx = spec.virtualTouchXPx - spec.originXPx - spec.snapshot.width / 2f
+                            val dy = spec.virtualTouchYPx - spec.originYPx - spec.snapshot.height / 2f
+                            observedDirections += kotlin.math.round((Math.toDegrees(kotlin.math.atan2(-dy, dx).toDouble()) + 360) % 360).toInt()
                         }
                         for (i in 0 until list.childCount) {
                             val view = list.getChildAt(i)
@@ -466,15 +483,23 @@ class SelectionBatchTransitionProbe : Instrumentation() {
                     if (args.getString("selection") != "all") check(manager.getFolderById(9_000_001L) != null) { "范围操作删除了子文件夹" }
                     if (args.getString("protect_doing") == "true")
                         check(ThingDAO.getInstance(activity)!!.getThingById(8_000_001L)?.state == Thing.UNDERWAY)
+                }
+                if (toolbarEntry || args.getString("check_directions") == "true") {
                     val cardParticleFrames = (0 until frames.length()).count {
                         val frame = frames.getJSONObject(it)
                         frame.getBoolean("removal") && frame.getBoolean("suppressed") && frame.getInt("overlays") > 0
                     }
                     result.put("cardParticleFrames", cardParticleFrames)
+                    result.put("cardDirections", JSONArray(observedDirections.toList()))
+                    if (args.getString("check_directions") == "true") {
+                        check(observedDirections.size == 1 && observedDirections.all { it == 90 || it == 135 }) {
+                            "同一次卡片移除应共用一个左上或正上方向：$observedDirections"
+                        }
+                    }
                     result.put("requestedStyle", requestedStyle.key)
                         .put("observedCardStyles", JSONArray(observedCardStyles.map { it.key }))
                     if (args.getString("particles") != "false") {
-                        check(cardParticleFrames > 0) { "普通工具栏未播放卡片粒子" }
+                        check(cardParticleFrames > 0) { "菜单操作未播放卡片粒子" }
                         check(observedCardStyles == setOf(requestedStyle)) { "实际卡片粒子样式与请求不符" }
                     }
                     check(!list.isLayoutSuppressed) { "批量收尾未解除布局封锁" }

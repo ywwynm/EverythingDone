@@ -16,6 +16,9 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.utils.ThingAnimationPreferences
+import kotlin.math.cos
+import kotlin.math.hypot
+import kotlin.math.sin
 
 /**
  * 一次业务变更对应一次退场：先比较真实投影，再合成可见卡片；粒子与前景完全释放后补位。
@@ -198,8 +201,12 @@ internal class ThingListRemovalAnimator(
             val at = IntArray(2).also { decor.getLocationOnScreen(it) }
             val x = (screen.left - at[0]).toFloat()
             val y = (screen.top - at[1]).toFloat()
+            // 同一批可见卡片共用一次方向选择，保持合成材料内的运动一致。
+            val angle = ParticleDismissDirection.randomRadians()
+            val reach = hypot(bitmap.width.toFloat(), bitmap.height.toFloat())
             val spec = ParticleDismissSpec(bitmap, x, y,
-                x - bitmap.width, y + bitmap.height / 2f,
+                x + bitmap.width / 2f + cos(angle) * reach,
+                y + bitmap.height / 2f + sin(angle) * reach,
                 Settings.Global.getFloat(activity.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f),
                 ParticleCardSurfaceHandoff.seed(), inWindow = true,
                 materialAreaScale = maxOf(1f, (bitmap.width.toDouble() * bitmap.height / bodyArea).toFloat()))

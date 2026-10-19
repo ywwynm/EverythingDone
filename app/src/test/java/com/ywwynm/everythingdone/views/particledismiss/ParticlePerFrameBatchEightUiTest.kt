@@ -191,9 +191,7 @@ class ParticlePerFrameBatchEightUiTest {
 
     // ---- 第 7 条：方向按钮与八方向弹层 ----
 
-    @Test fun `默认方向是左上，八个方向齐全且互不相同`() {
-        assertEquals("默认左上 = 135 度", "135f",
-            Regex("""DEFAULT_DIRECTION = ([\d.]+f)""").find(pageCode)!!.groupValues[1])
+    @Test fun `手动选择的八个方向齐全且互不相同`() {
         val cells = Regex("""R\.id\.iv_particle_direction_(\w+) to ([\d.]+f)""")
             .findAll(pageCode).map { it.groupValues[1] to it.groupValues[2] }.toList()
         assertEquals("八个方向", 8, cells.size)
