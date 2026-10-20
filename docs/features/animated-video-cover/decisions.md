@@ -2,6 +2,17 @@
 
 让视频封面也能在 Thing Card 上自动循环播放。术语 **Thing Card Video Preview** 见根目录 `CONTEXT.md`；本特性修订 [ADR-0007](../../adr/0007-animated-image-playback-scoped-per-surface.md) 中"任何视频缩略图都停在单帧"的结论。相关既有特性见 [animated-image-playback](../animated-image-playback/README.md)。
 
+## 2026-10-20：首页本地 GIF 使用文件映射
+
+详情独立播放的性能复核扩展到真实首页后，四个约 35 MB GIF 在三机触发 64 MiB 临时数组
+分配失败，关闭独立播放隔离的对照组也会出现。首页 String 路径仍走整文件输入流解码，
+此前详情 File 映射修复未覆盖此处。
+
+新增 `localAnimatedImageModel`，将存在的本地 GIF／WebP 交给 File loader；同时覆盖首页
+缩略图、媒体背景、播放和静态首帧入口。其它模型保留原加载方式。继续使用原有的裁切、
+帧尺寸、播放策略、失败回退和缓存预算，不将首页改成独立 decoder。证据及三机结果集中见
+[性能复核](../detail-animated-playback/owner-performance-2026-10-20.md)。
+
 ## 2026-10-15：取消暂停后的性能结论边界
 
 用户要求取消暂停后继续进行复杂列表性能对照。三机同 APK、97 卡的完整 A/B 中，普通／选择／长按滑动未出现一致的明显流畅度回归，但惯性阶段工作内存增加，整体峰值约增加 2～5%。不能把功能回归通过扩展为“零内存代价”或“全场景无退化”。魅族异常呈现轨迹仍未确认；用户在冷却补测遇到锁屏后要求“先按已有结果整理”，因此补测暂缓。详见 [性能对照](scroll-performance-comparison-2026-10-15.md)。本轮只增调试测量与记录，不恢复暂停、不压低画质、不追加未经归因和 UI 对照的缓存调整，也不重新发布相同生产实现。

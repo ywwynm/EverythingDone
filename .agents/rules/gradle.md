@@ -101,3 +101,10 @@ works on any device without `-t`.
 After making non-trivial edits, just run the gradle task directly — no
 "now I'll compile" message. The user reads the output, not the
 announcement.
+
+## 隔离测试源码目录（AGP 内置 Kotlin）
+
+通过 init script 冻结或替换源码进行 A/B 测试时，必须同时设置相应 source set 的
+`java.setSrcDirs(...)` 和 `kotlin.setSrcDirs(...)`。只改 Java 目录不会替换 Kotlin
+输入，可能出现编译成功却没有包含测试开关的 APK。安装前同时核对独立包名、测试类和开关
+是否进入 DEX；不要只用构建成功判断。2026-10-20 实测确认。

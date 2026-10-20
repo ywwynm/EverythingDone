@@ -60,6 +60,7 @@ import com.ywwynm.everythingdone.helpers.CheckListHelper
 import com.ywwynm.everythingdone.helpers.DebugFileLogger
 import com.ywwynm.everythingdone.helpers.MediaCropBitmapRenderer
 import com.ywwynm.everythingdone.helpers.MediaCropTransformation
+import com.ywwynm.everythingdone.helpers.localAnimatedImageModel
 import com.ywwynm.everythingdone.helpers.ThingCardMediaHelper
 import com.ywwynm.everythingdone.helpers.MotionPhotoCoverHelper
 import com.ywwynm.everythingdone.helpers.MotionPhotoDetector
@@ -1365,7 +1366,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         }
         imageView.setTag(R.id.tag_thing_card_image_load_key, loadKey)
         val request = mImageRequestManager!!
-            .load(pathName)
+            .load(localAnimatedImageModel(pathName))
             .override(imageW, imageH)
             .dontTransform()
             .disallowHardwareConfig()
@@ -1510,7 +1511,7 @@ abstract class BaseThingsAdapter(context: Context?) :
                     "scroll=${hostScrollStateName()}"
         )
         val request = mImageRequestManager!!
-            .load(pathName)
+            .load(localAnimatedImageModel(pathName))
             .override(imageW, imageH)
             .transform(MediaCropTransformation(imageW, imageH, bitmapCrop))
             .signature(getAnimatedThingCardMediaCacheSignature(loadKey, pathName))
@@ -1710,7 +1711,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         }
         imageView.setTag(R.id.tag_thing_card_media_background_load_key, loadKey)
         val request = mImageRequestManager!!
-            .load(pathName)
+            .load(localAnimatedImageModel(pathName))
             .override(imageW, imageH)
             .dontTransform()
             .disallowHardwareConfig()
@@ -1807,7 +1808,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         imageView.imageMatrix = null
         val bitmapCrop = getThingCardMediaBackgroundBitmapCrop(crop, sourceAspectRatio)
         val request = mImageRequestManager!!
-            .load(pathName)
+            .load(localAnimatedImageModel(pathName))
             .override(imageW, imageH)
             .transform(MediaCropTransformation(imageW, imageH, bitmapCrop))
             .signature(getAnimatedThingCardMediaCacheSignature(loadKey, pathName))

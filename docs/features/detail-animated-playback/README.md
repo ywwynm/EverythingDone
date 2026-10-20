@@ -15,6 +15,8 @@
 ## 文档
 
 - [decisions.md](decisions.md) — 各项设计决定与理由（D1–D16）
+- [2026-10-20 重播崩溃排查](crash-investigation-2026-10-20.md) — GIF 共享解码状态、双请求复现与独立播放修复
+- [独立解码的内存与真实首页复核](owner-performance-2026-10-20.md) — 三机 A/B、同源多实例开销，以及追加发现的首页大 GIF 输入流 OOM
 - [2026-10-15 闪烁排查](flicker-investigation-2026-10-15.md) — 三机对照、首页历史核对与验证边界
 - [逐一播放、键盘与复杂页面](sequential-ime-investigation-2026-10-15.md) — 快速甩动、大 GIF、静态占位和批量队列调度
 - [大 GIF 循环交界专项](loop-boundary-investigation-2026-10-15.md) — 混排、实际窗口像素与循环／播完交接对齐

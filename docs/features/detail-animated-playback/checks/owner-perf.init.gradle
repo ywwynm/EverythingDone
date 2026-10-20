@@ -1,0 +1,23 @@
+gradle.beforeProject { project ->
+    if (project.path == ':app') {
+        project.plugins.withId('com.android.application') {
+            project.extensions.getByName('androidComponents').finalizeDsl { android ->
+                def base = project.rootProject.file('tmp/gif-owner-perf-20261020')
+                android.defaultConfig.applicationId = 'com.ywwynm.everythingdone.gifownervalidation'
+                android.sourceSets.main.manifest.srcFile(new File(base, 'main-manifest.xml'))
+                android.sourceSets.debug.manifest.srcFile(new File(base, 'debug-manifest.xml'))
+                android.sourceSets.main.java.setSrcDirs([new File(base, 'main-source')])
+                android.sourceSets.main.kotlin.setSrcDirs([new File(base, 'main-source')])
+                android.sourceSets.debug.java.setSrcDirs([
+                        new File(base, 'debug-source'),
+                        project.rootProject.file('docs/features/detail-animated-playback/checks/owner-perf-src')])
+                android.sourceSets.debug.kotlin.setSrcDirs([
+                        new File(base, 'debug-source'),
+                        project.rootProject.file('docs/features/detail-animated-playback/checks/owner-perf-src')])
+                android.sourceSets.debug.assets.srcDirs += [
+                        new File(base, 'assets'),
+                        project.rootProject.file('tmp/selection-transition-20261013/complex-assets')]
+            }
+        }
+    }
+}

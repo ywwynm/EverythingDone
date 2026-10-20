@@ -12,6 +12,7 @@
 
 ## 文档
 
+- [2026-10-20 大 GIF 首页复核](../detail-animated-playback/owner-performance-2026-10-20.md) — 三机复现首页整文件分配 OOM，补齐本地 GIF 文件映射。
 - [取消暂停的性能对照](scroll-performance-comparison-2026-10-15.md) — 三机完整同 APK A/B；有阶段性内存增加，魅族异常惯性轨迹按用户要求暂缓复核，不能宣称零退化。
 - [普通滑动与 GIF 离屏回显](regular-scroll-investigation-2026-10-15.md) — 真实 DRAGGING／SETTLING、预取生命周期和有界首帧回显。
 - [复杂媒体列表内存归因与修复](memory-investigation-2026-10-15.md) — 分配栈、回收池持有者、像素基线、生命周期与三机回归。

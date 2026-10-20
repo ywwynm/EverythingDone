@@ -36,6 +36,7 @@ import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.helpers.DetailAttachmentPlaybackController
+import com.ywwynm.everythingdone.helpers.DetailGifPlaybackOwner
 import com.ywwynm.everythingdone.helpers.DetailMediaOverlayColors
 import com.ywwynm.everythingdone.helpers.MediaCropBitmapRenderer
 import com.ywwynm.everythingdone.helpers.MediaCropTransformation
@@ -313,7 +314,8 @@ open class ImageAttachmentAdapter(
         val play = !mTakingScreenshot && controller?.shouldPlay(position) == true
         val useAnimatedResource = !mTakingScreenshot &&
             controller?.usesAnimatedResource(position) == true
-        val loop = play && controller?.shouldLoop(position) == true
+        // 循环身份与当前是否可见分开，离屏暂停时仍沿用共享循环资源。
+        val loop = controller?.shouldLoop(position) == true
 
         // 视频 / Motion Photo 播的是派生 GIF：就绪才播，未就绪先显示静态代表帧并后台请求。
         var derivedGifPath: String? = null
@@ -334,6 +336,7 @@ open class ImageAttachmentAdapter(
         }
 
         val animatedPlayback = derivedGifPath != null || (useAnimatedResource && animated)
+        val independentPlayback = animatedPlayback && !loop
         val loadSource = derivedGifPath ?: pathName
 
         // 所有显示模式都记录完整请求身份。拖拽排序或播放调度只要没有改变实际资源，就只更新
@@ -346,8 +349,10 @@ open class ImageAttachmentAdapter(
             "$pathName|${size[0]}|${size[1]}|${videoFrameMs ?: -1L}|default"
         }
         val resourceFile = File(loadSource)
-        val loadKey = baseLoadKey + playbackKeySuffix(animatedPlayback, derivedGifPath) +
+        val resourceKey = baseLoadKey + playbackKeySuffix(animatedPlayback, derivedGifPath) +
             "|${resourceFile.length()}|${resourceFile.lastModified()}"
+        // 切换到播放一次时必须离开共享解码资源；磁盘内容身份不随播放所有者变化。
+        val loadKey = resourceKey + if (independentPlayback) "|independent" else ""
         // 解码身份区分静图与派生 GIF；占位则关联原附件。同一附件离屏后切换播放模式，
         // 新类别尚未加载时仍可借用另一类别的独立帧，避免重新进入时露出记事底色。
         val sourceFile = File(pathName)
@@ -433,7 +438,10 @@ open class ImageAttachmentAdapter(
             }
         }
         // 静态首帧与动态解码必须使用不同的磁盘缓存身份；仅修改 View tag 不足以隔离 Glide 缓存。
-        request = request.signature(ObjectKey(loadKey))
+        request = request.signature(ObjectKey(resourceKey))
+        if (independentPlayback) {
+            request = request.apply(holder.gifPlaybackOwner.requestOptions)
+        }
         if (transitionPlaceholder != null) {
             request = request.placeholder(transitionPlaceholder)
         }
@@ -630,7 +638,9 @@ open class ImageAttachmentAdapter(
                 mPlaybackController?.onPlaybackFinished(current)
             }
         })
-        // 内存缓存里取回且已停止的 GifDrawable 要从首帧开始；但附件重排会重算播放决策，
+        // 播放一次的请求已按 holder 隔离 GifFrameLoader；仅检查 drawable 的 isRunning
+        // 无法发现其它 drawable 正在使用同一个帧加载器。缓存里取回且已停止的 GIF 要从
+        // 首帧开始；但附件重排会重算播放决策，
         // 可见性回调可能已让同一个实例继续播放。Glide 明确禁止对 running drawable 调用
         // startFromFirstFrame，此时保留当前进度和刚更新的回调即可。
         if (!gif.isRunning) {
@@ -947,6 +957,7 @@ open class ImageAttachmentAdapter(
 
     inner class ImageViewHolder internal constructor(itemView: View?) : BaseViewHolder(itemView) {
 
+        internal val gifPlaybackOwner = DetailGifPlaybackOwner()
         val fl: FrameLayout? = f(R.id.fl_image_attachment)
         val ivImage: ImageView? = f(R.id.iv_image_attachment)
         val ivVideoSignal: ImageView? = f(R.id.iv_video_signal)

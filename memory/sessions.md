@@ -2,6 +2,12 @@
 
 Global startup session index only. Detailed feature history lives in `docs/features/<kebab-case-feature-slug>/sessions.md`.
 
+## 2026-10-20 — 隔离测试构建规则补充
+
+三机 GIF 性能复核中核实 AGP 内置 Kotlin 的源目录替换行为，补充 `.agents/rules/gradle.md`
+中的隔离源码与 DEX 校验规则。功能证据、首页 File 映射修复与发布记录见
+[详情动态播放会话](../docs/features/detail-animated-playback/sessions.md)。
+
 ## 2026-10-13 — 澄清发布日志的提交规则
 
 - 发布本身不自动授权提交；用户要求提交功能改动时，应包含对应发布日志及汇总。已按用户要求补交本地化遗漏日志，详见 `docs/features/localization/sessions.md`。

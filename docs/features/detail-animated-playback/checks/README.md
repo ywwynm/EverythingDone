@@ -1,5 +1,27 @@
 # GIF 闪烁集成回归
 
+## 2026-10-20 独立解码与真实首页性能
+
+本组使用不同的独立包 `com.ywwynm.everythingdone.gifownervalidation`。运行前仍需本会话的
+设备授权；不得安装同名正式包，也不得修改正式数据库。源码、私有媒体与原始日志在忽略
+目录 `tmp/gif-owner-perf-20261020/`，结果摘要见
+[owner-perf-results-2026-10-20.json](owner-perf-results-2026-10-20.json)。
+
+1. `prepare_owner_perf.py` 冻结源文件和已有压力夹具；只在副本增加 owner 隔离开关。
+2. 用 `:app:assembleDebug -I docs/features/detail-animated-playback/checks/owner-perf.init.gradle`
+   构建，并复制 APK 到上述目录的 `fixture.apk`。正常源码与隔离源码切换后若出现增量编译
+   的缺失类问题，可按已验证方式加带引号的 `'-Pkotlin.incremental=false'`。
+3. `run_owner_perf.py <授权序列号> <唯一轮次名>` 执行同 APK 共享／独立 A/B，包含真实首页、
+   12 个 GIF 的三种播放模式及重复返回；增加 `--large-home --after-only --reverse
+   --require-mapped` 用于四个 35 MB 首页 GIF 的最终复核。`--trace` 可采集 FrameTimeline。
+4. `analyze_owner_perf.py` 按实际输入区间统计窗口帧耗时、内存及 GIF 帧推进；不把窗口耗时
+   或采样间隔反推为屏幕 FPS。OOM 即使被框架捕获、场景继续完成，也必须判失败。
+5. 测试结束卸载本轮隔离包，并与最初测试前的原应用数据库／设置校验值比较。正常发布
+   不能带此 init script，须核对正式 APK 包名、探针与私有媒体均未混入。
+
+完整范围、三轮失败／成功证据及性能结论限制见
+[复核记录](../owner-performance-2026-10-20.md)。以下为此前闪烁专项的独立流程。
+
 只在用户明确授权的 `3B1629006YC00000`、`R5CW20BLNKL`、`192.168.100.67:40807` 上运行。测试包为 `com.ywwynm.everythingdone.gifflickervalidation`，探针拒绝在正式包名中运行。所有合成媒体和原始结果位于忽略目录 `tmp/detail-gif-flicker/`。
 
 ## 执行

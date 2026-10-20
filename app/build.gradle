@@ -418,5 +418,6 @@ dependencies {
     implementation 'com.google.crypto.tink:tink-android:1.23.0'
 
     testImplementation 'junit:junit:4.13.2'
+    // 使用真实 Glide 缓存与帧加载器验证多显示位置的 GIF 播放隔离。
     testImplementation 'org.robolectric:robolectric:4.17'
 }

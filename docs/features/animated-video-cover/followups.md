@@ -1,5 +1,15 @@
 # 后续项 / 动态视频封面（Animated Video Cover）
 
+## API 26–28 的裁切颜色空间兼容性（2026-10-20）
+
+- 新增模型路径测试时发现，既有 `MediaCropTransformation` 在 `SDK_INT >= O` 时调用
+  `Bitmap.setColorSpace()`，而该方法从 API 29 才存在。API 28 的实际转换测试出现
+  `NoSuchMethodError`，与本轮授权三机的新版 Android 和文件映射变更无关。
+- 后续需补 API 26–28 的实现：只在可调用时修改颜色空间，旧系统从广色域池块切回 sRGB
+  时保持透明像素与输出颜色正确，并覆盖池复用；不能仅移动版本判断而忽略旧系统颜色契约。
+  本轮 JVM 回归聚焦真实 Glide 模型／帧像素，产品裁切继续由三机验证。
+- 依据：[Android Bitmap.setColorSpace 文档](https://developer.android.com/reference/android/graphics/Bitmap#setColorSpace(android.graphics.ColorSpace))。
+
 ## 取消暂停后的惯性工作内存与魅族复核（2026-10-15）
 
 - 三机同 APK A/B 已完成，整体 PSS 峰值 +1.65%／+1.70%／+4.81%，但三星、魅族惯性阶段工作占用明显增加。六轮完整退出检查所追踪的运行 loader 均为 0；不是已确认的 GIF 解码泄漏。后续若优化，需进一步分离活动解码、缓存帧、分配器保留与图形缓存，不能直接把全部 PSS 差值当成某一种泄漏，也不能重新停止滚动中的加载／播放。
