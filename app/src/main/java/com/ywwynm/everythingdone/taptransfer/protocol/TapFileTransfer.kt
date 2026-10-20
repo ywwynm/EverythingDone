@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.taptransfer.protocol
 
+import com.ywwynm.everythingdone.utils.AttachmentTempFiles
 import java.io.*
 import java.security.MessageDigest
 
@@ -130,8 +131,8 @@ object TapFileTransfer {
             val downloads = HashMap<Identity, File>()
             var done = length
             for ((identity, index) in requested) {
-                val file = File(directory, "download-${index}_${descriptors[index].key.substringAfterLast('/')}")
                 checkSpace(directory)
+                val file = AttachmentTempFiles.create(directory, descriptors[index].key)
                 file.outputStream().use { to ->
                     copyVerified(input, to, identity, directory) { n -> progress(done + n, total) }
                 }
@@ -141,15 +142,15 @@ object TapFileTransfer {
             val used = HashSet<String>()
             val files = LinkedHashMap<String, File>()
             val borrowed = HashSet<String>()
-            for ((index, d) in descriptors.withIndex()) {
+            for (d in descriptors) {
                 val local = candidates[d.identity].orEmpty()
                 val available = local.firstOrNull { it.absolutePath !in used }
                 val downloaded = downloads[d.identity]?.takeIf { it.absolutePath !in used }
                 val file = available ?: downloaded ?: run {
                     // 多个同内容条目需要独立路径，否则按路径存储的裁剪、封面设置会互相覆盖。
                     val from = local.firstOrNull() ?: downloads.getValue(d.identity)
-                    File(directory, "copy-${index}_${d.key.substringAfterLast('/')}").also { to ->
-                        checkSpace(directory)
+                    checkSpace(directory)
+                    AttachmentTempFiles.create(directory, d.key).also { to ->
                         from.inputStream().use { src -> to.outputStream().use { dst ->
                             copyVerified(src, dst, d.identity, directory) {}
                         } }

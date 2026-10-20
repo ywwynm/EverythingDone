@@ -42,7 +42,7 @@ object ThingFileUpdate {
 
     /** 在工作线程调用；沿用普通导入的文件命名、防覆盖和附件外观映射。 */
     fun prepare(pending: PendingThing): Prepared {
-        val moved = ThingFileImporter.moveAttachments(pending, System.currentTimeMillis(), 0)
+        val moved = ThingFileImporter.moveAttachments(pending)
         val content = Thing(pending.thing).apply {
             attachment = moved.attachment
             thingCardAppearance = thingCardAppearance.remapSources(moved.keyMapping)

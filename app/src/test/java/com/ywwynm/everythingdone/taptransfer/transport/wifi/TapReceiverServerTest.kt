@@ -65,13 +65,16 @@ class TapReceiverServerTest {
             repeat(3) { attempt ->
                 Socket("127.0.0.1", server.port).use { s ->
                     s.soTimeout = 3000
-                    when (attempt) {
-                        0 -> TapStream.writeSenderHello(s.getOutputStream(), ByteArray(16), offer.receiverId)
-                        1 -> TapStream.writeSenderHello(s.getOutputStream(), offer.token, ByteArray(16))
-                        2 -> TapStream.writeClientHello(s.getOutputStream(), offer.token, offer.receiverId)
-                    }
-                    // 错方向的前导只读到 magic 就拒绝；未读完数据时 Windows 可回 RST 而非 EOF。
-                    val closed = try { s.getInputStream().read() == -1 } catch (_: SocketException) { true }
+                    // 错方向只读到 magic 就拒绝，Windows 的 RST 可能在后续写入时到达，
+                    // 也可能在读取时到达。下方仍检查三次明确拒绝和合法连接成功。
+                    val closed = try {
+                        when (attempt) {
+                            0 -> TapStream.writeSenderHello(s.getOutputStream(), ByteArray(16), offer.receiverId)
+                            1 -> TapStream.writeSenderHello(s.getOutputStream(), offer.token, ByteArray(16))
+                            2 -> TapStream.writeClientHello(s.getOutputStream(), offer.token, offer.receiverId)
+                        }
+                        s.getInputStream().read() == -1
+                    } catch (_: SocketException) { true }
                     assertTrue("未认证连接必须被关闭", closed)
                 }
             }

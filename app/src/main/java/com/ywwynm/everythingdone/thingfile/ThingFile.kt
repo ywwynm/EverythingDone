@@ -179,7 +179,9 @@ class PendingThing(
     /** 在所在的一层里的先后，小的在前。 */
     val order: Int = 0,
     /** 在所在的文件夹里置顶（顶层不看）。 */
-    val sticky: Boolean = false
+    val sticky: Boolean = false,
+    /** 与 [attachmentFiles] 同序：清单中的原文件名，与临时路径及外观条目键分开保存。 */
+    val attachmentNames: List<String> = attachmentKeys.map { ThingFileAttachmentStore.originalName(null, it) }
 ) {
     /** 碰一碰协商后借用的本地文件，不属于导入临时目录，不可移动或随失败删除。 */
     internal var reusedAttachmentKeys: Set<String> = emptySet()

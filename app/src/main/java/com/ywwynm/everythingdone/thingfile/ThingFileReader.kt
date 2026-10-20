@@ -15,6 +15,7 @@ import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.model.ThingCardAppearance
 import com.ywwynm.everythingdone.model.ThingFolderCardPresentation
 import com.ywwynm.everythingdone.taptransfer.protocol.TapFileTransfer
+import com.ywwynm.everythingdone.utils.AttachmentTempFiles
 
 import org.json.JSONObject
 
@@ -150,7 +151,7 @@ object ThingFileReader {
                     if (name == ThingFile.ENTRY_MANIFEST) {
                         manifestJson = readManifest(zis)
                     } else if (isSafeAttachmentEntry(name)) {
-                        val dst = File(tempDir, name.replace('/', '_'))
+                        val dst = AttachmentTempFiles.create(tempDir, name)
                         extractTo(zis, dst, tempDir)
                         extracted[name] = dst
                     }
@@ -296,6 +297,7 @@ object ThingFileReader {
         val files = ArrayList<File>()
         val types = ArrayList<Int>()
         val keys = ArrayList<String>()
+        val names = ArrayList<String>()
         val sb = StringBuilder()
         val arr = o.optJSONArray(ThingFile.KEY_ATTACHMENTS)
         if (arr != null) {
@@ -315,6 +317,7 @@ object ThingFileReader {
                 files.add(file)
                 types.add(type)
                 keys.add(entry)
+                names.add(ThingFileAttachmentStore.originalName(ao.optString(ThingFile.KEY_ATTACHMENT_NAME), entry))
             }
         }
 
@@ -395,7 +398,8 @@ object ThingFileReader {
             thing, reminder, habit, files, types, keys,
             folderKey = folderKey,
             order = o.optInt(ThingFile.KEY_ORDER, 0),
-            sticky = o.optBoolean(ThingFile.KEY_STICKY, false)
+            sticky = o.optBoolean(ThingFile.KEY_STICKY, false),
+            attachmentNames = names
         )
     }
 

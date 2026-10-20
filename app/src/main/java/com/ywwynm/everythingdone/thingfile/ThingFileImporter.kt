@@ -21,11 +21,8 @@ import com.ywwynm.everythingdone.managers.ThingManager
 import com.ywwynm.everythingdone.model.Reminder
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingFolder
-import com.ywwynm.everythingdone.utils.FileUtil
 
 import java.io.File
-import java.io.FileInputStream
-import java.io.FileOutputStream
 import java.io.IOException
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutionException
@@ -46,8 +43,6 @@ import java.util.concurrent.FutureTask
 object ThingFileImporter {
 
     private const val TAG: String = "ThingFileImporter"
-
-    private const val BUFFER: Int = 64 * 1024
 
     private val sMain = Handler(Looper.getMainLooper())
 
@@ -162,9 +157,6 @@ object ThingFileImporter {
         folders: List<PendingFolder>,
         private val listener: Listener?
     ) {
-        /** 整次导入共用一个时间戳，文件名再带记事序号与附件序号，同一次导入里不会重名。 */
-        private val stamp = System.currentTimeMillis()
-
         val levels: Map<Int?, List<Item>>
 
         var imported = 0
@@ -190,7 +182,7 @@ object ThingFileImporter {
         fun importThing(item: ThingItem, parentId: Long?, top: Boolean): Boolean {
             val p = item.pending
             val moved = try {
-                moveAttachments(p, stamp, item.placement.index)
+                moveAttachments(p)
             } catch (e: IOException) {
                 Log.e(TAG, "挪第 ${item.placement.index} 条记事的附件失败", e)
                 failed++
@@ -385,88 +377,21 @@ object ThingFileImporter {
      * 不用 [AttachmentHelper.createAttachmentFile]：它的文件名只到秒，同一秒里建多个附件会重名，
      * 而且扩展名固定成 .jpg/.mp4/.wav，对 png、gif、m4a 这些附件是错的。
      */
-    internal fun moveAttachments(p: PendingThing, stamp: Long, thingIndex: Int): Moved {
+    internal fun moveAttachments(p: PendingThing): Moved {
+        val entries = p.attachmentFiles.indices.map { i ->
+            ThingFileAttachmentStore.Entry(p.attachmentKeys[i], p.attachmentTypes[i], p.attachmentFiles[i],
+                name = p.attachmentNames[i],
+                reused = p.attachmentKeys[i] in p.reusedAttachmentKeys)
+        }
+        val moved = ThingFileAttachmentStore.move(entries, File(Def.getAppFileDir(App.getApp())), AttachmentHelper.SIGNAL)
         val sb = StringBuilder()
         val mapping = HashMap<String, String>(p.attachmentFiles.size)
-        val done = ArrayList<File>(p.attachmentFiles.size)
-        try {
-            for (i in p.attachmentFiles.indices) {
-                val src = p.attachmentFiles[i]
-                val type = p.attachmentTypes[i]
-                if (p.attachmentKeys[i] in p.reusedAttachmentKeys) {
-                    if (!src.isFile) throw IOException("复用附件已不存在")
-                    val existing = type.toString() + src.absolutePath
-                    sb.append(AttachmentHelper.SIGNAL).append(existing)
-                    mapping[p.attachmentKeys[i]] = existing
-                    continue
-                }
-                val dst = createFileFor(type, stamp, thingIndex, i, src.name)
-                    ?: throw IOException("建不了附件文件：${src.name}")
-                if (!src.renameTo(dst)) {
-                    copyFile(src, dst)
-                }
-                done.add(dst)
-                val newTypePathName = type.toString() + dst.absolutePath
-                sb.append(AttachmentHelper.SIGNAL).append(newTypePathName)
-                mapping[p.attachmentKeys[i]] = newTypePathName
-            }
-        } catch (e: IOException) {
-            done.forEach { it.delete() }
-            throw e
+        for (entry in entries) {
+            val typePathName = entry.type.toString() + moved.filesByKey.getValue(entry.key).absolutePath
+            sb.append(AttachmentHelper.SIGNAL).append(typePathName)
+            mapping[entry.key] = typePathName
         }
-        return Moved(sb.toString(), mapping, done)
-    }
-
-    private fun copyFile(src: File, dst: File) {
-        try {
-            FileInputStream(src).use { input ->
-                FileOutputStream(dst).use { output ->
-                    val buf = ByteArray(BUFFER)
-                    while (true) {
-                        val n = input.read(buf)
-                        if (n <= 0) {
-                            break
-                        }
-                        output.write(buf, 0, n)
-                    }
-                }
-            }
-        } catch (e: IOException) {
-            dst.delete()
-            throw e
-        }
-    }
-
-    private fun createFileFor(
-        type: Int, stamp: Long, thingIndex: Int, attachmentIndex: Int, originalName: String
-    ): File? {
-        val folder = when (type) {
-            AttachmentHelper.IMAGE -> "images"
-            AttachmentHelper.VIDEO -> "videos"
-            else -> "audios"
-        }
-        // 保留原扩展名：记事文件里的附件就是原文件
-        val postfix = FileUtil.getPostfix(originalName).let {
-            if (it.isNullOrEmpty()) defaultPostfix(type) else it
-        }
-        val base = "import_${stamp}_${thingIndex}_$attachmentIndex"
-        var file = FileUtil.createFile(
-            Def.getAppFileDir(App.getApp()) + "/" + folder, "$base.$postfix"
-        ) ?: return null
-        // FileUtil.createFile 只拼路径、不查重，复制又会直接覆盖；同名文件（同一毫秒里的上一次
-        // 导入）存在时换个名字，绝不覆盖别的记事的附件
-        var k = 1
-        while (file.exists()) {
-            file = File(file.parentFile, "${base}_$k.$postfix")
-            k++
-        }
-        return file
-    }
-
-    private fun defaultPostfix(type: Int): String = when (type) {
-        AttachmentHelper.IMAGE -> "jpg"
-        AttachmentHelper.VIDEO -> "mp4"
-        else -> "wav"
+        return Moved(sb.toString(), mapping, moved.newFiles)
     }
 
     private fun <T> runOnMain(block: () -> T): T {

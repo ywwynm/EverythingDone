@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.taptransfer.protocol
 
+import com.ywwynm.everythingdone.thingfile.ThingFileAttachmentStore
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -80,6 +81,51 @@ class TapFileTransferTest {
         assertEquals(129L, received.transferredBytes)
         assertEquals(2, received.files.values.toSet().size)
         received.files.values.forEach { assertArrayEquals(a.file.readBytes(), it.readBytes()) }
+    }
+
+    @Test fun negotiatedNewFilesKeepOriginalNamesAndBorrowedFilesKeepLocalPaths() {
+        val root = temp.newFolder()
+        val images = File(root, "images").apply { mkdir() }
+        val existing = File(images, "相片.PNG").apply { writeText("existing") }
+        val borrowed = File(root, "videos/local.mp4").apply { parentFile.mkdirs(); writeText("video") }
+        val borrowedStamp = borrowed.lastModified()
+        val reused = source(0, file("renamed.mp4", borrowed.readBytes()))
+        val first = source(1, file("相片.PNG", byteArrayOf(2, 3)), 0)
+        val duplicate = source(2, file("另一张.PNG", first.file.readBytes()), 0)
+        val outgoing = payload(reused, first, duplicate)
+        val received = exchange(outgoing, listOf(TapFileTransfer.LocalAttachment(1, borrowed)))
+        assertEquals(2L, received.transferredBytes)
+        val entries = outgoing.sources.map { source ->
+            val key = source.descriptor.key
+            ThingFileAttachmentStore.Entry(key, source.descriptor.identity.type,
+                received.files.getValue(key), source.file.name, key in received.borrowedKeys)
+        }
+        val moved = ThingFileAttachmentStore.move(entries, root, "`启q琼")
+        assertEquals(listOf("相片-1.PNG", "另一张.PNG"), moved.newFiles.map { it.name })
+        assertTrue(moved.newFiles.all { it.readBytes().contentEquals(first.file.readBytes()) })
+        assertEquals(borrowed, moved.filesByKey.getValue(reused.descriptor.key))
+        received.discard()
+        assertEquals("existing", existing.readText())
+        assertEquals("video", borrowed.readText())
+        assertEquals(borrowedStamp, borrowed.lastModified())
+        assertTrue(moved.newFiles.all { it.isFile })
+    }
+
+    @Test fun maximumLengthOriginalNameSurvivesDownloadAndDuplicateStaging() {
+        val name = "a".repeat(251) + ".png"
+        val first = source(0, file(name, byteArrayOf(3, 6, 9)), 0)
+        val duplicate = source(1, first.file, 0)
+        val received = exchange(payload(first, duplicate))
+        assertEquals(3L, received.transferredBytes)
+        assertEquals(2, received.files.values.toSet().size)
+        assertTrue(received.files.values.all { it.name.toByteArray(Charsets.UTF_8).size <= 255 })
+        val moved = ThingFileAttachmentStore.move(listOf(first, duplicate).map {
+            ThingFileAttachmentStore.Entry(it.descriptor.key, 0,
+                received.files.getValue(it.descriptor.key), name)
+        }, temp.newFolder(), "`启q琼")
+        assertEquals(name, moved.newFiles[0].name)
+        assertTrue(moved.newFiles[1].name.endsWith("-1.png"))
+        assertTrue(moved.newFiles.all { it.readBytes().contentEquals(first.file.readBytes()) })
     }
 
     @Test fun duplicateContentCanUseOneLocalFileWithoutSendingOrMergingEntries() {
