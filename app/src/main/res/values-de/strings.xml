@@ -478,6 +478,9 @@
     </string-array>
     <string name="follow_system_settings">Folgen Sie dem System</string>
     <string name="settings_noticeable_notification">Auffälligere Alarmbenachrichtigung</string>
+    <string name="settings_notification_open">Beim Tippen auf eine Ding-Benachrichtigung öffnen</string>
+    <string name="notification_open_detail">Ding-Details</string>
+    <string name="notification_open_noticeable">Auffälligere Ding-Benachrichtigung</string>
     <string name="settings_notification_reliability">Erinnerungszuverlässigkeit</string>
     <string name="settings_group_notification_reliability">Erinnerungszuverlässigkeit</string>
     <string name="settings_battery_optimization">Batterieoptimierung ignorieren</string>

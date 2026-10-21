@@ -478,6 +478,9 @@
     </string-array>
     <string name="follow_system_settings">Suivre le système</string>
     <string name="settings_noticeable_notification">Notification d\'alarme plus visible</string>
+    <string name="settings_notification_open">Ouvrir en touchant une notification d\'élément</string>
+    <string name="notification_open_detail">Détails de l\'élément</string>
+    <string name="notification_open_noticeable">Notification d\'élément plus visible</string>
     <string name="settings_notification_reliability">Fiabilité des rappels</string>
     <string name="settings_group_notification_reliability">Fiabilité des rappels</string>
     <string name="settings_battery_optimization">Ignorer l\'optimisation de la batterie</string>

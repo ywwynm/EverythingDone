@@ -478,6 +478,9 @@
     </string-array>
     <string name="follow_system_settings">Следовать за системой</string>
     <string name="settings_noticeable_notification">Более заметное уведомление о тревоге</string>
+    <string name="settings_notification_open">Открывать при нажатии на уведомление о записи</string>
+    <string name="notification_open_detail">Подробности записи</string>
+    <string name="notification_open_noticeable">Более заметное уведомление о записи</string>
     <string name="settings_notification_reliability">Напоминание о надежности</string>
     <string name="settings_group_notification_reliability">Напоминание о надежности</string>
     <string name="settings_battery_optimization">Игнорировать оптимизацию батареи</string>

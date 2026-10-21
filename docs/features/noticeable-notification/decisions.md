@@ -1,5 +1,13 @@
 # 实现决策
 
+## 2026-10-21 — 点击通知时选择打开目标
+
+- 新设置独立于提醒到时自动弹出通知的开关；使用现有 `ChooserDialogFragment`，确认后立即保存，默认打开记事详情。
+- 记事通知继续通过直接指向 Activity 的 PendingIntent 打开，在 `AuthenticationActivity` 中读取最新设置；通知操作按钮、小组件和快捷方式不采用该设置。
+- 新通知入口使用独立 action 和按通知来源区分的 data，避免与小组件、常驻通知或习惯提醒的 PendingIntent 相互覆盖。习惯通知携带本次提醒 ID 和时间，常驻通知关闭弹窗时保留通知。
+- 弹窗复用 `NoticeableNotificationActivity` 的内容遮蔽、动作鉴权和共用粒子动画，不修改粒子渲染逻辑。
+- 指定的四个 ADB 入口实际对应三台设备：`192.168.100.184:36007` 与 `3B1629006YC00000` 的硬件序列号均为 `3B1629006YC00000`。三台合并验证，另检查无线入口。
+
 ## 2026-10-13 — 通知完整显示两种宽度的清单
 
 `NoticeableNotificationActivity` 的适配器覆盖 `getThingCardChecklistMaxItemCount()`，普通与宽卡片均返回不限数量。替换只影响普通宽度的 `setChecklistMaxItemCount(-1)`，不修改首页或其它界面的显示数量策略。

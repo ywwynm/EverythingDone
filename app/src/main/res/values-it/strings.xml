@@ -478,6 +478,9 @@
     </string-array>
     <string name="follow_system_settings">Segui il sistema</string>
     <string name="settings_noticeable_notification">Notifica di allarme più evidente</string>
+    <string name="settings_notification_open">Apri toccando una notifica di un elemento</string>
+    <string name="notification_open_detail">Dettagli dell\'elemento</string>
+    <string name="notification_open_noticeable">Notifica dell\'elemento più evidente</string>
     <string name="settings_notification_reliability">Affidabilità del promemoria</string>
     <string name="settings_group_notification_reliability">Affidabilità del promemoria</string>
     <string name="settings_battery_optimization">Ignora l\'ottimizzazione della batteria</string>

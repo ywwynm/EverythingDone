@@ -478,6 +478,9 @@
     </string-array>
     <string name="follow_system_settings">Seguir el sistema</string>
     <string name="settings_noticeable_notification">Notificación de alarma más notable</string>
+    <string name="settings_notification_open">Abrir al tocar una notificación de cosa</string>
+    <string name="notification_open_detail">Detalles de la cosa</string>
+    <string name="notification_open_noticeable">Notificación de cosa más notable</string>
     <string name="settings_notification_reliability">Fiabilidad del recordatorio</string>
     <string name="settings_group_notification_reliability">Fiabilidad del recordatorio</string>
     <string name="settings_battery_optimization">Ignorar la optimización de la batería</string>

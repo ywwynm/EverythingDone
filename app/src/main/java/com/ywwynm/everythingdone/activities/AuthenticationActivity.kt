@@ -15,6 +15,7 @@ import com.ywwynm.everythingdone.database.ThingFolderDAO
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper
 import com.ywwynm.everythingdone.helpers.ThingPrivacyResolver
+import com.ywwynm.everythingdone.helpers.ThingNotificationClick
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.model.ThingFolder
@@ -59,6 +60,19 @@ open class AuthenticationActivity : ParticleDialogHostActivity() {
 
         if (pair.first == null) {
             finish()
+            return
+        }
+
+        val noticeableIntent = ThingNotificationClick.noticeableIntent(this, intent)
+        if (noticeableIntent != null) {
+            // 通知卡片自行遮蔽私密内容，查看或执行动作时再走原有鉴权。
+            startActivity(noticeableIntent)
+            finish()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, 0, 0)
+            } else {
+                overridePendingTransition(0, 0)
+            }
             return
         }
 

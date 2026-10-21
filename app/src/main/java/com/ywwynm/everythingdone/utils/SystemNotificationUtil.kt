@@ -31,6 +31,7 @@ import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.helpers.CheckListHelper
 import com.ywwynm.everythingdone.helpers.RemoteThingCardMediaRenderer
 import com.ywwynm.everythingdone.helpers.ThingPrivacyResolver
+import com.ywwynm.everythingdone.helpers.ThingNotificationClick
 import com.ywwynm.everythingdone.model.Habit
 import com.ywwynm.everythingdone.model.HabitReminder
 import com.ywwynm.everythingdone.model.Thing
@@ -68,12 +69,12 @@ object SystemNotificationUtil {
      */
     @JvmStatic
     fun newGeneralNotificationBuilder(
-            context: Context?, senderName: String?, id: Long, position: Int, thing: Thing?, autoNotify: Boolean): NotificationCompat.Builder {
+            context: Context?, senderName: String?, id: Long, position: Int, thing: Thing?, autoNotify: Boolean,
+            habitReminderId: Long = -1L, habitReminderTime: Long = -1L,
+            ongoing: Boolean = false): NotificationCompat.Builder {
 
-        val contentIntent: Intent = AuthenticationActivity.getOpenIntent(
-                context, senderName, id, position,
-                Def.Communication.AUTHENTICATE_ACTION_VIEW,
-                context!!.getString(R.string.check_private_thing))
+        val contentIntent = ThingNotificationClick.createIntent(
+                context!!, senderName, id, position, habitReminderId, habitReminderTime, ongoing)
         val type: Int  = thing!!.type
         val color: Int = thing.getColor()
         val contentPendingIntent: PendingIntent = PendingIntent.getActivity(context,
@@ -488,7 +489,7 @@ object SystemNotificationUtil {
     fun createThingOngoingNotification(context: Context?, thing: Thing?) {
         val id: Long = thing!!.id
         val builder: NotificationCompat.Builder = newGeneralNotificationBuilder(
-                context, App::class.java.getName(), id, -1, thing, false)
+                context, App::class.java.getName(), id, -1, thing, false, ongoing = true)
         val showOnLockscreen: Boolean = FrequentSettings.getBoolean(Def.Meta.KEY_ONGOING_LOCKSCREEN)
         builder.setPriority(if (showOnLockscreen) Notification.PRIORITY_DEFAULT else Notification.PRIORITY_MIN)
                 .setSound(null)

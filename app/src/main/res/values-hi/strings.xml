@@ -478,6 +478,9 @@
     </string-array>
     <string name="follow_system_settings">सिस्टम का पालन करें</string>
     <string name="settings_noticeable_notification">अधिक ध्यान देने योग्य अलार्म अधिसूचना</string>
+    <string name="settings_notification_open">चीज़ की अधिसूचना पर टैप करने पर खोलें</string>
+    <string name="notification_open_detail">चीज़ का विवरण</string>
+    <string name="notification_open_noticeable">चीज़ की अधिक ध्यान देने योग्य अधिसूचना</string>
     <string name="settings_notification_reliability">रिमाइंडर विश्वसनीयता</string>
     <string name="settings_group_notification_reliability">रिमाइंडर विश्वसनीयता</string>
     <string name="settings_battery_optimization">बैटरी अनुकूलन पर ध्यान न दें</string>

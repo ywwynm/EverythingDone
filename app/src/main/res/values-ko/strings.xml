@@ -478,6 +478,9 @@
     </string-array>
     <string name="follow_system_settings">팔로우 시스템</string>
     <string name="settings_noticeable_notification">더욱 눈에 띄는 알람 알림</string>
+    <string name="settings_notification_open">항목 알림을 탭하면 열기</string>
+    <string name="notification_open_detail">항목 세부정보</string>
+    <string name="notification_open_noticeable">더욱 눈에 띄는 항목 알림</string>
     <string name="settings_notification_reliability">알림 신뢰성</string>
     <string name="settings_group_notification_reliability">알림 신뢰성</string>
     <string name="settings_battery_optimization">배터리 최적화 무시</string>

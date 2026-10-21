@@ -767,6 +767,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
 
         val nn: Boolean = mPreferences!!.getBoolean(Def.Meta.KEY_NOTICEABLE_NOTIFICATION, true)
         mCbNn!!.isChecked = nn
+        updateNotificationOpenValue()
 
         mToggleCliOtc = mPreferences!!.getBoolean(Def.Meta.KEY_TOGGLE_CLI_OTC, false)
         mCbToggleCli!!.isChecked = mToggleCliOtc
@@ -1000,6 +1001,10 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
             mCbNn!!.isChecked = !mCbNn!!.isChecked
         }
 
+        f<View>(R.id.rl_notification_open_as_bt).setOnClickListener {
+            showNotificationOpenDialog()
+        }
+
         mLlPostNotifications!!.setOnClickListener {
             if (NotificationReliabilityHelper.areNotificationsEnabled(this@SettingsActivity)) {
                 NotificationReliabilityHelper.openAppNotificationSettings(this@SettingsActivity)
@@ -1111,6 +1116,32 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
             R.string.thing_animation_particle)
         else listOf(R.string.thing_animation_slide, R.string.thing_animation_particle))
             .map { getString(it) as String? }.toMutableList()
+
+    private fun notificationOpenItems(): MutableList<String?> = mutableListOf(
+        getString(R.string.notification_open_detail),
+        getString(R.string.notification_open_noticeable)
+    )
+
+    private fun updateNotificationOpenValue() {
+        val noticeable = mPreferences!!.getBoolean(Def.Meta.KEY_NOTIFICATION_OPEN_NOTICEABLE, false)
+        f<TextView>(R.id.tv_notification_open_value).text = notificationOpenItems()[if (noticeable) 1 else 0]
+    }
+
+    private fun showNotificationOpenDialog() {
+        val cdf = ChooserDialogFragment()
+        cdf.setAccentBackground(App.defaultAccentBackground)
+        cdf.setTitle(getString(R.string.settings_notification_open))
+        cdf.setShouldShowMore(false)
+        cdf.setItems(notificationOpenItems())
+        cdf.setInitialIndex(if (mPreferences!!.getBoolean(Def.Meta.KEY_NOTIFICATION_OPEN_NOTICEABLE, false)) 1 else 0)
+        cdf.setConfirmListener {
+            mPreferences!!.edit().putBoolean(
+                Def.Meta.KEY_NOTIFICATION_OPEN_NOTICEABLE, cdf.getPickedIndex() == 1
+            ).apply()
+            updateNotificationOpenValue()
+        }
+        cdf.show(supportFragmentManager, ChooserDialogFragment.TAG)
+    }
 
     private fun showThingAnimationChooser(creation: Boolean) {
         val preferences = ThingAnimationPreferences

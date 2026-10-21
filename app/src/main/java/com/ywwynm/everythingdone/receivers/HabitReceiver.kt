@@ -208,7 +208,8 @@ open class HabitReceiver : BroadcastReceiver() {
             context: Context, habitId: Long, hrId: Long, hrTime: Long, position: Int,
             thing: Thing, moreNoticeable: Boolean) {
         val builder: NotificationCompat.Builder = SystemNotificationUtil
-                .newGeneralNotificationBuilder(context, TAG, habitId, position, thing, false)
+                .newGeneralNotificationBuilder(context, TAG, habitId, position, thing, false,
+                    habitReminderId = hrId, habitReminderTime = hrTime)
         if (moreNoticeable) {
             // if we use a dialog to notify this alarm, we don't need to show heads-up notification
             builder.setPriority(NotificationCompat.PRIORITY_DEFAULT)

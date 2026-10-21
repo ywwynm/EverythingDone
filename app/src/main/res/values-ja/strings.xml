@@ -478,6 +478,9 @@
     </string-array>
     <string name="follow_system_settings">フォローシステム</string>
     <string name="settings_noticeable_notification">より目立つアラーム通知</string>
+    <string name="settings_notification_open">メモの通知をタップしたときに開く画面</string>
+    <string name="notification_open_detail">メモの詳細</string>
+    <string name="notification_open_noticeable">より目立つメモの通知</string>
     <string name="settings_notification_reliability">リマインダーの信頼性</string>
     <string name="settings_group_notification_reliability">リマインダーの信頼性</string>
     <string name="settings_battery_optimization">バッテリーの最適化を無視する</string>

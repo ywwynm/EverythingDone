@@ -39,6 +39,9 @@ import com.ywwynm.everythingdone.adapters.BaseThingsAdapter
 import com.ywwynm.everythingdone.database.HabitDAO
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper
 import com.ywwynm.everythingdone.helpers.ThingPrivacyResolver
+import com.ywwynm.everythingdone.helpers.ThingNotificationClick
+import com.ywwynm.everythingdone.helpers.RemoteActionHelper
+import com.ywwynm.everythingdone.services.DoingService
 import com.ywwynm.everythingdone.managers.ModeManager
 import com.ywwynm.everythingdone.model.HabitReminder
 import com.ywwynm.everythingdone.model.Thing
@@ -98,7 +101,7 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
         override fun onReceive(context: Context, intent: Intent) {
             if (BROADCAST_ACTION_JUST_FINISH == intent.action) {
                 val thingId = intent.getLongExtra(Def.Communication.KEY_ID, -1L)
-                if (thingId == mThing!!.id) {
+                if (thingId == mThing?.id) {
                     finish()
                 }
             }
@@ -126,6 +129,7 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
     override fun onDestroy() {
         super.onDestroy()
         unregisterReceiver(mReceiver)
+        if (!intent.getBooleanExtra(ThingNotificationClick.KEY_CANCEL_ON_DISMISS, true)) return
         val nmc = NotificationManagerCompat.from(this)
         if (mIsHabit) {
             nmc.cancel(mHrId.toInt())
@@ -191,7 +195,7 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
         mActionsIcons = ArrayList()
         mActions = ArrayList()
         @Thing.Type val thingType = mThing!!.type
-        if (Thing.isReminderType(thingType)) {
+        if (Thing.isReminderType(thingType) || thingType == Thing.NOTE) {
             initMemberActionsReminder()
         } else if (thingType == Thing.HABIT) {
             initMemberActionsHabit()
@@ -207,7 +211,7 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
             }
         })
 
-        if (mThing!!.type == Thing.REMINDER) {
+        if (mThing!!.type == Thing.REMINDER || mThing!!.type == Thing.NOTE) {
             mActionsTexts!!.add(R.string.act_start_doing)
             mActionsIcons!!.add(R.drawable.vec_ic_start_thing)
             mActions!!.add(View.OnClickListener {
@@ -215,7 +219,9 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
                     sendBroadcastForReminderAndLeave(Def.Communication.NOTIFICATION_ACTION_START_DOING)
                 }
             })
+        }
 
+        if (mThing!!.type == Thing.REMINDER) {
             mActionsTexts!!.add(R.string.act_delay)
             mActionsIcons!!.add(R.drawable.act_delay)
             mActions!!.add(View.OnClickListener {
@@ -227,10 +233,16 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
     }
 
     private fun initMemberActionsHabit() {
-        mActionsTexts!!.add(R.string.act_finish_this_time_habit)
+        val finishLabel = if (mIsHabit) R.string.act_finish_this_time_habit else R.string.act_finish_once_habit
+        mActionsTexts!!.add(finishLabel)
         mActionsIcons!!.add(R.drawable.act_finish)
         mActions!!.add(View.OnClickListener {
-            runActionWithPrivacyAuth(R.string.act_finish_this_time_habit) {
+            runActionWithPrivacyAuth(finishLabel) {
+                if (!mIsHabit) {
+                    RemoteActionHelper.finishHabitOnce(this, mThing!!, mPosition, -1L)
+                    finish()
+                    return@runActionWithPrivacyAuth
+                }
                 val intent = Intent(
                     this@NoticeableNotificationActivity,
                     HabitNotificationActionReceiver::class.java
@@ -250,6 +262,14 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
         mActionsIcons!!.add(R.drawable.vec_ic_start_thing)
         mActions!!.add(View.OnClickListener {
             runActionWithPrivacyAuth(R.string.act_start_doing) {
+                if (!mIsHabit) {
+                    startActivity(StartDoingActivity.getOpenIntent(
+                        this, mThing!!.id, mPosition, mThing!!.getBackground(),
+                        DoingService.START_TYPE_ALARM, -1L
+                    ))
+                    finish()
+                    return@runActionWithPrivacyAuth
+                }
                 val intent = Intent(
                     this@NoticeableNotificationActivity,
                     HabitNotificationActionReceiver::class.java

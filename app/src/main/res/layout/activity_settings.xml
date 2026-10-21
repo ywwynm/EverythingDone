@@ -216,6 +216,35 @@
 
                     </RelativeLayout>
 
+                    <LinearLayout
+                        android:id="@+id/rl_notification_open_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="56dp"
+                        android:padding="16dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:background="@drawable/selectable_item_background">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="16dp"
+                            android:text="@string/settings_notification_open"
+                            android:textSize="16sp"/>
+
+                        <TextView
+                            android:id="@+id/tv_notification_open_value"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="end"
+                            android:alpha="0.6"
+                            android:textSize="14sp"/>
+
+                    </LinearLayout>
+
                     <RelativeLayout
                         android:id="@+id/rl_thing_card_appearance_settings_as_bt"
                         android:layout_width="match_parent"

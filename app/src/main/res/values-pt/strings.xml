@@ -478,6 +478,9 @@
     </string-array>
     <string name="follow_system_settings">Seguir sistema</string>
     <string name="settings_noticeable_notification">Notificação de alarme mais perceptível</string>
+    <string name="settings_notification_open">Abrir ao tocar na notificação de um item</string>
+    <string name="notification_open_detail">Detalhes do item</string>
+    <string name="notification_open_noticeable">Notificação do item mais perceptível</string>
     <string name="settings_notification_reliability">Confiabilidade do lembrete</string>
     <string name="settings_group_notification_reliability">Confiabilidade do lembrete</string>
     <string name="settings_battery_optimization">Ignorar a otimização da bateria</string>

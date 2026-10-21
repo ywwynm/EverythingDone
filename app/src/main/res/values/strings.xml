@@ -1019,6 +1019,9 @@
     </string-array>
     <string name="follow_system_settings">Follow System</string>
     <string name="settings_noticeable_notification">More noticeable alarm notification</string>
+    <string name="settings_notification_open">Open after tapping a thing notification</string>
+    <string name="notification_open_detail">Thing details</string>
+    <string name="notification_open_noticeable">More noticeable thing notification</string>
     <string name="settings_notification_reliability">Reminder reliability</string>
     <string name="settings_group_notification_reliability">Reminder reliability</string>
     <string name="settings_battery_optimization">Ignore battery optimization</string>

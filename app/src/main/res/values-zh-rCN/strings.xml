@@ -1004,6 +1004,9 @@
     </string-array>
     <string name="follow_system_settings">跟随系统设置</string>
     <string name="settings_noticeable_notification">更突出的记事提醒通知</string>
+    <string name="settings_notification_open">点击记事通知后打开</string>
+    <string name="notification_open_detail">记事详情</string>
+    <string name="notification_open_noticeable">更突出的记事通知</string>
     <string name="settings_notification_reliability">提醒可靠性</string>
     <string name="settings_group_notification_reliability">提醒可靠性</string>
     <string name="settings_battery_optimization">忽略电池优化</string>
