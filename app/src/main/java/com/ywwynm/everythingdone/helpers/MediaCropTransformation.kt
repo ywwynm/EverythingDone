@@ -12,11 +12,8 @@ import java.security.MessageDigest
  * attachment crop (center / scale / aspect) to each decoded frame by reusing
  * [MediaCropBitmapRenderer].
  *
- * For an Animated Image (GIF / animated WebP), Glide applies this transformation
- * to every frame, so the result is an animated drawable whose frames are already
- * cropped to the target box and shown with `CENTER_CROP` — the same display
- * contract as the baked static bitmap, just animated, without returning to the
- * fragile `ImageView.imageMatrix` path. See ADR-0007.
+ * GIF 由 Glide 将该变换应用到每帧。平台动态 WebP 不支持位图变换，详情页使用
+ * [AnimatedMediaCropDrawable] 在绘制时应用同一裁剪几何，不能传入此变换。
  */
 class MediaCropTransformation(
     private val targetWidth: Int,

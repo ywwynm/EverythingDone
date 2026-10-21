@@ -1,0 +1,482 @@
+[
+  {
+    "device": "samsung",
+    "mode": "final",
+    "iteration": 0,
+    "target": "frozen-capture",
+    "matches": 7166,
+    "inliers": 7165,
+    "scaleRatio": 0.9999998155496835,
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "mode": "final",
+    "iteration": 0,
+    "target": "return-0",
+    "matches": 4426,
+    "inliers": 4352,
+    "scaleRatio": 0.9999816576214084,
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "mode": "final",
+    "iteration": 0,
+    "target": "return-1",
+    "matches": 3428,
+    "inliers": 3357,
+    "scaleRatio": 0.999942352814153,
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "mode": "final",
+    "iteration": 0,
+    "target": "return-2",
+    "matches": 1303,
+    "inliers": 1231,
+    "scaleRatio": 1.000065291119789,
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "mode": "final",
+    "iteration": 1,
+    "target": "frozen-capture",
+    "matches": 4790,
+    "inliers": 4790,
+    "scaleRatio": 1.0,
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "mode": "final",
+    "iteration": 1,
+    "target": "return-0",
+    "matches": 3603,
+    "inliers": 3570,
+    "scaleRatio": 0.9999855977186435,
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "mode": "final",
+    "iteration": 1,
+    "target": "return-1",
+    "matches": 3087,
+    "inliers": 3063,
+    "scaleRatio": 0.9999537557698053,
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "mode": "final",
+    "iteration": 1,
+    "target": "return-2",
+    "matches": 858,
+    "inliers": 763,
+    "scaleRatio": 1.0000134095191016,
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "mode": "final-native",
+    "iteration": 0,
+    "target": "frozen-capture",
+    "matches": 6476,
+    "inliers": 6470,
+    "scaleRatio": 0.9999959255108929,
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "mode": "final-native",
+    "iteration": 0,
+    "target": "return-0",
+    "matches": 4710,
+    "inliers": 4664,
+    "scaleRatio": 1.0000114170636272,
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "mode": "final-native",
+    "iteration": 0,
+    "target": "return-1",
+    "matches": 3613,
+    "inliers": 3566,
+    "scaleRatio": 0.9999760852179201,
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "mode": "final-native",
+    "iteration": 0,
+    "target": "return-2",
+    "matches": 1398,
+    "inliers": 1336,
+    "scaleRatio": 1.0001730275117406,
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "mode": "final-native",
+    "iteration": 1,
+    "target": "frozen-capture",
+    "matches": 4420,
+    "inliers": 4413,
+    "scaleRatio": 1.0000062809971448,
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "mode": "final-native",
+    "iteration": 1,
+    "target": "return-0",
+    "matches": 3599,
+    "inliers": 3567,
+    "scaleRatio": 0.999995839760692,
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "mode": "final-native",
+    "iteration": 1,
+    "target": "return-1",
+    "matches": 3078,
+    "inliers": 3053,
+    "scaleRatio": 0.9999666023710181,
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "mode": "final-native",
+    "iteration": 1,
+    "target": "return-2",
+    "matches": 803,
+    "inliers": 765,
+    "scaleRatio": 1.000112151710259,
+    "passed": true
+  },
+  {
+    "device": "oneplus",
+    "mode": "final",
+    "iteration": 0,
+    "target": "frozen-capture",
+    "matches": 6751,
+    "inliers": 6751,
+    "scaleRatio": 0.9999998555471413,
+    "passed": true
+  },
+  {
+    "device": "oneplus",
+    "mode": "final",
+    "iteration": 0,
+    "target": "return-0",
+    "matches": 4020,
+    "inliers": 3915,
+    "scaleRatio": 1.0005472215143094,
+    "passed": true
+  },
+  {
+    "device": "oneplus",
+    "mode": "final",
+    "iteration": 0,
+    "target": "return-1",
+    "matches": 3015,
+    "inliers": 2914,
+    "scaleRatio": 1.0005900976612312,
+    "passed": true
+  },
+  {
+    "device": "oneplus",
+    "mode": "final",
+    "iteration": 0,
+    "target": "return-2",
+    "matches": 452,
+    "inliers": 353,
+    "scaleRatio": 1.0008700343034111,
+    "passed": true
+  },
+  {
+    "device": "oneplus",
+    "mode": "final",
+    "iteration": 1,
+    "target": "frozen-capture",
+    "matches": 4921,
+    "inliers": 4921,
+    "scaleRatio": 1.0,
+    "passed": true
+  },
+  {
+    "device": "oneplus",
+    "mode": "final",
+    "iteration": 1,
+    "target": "return-0",
+    "matches": 2871,
+    "inliers": 2715,
+    "scaleRatio": 1.0004525394009007,
+    "passed": true
+  },
+  {
+    "device": "oneplus",
+    "mode": "final",
+    "iteration": 1,
+    "target": "return-1",
+    "matches": 2459,
+    "inliers": 2326,
+    "scaleRatio": 1.0005572968857683,
+    "passed": true
+  },
+  {
+    "device": "oneplus",
+    "mode": "final",
+    "iteration": 1,
+    "target": "return-2",
+    "matches": 296,
+    "inliers": 239,
+    "scaleRatio": 1.0001991223360824,
+    "passed": true
+  },
+  {
+    "device": "oneplus",
+    "mode": "final-native",
+    "iteration": 0,
+    "target": "frozen-capture",
+    "matches": 3188,
+    "inliers": 3172,
+    "scaleRatio": 1.0000122197334593,
+    "passed": true
+  },
+  {
+    "device": "oneplus",
+    "mode": "final-native",
+    "iteration": 0,
+    "target": "return-0",
+    "matches": 2298,
+    "inliers": 2192,
+    "scaleRatio": 1.0004590253870442,
+    "passed": true
+  },
+  {
+    "device": "oneplus",
+    "mode": "final-native",
+    "iteration": 0,
+    "target": "return-1",
+    "matches": 1721,
+    "inliers": 1633,
+    "scaleRatio": 1.0004493951534434,
+    "passed": true
+  },
+  {
+    "device": "oneplus",
+    "mode": "final-native",
+    "iteration": 0,
+    "target": "return-2",
+    "matches": 366,
+    "inliers": 295,
+    "scaleRatio": 1.000638988017071,
+    "passed": true
+  },
+  {
+    "device": "oneplus",
+    "mode": "final-native",
+    "iteration": 1,
+    "target": "frozen-capture",
+    "matches": 2697,
+    "inliers": 2684,
+    "scaleRatio": 1.000047799443824,
+    "passed": true
+  },
+  {
+    "device": "oneplus",
+    "mode": "final-native",
+    "iteration": 1,
+    "target": "return-0",
+    "matches": 2289,
+    "inliers": 2263,
+    "scaleRatio": 1.00012234020252,
+    "passed": true
+  },
+  {
+    "device": "oneplus",
+    "mode": "final-native",
+    "iteration": 1,
+    "target": "return-1",
+    "matches": 1958,
+    "inliers": 1939,
+    "scaleRatio": 1.0001241308530924,
+    "passed": true
+  },
+  {
+    "device": "oneplus",
+    "mode": "final-native",
+    "iteration": 1,
+    "target": "return-2",
+    "matches": 489,
+    "inliers": 449,
+    "scaleRatio": 0.9999568555386655,
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "mode": "final",
+    "iteration": 0,
+    "target": "frozen-capture",
+    "matches": 7422,
+    "inliers": 7422,
+    "scaleRatio": 0.9999985996376803,
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "mode": "final",
+    "iteration": 0,
+    "target": "return-0",
+    "matches": 4754,
+    "inliers": 4670,
+    "scaleRatio": 1.0000146587199197,
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "mode": "final",
+    "iteration": 0,
+    "target": "return-1",
+    "matches": 3608,
+    "inliers": 3563,
+    "scaleRatio": 0.9999781850775676,
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "mode": "final",
+    "iteration": 0,
+    "target": "return-2",
+    "matches": 1344,
+    "inliers": 1260,
+    "scaleRatio": 1.0002811103219158,
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "mode": "final",
+    "iteration": 1,
+    "target": "frozen-capture",
+    "matches": 5257,
+    "inliers": 5257,
+    "scaleRatio": 1.0,
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "mode": "final",
+    "iteration": 1,
+    "target": "return-0",
+    "matches": 3972,
+    "inliers": 3923,
+    "scaleRatio": 0.999995836581464,
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "mode": "final",
+    "iteration": 1,
+    "target": "return-1",
+    "matches": 3377,
+    "inliers": 3227,
+    "scaleRatio": 0.9999527448156278,
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "mode": "final",
+    "iteration": 1,
+    "target": "return-2",
+    "matches": 873,
+    "inliers": 810,
+    "scaleRatio": 0.9999489832380909,
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "mode": "final-native",
+    "iteration": 0,
+    "target": "frozen-capture",
+    "matches": 6657,
+    "inliers": 6643,
+    "scaleRatio": 0.9999966264960026,
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "mode": "final-native",
+    "iteration": 0,
+    "target": "return-0",
+    "matches": 4793,
+    "inliers": 4759,
+    "scaleRatio": 0.999996158493017,
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "mode": "final-native",
+    "iteration": 0,
+    "target": "return-1",
+    "matches": 3658,
+    "inliers": 3612,
+    "scaleRatio": 0.9999618561866959,
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "mode": "final-native",
+    "iteration": 0,
+    "target": "return-2",
+    "matches": 1405,
+    "inliers": 1326,
+    "scaleRatio": 1.0002746181103113,
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "mode": "final-native",
+    "iteration": 1,
+    "target": "frozen-capture",
+    "matches": 4849,
+    "inliers": 4845,
+    "scaleRatio": 1.000003958277265,
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "mode": "final-native",
+    "iteration": 1,
+    "target": "return-0",
+    "matches": 3968,
+    "inliers": 3825,
+    "scaleRatio": 1.0000455822366598,
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "mode": "final-native",
+    "iteration": 1,
+    "target": "return-1",
+    "matches": 3321,
+    "inliers": 3288,
+    "scaleRatio": 0.999983269714262,
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "mode": "final-native",
+    "iteration": 1,
+    "target": "return-2",
+    "matches": 825,
+    "inliers": 771,
+    "scaleRatio": 1.0000696082466647,
+    "passed": true
+  }
+]

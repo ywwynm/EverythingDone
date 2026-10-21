@@ -172,6 +172,7 @@ import com.ywwynm.everythingdone.views.ThingBackgroundEditor
 import com.ywwynm.everythingdone.views.particledismiss.ParticleLaunchTrace
 import com.ywwynm.everythingdone.views.particledismiss.ThingCreationTransition
 import com.ywwynm.everythingdone.views.ThingDetailTransition
+import com.ywwynm.everythingdone.views.MediaPreviewTransition
 import com.ywwynm.everythingdone.views.ThingDetailReturnTransition
 import com.ywwynm.everythingdone.views.pickers.DateTimePicker
 import com.ywwynm.everythingdone.views.recording.AudioInputPreferences
@@ -2882,8 +2883,10 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             val items: List<String?> = data!!.getStringArrayListExtra(
                 Def.Communication.KEY_TYPE_PATH_NAME
             )!! as List<String?>
-            mImageAttachmentAdapter!!.setItems(items)
-            refreshImageAttachmentLayout(true)
+            if (mImageAttachmentAdapter!!.getItems() != items) {
+                mImageAttachmentAdapter!!.setItems(items)
+                refreshImageAttachmentLayout(true)
+            }
         }
     }
 
@@ -5475,23 +5478,58 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 intent.putExtra(Def.Communication.KEY_VIDEO_FRAME_MS_LIST, frames)
             }
 
-            val w = v!!.width
-            var startX = 0
-            var startY = 0
-            var startWidth = w
-            var startHeight = v.height
-            if (w == DisplayUtil.getDisplaySize(App.getApp()).x) {
-                startX = w / 2
-                startY = startHeight / 2
-                startWidth = 0
-                startHeight = 0
-            }
+            MediaPreviewTransition.launch(this@DetailActivity, intent, v ?: return)
+        }
+    }
 
-            val transition: ActivityOptionsCompat = ActivityOptionsCompat.makeScaleUpAnimation(
-                v, startX, startY, startWidth, startHeight
-            )
-            ActivityCompat.startActivityForResult(this@DetailActivity, intent,
-                Def.Communication.REQUEST_ACTIVITY_IMAGE_VIEWER, transition.toBundle())
+    /** ConcatAdapter 的局部位置仅在当前绑定有效时使用；返回按完整附件身份匹配。 */
+    internal fun findMediaPreviewSource(typePathName: String?): View? {
+        if (typePathName == null) return null
+        val adapter = mImageAttachmentAdapter ?: return null
+        val list = mDetailContent.recyclerView
+        for (i in 0 until list.childCount) {
+            val holder = list.getChildViewHolder(list.getChildAt(i))
+            if (holder.bindingAdapter !== adapter) continue
+            if (adapter.getItems()?.getOrNull(holder.bindingAdapterPosition) == typePathName) {
+                return (holder as? ImageAttachmentAdapter.ImageViewHolder)?.fl
+            }
+        }
+        return null
+    }
+
+    internal fun isMediaPreviewLayoutReady(typePathName: String? = null): Boolean = mDetailContent.recyclerView.let {
+        !it.isComputingLayout && !it.isLayoutRequested && !it.hasPendingAdapterUpdates() &&
+            // 返回的目标页可能在后台被 Glide 清理；等实际图片恢复后再冻结画面及顶栏配色。
+            (findMediaPreviewSource(typePathName)?.findViewById<ImageView>(R.id.iv_image_attachment)?.let { image ->
+                image.drawable != null
+            } != false) &&
+            mToolbarContrast?.isReadyForSnapshot() != false
+    }
+
+    internal fun mediaPreviewToolbarGeneration(): Int = mToolbarContrast?.snapshotGeneration ?: 0
+
+    internal fun setMediaPreviewTransitionPaused(paused: Boolean) {
+        mAttachmentPlaybackController?.setTransitionPaused(paused)
+    }
+
+    /** 与详情裁剪器使用同一中心和缩放，供完整原图在转场中连续改变取景。 */
+    internal fun mediaPreviewImageBounds(key: String?, imageWidth: Int, imageHeight: Int): android.graphics.RectF? {
+        val source = findMediaPreviewSource(key) ?: return null
+        val adapter = mImageAttachmentAdapter ?: return null
+        val position = adapter.getItems()?.indexOf(key) ?: return null
+        if (position < 0 || imageWidth <= 0 || imageHeight <= 0) return null
+        val image = source.findViewById<ImageView>(R.id.iv_image_attachment) ?: return null
+        val presentationKey = if (adapter.isFullSpanPosition(position))
+            DetailAttachmentMediaAppearance.PRESENTATION_FULL_SPAN else DetailAttachmentMediaAppearance.PRESENTATION_GRID
+        val crop = mDetailAttachmentMediaAppearance.source(key)?.presentationOrDefault(presentationKey)?.crop
+            ?: DetailAttachmentMediaAppearance.DetailMediaCrop()
+        val scale = max(image.width.toFloat() / imageWidth, image.height.toFloat() / imageHeight) * crop.scale.toFloat()
+        val width = imageWidth * scale
+        val height = imageHeight * scale
+        val left = (image.width / 2f - crop.centerX.toFloat() * width).coerceIn(min(0f, image.width - width), 0f)
+        val top = (image.height / 2f - crop.centerY.toFloat() * height).coerceIn(min(0f, image.height - height), 0f)
+        return ThingDetailTransition.bounds(image, window.decorView).let {
+            android.graphics.RectF(it.left + left, it.top + top, it.left + left + width, it.top + top + height)
         }
     }
 

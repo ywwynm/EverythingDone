@@ -1,0 +1,44 @@
+[
+  {
+    "iteration": 0,
+    "frame": "0",
+    "matches": 954,
+    "inliers": 950,
+    "scaleRatio": 0.999514297635058
+  },
+  {
+    "iteration": 0,
+    "frame": "1",
+    "matches": 600,
+    "inliers": 593,
+    "scaleRatio": 0.9995790219053526
+  },
+  {
+    "iteration": 0,
+    "frame": "2",
+    "matches": 118,
+    "inliers": 101,
+    "scaleRatio": 0.9993938428227623
+  },
+  {
+    "iteration": 1,
+    "frame": "0",
+    "matches": 1293,
+    "inliers": 1277,
+    "scaleRatio": 1.000064644712872
+  },
+  {
+    "iteration": 1,
+    "frame": "1",
+    "matches": 967,
+    "inliers": 953,
+    "scaleRatio": 1.0001880238254464
+  },
+  {
+    "iteration": 1,
+    "frame": "2",
+    "matches": 332,
+    "inliers": 316,
+    "scaleRatio": 1.000167694191011
+  }
+]

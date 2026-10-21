@@ -1,0 +1,1547 @@
+{
+  "date": "2026-10-22",
+  "devices": [
+    {
+      "device": "samsung",
+      "originalRows": 375,
+      "rowsUnchanged": true,
+      "runs": [
+        {
+          "phase": "final-motion",
+          "checks": 53,
+          "failures": 0,
+          "motionSnapshots": [
+            {
+              "name": "real-hdr-motion-0",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "textureWidth": 1440,
+              "textureHeight": 3088,
+              "textureTransform": [
+                1,
+                0,
+                0,
+                0,
+                0.34974092,
+                1004,
+                0,
+                0,
+                1
+              ],
+              "viewScaleX": 1,
+              "viewScaleY": 1,
+              "compatibility": true,
+              "meanChannelError": 0,
+              "mismatchFraction": 0,
+              "spatialCorrelation": 1
+            },
+            {
+              "name": "real-hdr-motion-1",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "textureWidth": 1440,
+              "textureHeight": 3088,
+              "textureTransform": [
+                1,
+                0,
+                0,
+                0,
+                0.34974092,
+                1004,
+                0,
+                0,
+                1
+              ],
+              "viewScaleX": 2,
+              "viewScaleY": 2,
+              "compatibility": true,
+              "meanChannelError": 0,
+              "mismatchFraction": 0,
+              "spatialCorrelation": 1
+            }
+          ],
+          "artifact": "tmp/media-motion-return-samsung-final-motion.json"
+        },
+        {
+          "phase": "final-native-motion",
+          "checks": 53,
+          "failures": 0,
+          "motionSnapshots": [
+            {
+              "name": "real-hdr-motion-0",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "textureWidth": 1440,
+              "textureHeight": 3088,
+              "textureTransform": [
+                1,
+                0,
+                0,
+                0,
+                0.34974092,
+                1004,
+                0,
+                0,
+                1
+              ],
+              "viewScaleX": 1,
+              "viewScaleY": 1,
+              "compatibility": false,
+              "meanChannelError": 0.2636366196389851,
+              "mismatchFraction": 0,
+              "spatialCorrelation": 0.9999846165777818
+            },
+            {
+              "name": "real-hdr-motion-1",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "textureWidth": 1440,
+              "textureHeight": 3088,
+              "textureTransform": [
+                1,
+                0,
+                0,
+                0,
+                0.34974092,
+                1004,
+                0,
+                0,
+                1
+              ],
+              "viewScaleX": 2,
+              "viewScaleY": 2,
+              "compatibility": false,
+              "meanChannelError": 0.4160517636536419,
+              "mismatchFraction": 0,
+              "spatialCorrelation": 0.9999835691225867
+            }
+          ],
+          "artifact": "tmp/media-motion-return-samsung-final-native-motion.json"
+        },
+        {
+          "phase": "final-quality-all",
+          "checks": 130,
+          "failures": 0,
+          "motionSnapshots": [],
+          "artifact": "tmp/media-motion-return-samsung-final-quality-all.json"
+        },
+        {
+          "phase": "final-playing-playing",
+          "checks": 75,
+          "failures": 0,
+          "motionSnapshots": [],
+          "artifact": "tmp/media-motion-return-samsung-final-playing-playing.json"
+        },
+        {
+          "phase": "final-mixed-webp",
+          "checks": 187,
+          "failures": 0,
+          "motionSnapshots": [],
+          "artifact": "tmp/media-motion-return-samsung-final-mixed-webp.json"
+        },
+        {
+          "phase": "final-mixed-edge",
+          "checks": 88,
+          "failures": 0,
+          "motionSnapshots": [],
+          "artifact": "tmp/media-motion-return-samsung-final-mixed-edge.json"
+        }
+      ],
+      "qualityComparison": [
+        {
+          "name": "real-largest-image-0",
+          "fullBitmapAndHdrParametersEqual": true,
+          "pqBefore": [
+            2319,
+            3088
+          ],
+          "pqAfter": [
+            2319,
+            3088
+          ]
+        },
+        {
+          "name": "real-largest-image-0-hdr-restored",
+          "fullBitmapAndHdrParametersEqual": true,
+          "pqBefore": [
+            2319,
+            3088
+          ],
+          "pqAfter": [
+            2319,
+            3088
+          ]
+        },
+        {
+          "name": "real-largest-sdr-0",
+          "fullBitmapAndHdrParametersEqual": true,
+          "pqBefore": [
+            null,
+            null
+          ],
+          "pqAfter": [
+            null,
+            null
+          ]
+        },
+        {
+          "name": "real-largest-motion-0",
+          "fullBitmapAndHdrParametersEqual": true,
+          "pqBefore": [
+            2971,
+            2231
+          ],
+          "pqAfter": [
+            2963,
+            2226
+          ]
+        },
+        {
+          "name": "real-largest-motion-0-hdr-restored",
+          "fullBitmapAndHdrParametersEqual": true,
+          "pqBefore": [
+            2971,
+            2231
+          ],
+          "pqAfter": [
+            2963,
+            2226
+          ]
+        },
+        {
+          "name": "real-many-first-0",
+          "fullBitmapAndHdrParametersEqual": true,
+          "pqBefore": [
+            null,
+            null
+          ],
+          "pqAfter": [
+            null,
+            null
+          ]
+        },
+        {
+          "name": "real-many-last-0",
+          "fullBitmapAndHdrParametersEqual": true,
+          "pqBefore": [
+            null,
+            null
+          ],
+          "pqAfter": [
+            null,
+            null
+          ]
+        }
+      ],
+      "openingSamples": [
+        {
+          "name": "real-largest-image-0-enter",
+          "prepareMs": 287.9
+        },
+        {
+          "name": "real-largest-sdr-0-enter",
+          "prepareMs": 176.43
+        },
+        {
+          "name": "real-largest-video-0-enter",
+          "prepareMs": 185.89
+        },
+        {
+          "name": "real-largest-gif-0-enter",
+          "prepareMs": 218.0
+        },
+        {
+          "name": "real-largest-motion-0-enter",
+          "prepareMs": 184.58
+        },
+        {
+          "name": "real-many-first-0-enter",
+          "prepareMs": 195.8
+        },
+        {
+          "name": "real-many-last-0-enter",
+          "prepareMs": 179.13
+        }
+      ]
+    },
+    {
+      "device": "oneplus",
+      "originalRows": 115,
+      "rowsUnchanged": true,
+      "runs": [
+        {
+          "phase": "final-motion",
+          "checks": 51,
+          "failures": 0,
+          "motionSnapshots": [
+            {
+              "name": "real-hdr-motion-0",
+              "videoWidth": 1422,
+              "videoHeight": 1067,
+              "textureWidth": 1216,
+              "textureHeight": 2640,
+              "textureTransform": [
+                1,
+                0,
+                0,
+                0,
+                0.3456165,
+                863.78625,
+                0,
+                0,
+                1
+              ],
+              "viewScaleX": 1,
+              "viewScaleY": 1,
+              "compatibility": true,
+              "meanChannelError": 0,
+              "mismatchFraction": 0,
+              "spatialCorrelation": 1
+            },
+            {
+              "name": "real-hdr-motion-1",
+              "videoWidth": 1422,
+              "videoHeight": 1067,
+              "textureWidth": 1216,
+              "textureHeight": 2640,
+              "textureTransform": [
+                1,
+                0,
+                0,
+                0,
+                0.3456165,
+                863.78625,
+                0,
+                0,
+                1
+              ],
+              "viewScaleX": 2,
+              "viewScaleY": 2,
+              "compatibility": true,
+              "meanChannelError": 0,
+              "mismatchFraction": 0,
+              "spatialCorrelation": 1
+            }
+          ],
+          "artifact": "tmp/media-motion-return-oneplus-final-motion.json"
+        },
+        {
+          "phase": "final-native-motion",
+          "checks": 51,
+          "failures": 0,
+          "motionSnapshots": [
+            {
+              "name": "real-hdr-motion-0",
+              "videoWidth": 1422,
+              "videoHeight": 1067,
+              "textureWidth": 1216,
+              "textureHeight": 2640,
+              "textureTransform": [
+                1,
+                0,
+                0,
+                0,
+                0.3456165,
+                863.78625,
+                0,
+                0,
+                1
+              ],
+              "viewScaleX": 1,
+              "viewScaleY": 1,
+              "compatibility": false,
+              "meanChannelError": 37.97640873015873,
+              "mismatchFraction": 0.6958928571428571,
+              "spatialCorrelation": 0.9997762163684824
+            },
+            {
+              "name": "real-hdr-motion-1",
+              "videoWidth": 1422,
+              "videoHeight": 1067,
+              "textureWidth": 1216,
+              "textureHeight": 2640,
+              "textureTransform": [
+                1,
+                0,
+                0,
+                0,
+                0.3456165,
+                863.78625,
+                0,
+                0,
+                1
+              ],
+              "viewScaleX": 2,
+              "viewScaleY": 2,
+              "compatibility": false,
+              "meanChannelError": 31.631355849241313,
+              "mismatchFraction": 0.6240822320117474,
+              "spatialCorrelation": 0.9997839452360836
+            }
+          ],
+          "artifact": "tmp/media-motion-return-oneplus-final-native-motion.json"
+        },
+        {
+          "phase": "final-quality-all",
+          "checks": 128,
+          "failures": 0,
+          "motionSnapshots": [],
+          "artifact": "tmp/media-motion-return-oneplus-final-quality-all.json"
+        },
+        {
+          "phase": "final-playing-playing",
+          "checks": 72,
+          "failures": 0,
+          "motionSnapshots": [],
+          "artifact": "tmp/media-motion-return-oneplus-final-playing-playing.json"
+        },
+        {
+          "phase": "final-mixed-webp",
+          "checks": 187,
+          "failures": 0,
+          "motionSnapshots": [],
+          "artifact": "tmp/media-motion-return-oneplus-final-mixed-webp.json"
+        },
+        {
+          "phase": "final-mixed-edge",
+          "checks": 89,
+          "failures": 0,
+          "motionSnapshots": [],
+          "artifact": "tmp/media-motion-return-oneplus-final-mixed-edge.json"
+        }
+      ],
+      "qualityComparison": [
+        {
+          "name": "real-largest-image-0",
+          "fullBitmapAndHdrParametersEqual": true,
+          "pqBefore": [
+            1983,
+            2640
+          ],
+          "pqAfter": [
+            1983,
+            2640
+          ]
+        },
+        {
+          "name": "real-largest-image-0-hdr-restored",
+          "fullBitmapAndHdrParametersEqual": true,
+          "pqBefore": [
+            1983,
+            2640
+          ],
+          "pqAfter": [
+            1983,
+            2640
+          ]
+        },
+        {
+          "name": "real-largest-sdr-0",
+          "fullBitmapAndHdrParametersEqual": true,
+          "pqBefore": [
+            null,
+            null
+          ],
+          "pqAfter": [
+            null,
+            null
+          ]
+        },
+        {
+          "name": "real-largest-motion-0",
+          "fullBitmapAndHdrParametersEqual": true,
+          "pqBefore": [
+            2984,
+            2241
+          ],
+          "pqAfter": [
+            2960,
+            2223
+          ]
+        },
+        {
+          "name": "real-largest-motion-0-hdr-restored",
+          "fullBitmapAndHdrParametersEqual": true,
+          "pqBefore": [
+            2984,
+            2241
+          ],
+          "pqAfter": [
+            2960,
+            2223
+          ]
+        },
+        {
+          "name": "real-many-first-0",
+          "fullBitmapAndHdrParametersEqual": true,
+          "pqBefore": [
+            null,
+            null
+          ],
+          "pqAfter": [
+            null,
+            null
+          ]
+        },
+        {
+          "name": "real-many-last-0",
+          "fullBitmapAndHdrParametersEqual": true,
+          "pqBefore": [
+            null,
+            null
+          ],
+          "pqAfter": [
+            null,
+            null
+          ]
+        }
+      ],
+      "openingSamples": [
+        {
+          "name": "real-largest-image-0-enter",
+          "prepareMs": 155.68
+        },
+        {
+          "name": "real-largest-sdr-0-enter",
+          "prepareMs": 144.6
+        },
+        {
+          "name": "real-largest-video-0-enter",
+          "prepareMs": 120.84
+        },
+        {
+          "name": "real-largest-gif-0-enter",
+          "prepareMs": 137.46
+        },
+        {
+          "name": "real-largest-motion-0-enter",
+          "prepareMs": 105.61
+        },
+        {
+          "name": "real-many-first-0-enter",
+          "prepareMs": 129.05
+        },
+        {
+          "name": "real-many-last-0-enter",
+          "prepareMs": 121.77
+        }
+      ]
+    },
+    {
+      "device": "meizu",
+      "originalRows": 182,
+      "rowsUnchanged": true,
+      "runs": [
+        {
+          "phase": "final-motion",
+          "checks": 53,
+          "failures": 0,
+          "motionSnapshots": [
+            {
+              "name": "real-hdr-motion-0",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "textureWidth": 1368,
+              "textureHeight": 3192,
+              "textureTransform": [
+                1,
+                0,
+                0,
+                0,
+                0.32142857,
+                1083,
+                0,
+                0,
+                1
+              ],
+              "viewScaleX": 1,
+              "viewScaleY": 1,
+              "compatibility": true,
+              "meanChannelError": 0,
+              "mismatchFraction": 0,
+              "spatialCorrelation": 1
+            },
+            {
+              "name": "real-hdr-motion-1",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "textureWidth": 1368,
+              "textureHeight": 3192,
+              "textureTransform": [
+                1,
+                0,
+                0,
+                0,
+                0.32142857,
+                1083,
+                0,
+                0,
+                1
+              ],
+              "viewScaleX": 2,
+              "viewScaleY": 2,
+              "compatibility": true,
+              "meanChannelError": 0,
+              "mismatchFraction": 0,
+              "spatialCorrelation": 1
+            }
+          ],
+          "artifact": "tmp/media-motion-return-meizu-final-motion.json"
+        },
+        {
+          "phase": "final-native-motion",
+          "checks": 53,
+          "failures": 0,
+          "motionSnapshots": [
+            {
+              "name": "real-hdr-motion-0",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "textureWidth": 1368,
+              "textureHeight": 3192,
+              "textureTransform": [
+                1,
+                0,
+                0,
+                0,
+                0.32142857,
+                1083,
+                0,
+                0,
+                1
+              ],
+              "viewScaleX": 1,
+              "viewScaleY": 1,
+              "compatibility": false,
+              "meanChannelError": 0.42459115687462146,
+              "mismatchFraction": 0,
+              "spatialCorrelation": 0.9999843465148317
+            },
+            {
+              "name": "real-hdr-motion-1",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "textureWidth": 1368,
+              "textureHeight": 3192,
+              "textureTransform": [
+                1,
+                0,
+                0,
+                0,
+                0.32142857,
+                1083,
+                0,
+                0,
+                1
+              ],
+              "viewScaleX": 2,
+              "viewScaleY": 2,
+              "compatibility": false,
+              "meanChannelError": 0.5365587655180415,
+              "mismatchFraction": 0,
+              "spatialCorrelation": 0.9999840857360891
+            }
+          ],
+          "artifact": "tmp/media-motion-return-meizu-final-native-motion.json"
+        },
+        {
+          "phase": "final-quality-all",
+          "checks": 130,
+          "failures": 0,
+          "motionSnapshots": [],
+          "artifact": "tmp/media-motion-return-meizu-final-quality-all.json"
+        },
+        {
+          "phase": "final-playing-playing",
+          "checks": 74,
+          "failures": 0,
+          "motionSnapshots": [],
+          "artifact": "tmp/media-motion-return-meizu-final-playing-playing.json"
+        },
+        {
+          "phase": "final-mixed-webp",
+          "checks": 187,
+          "failures": 0,
+          "motionSnapshots": [],
+          "artifact": "tmp/media-motion-return-meizu-final-mixed-webp.json"
+        },
+        {
+          "phase": "final-mixed-edge",
+          "checks": 88,
+          "failures": 0,
+          "motionSnapshots": [],
+          "artifact": "tmp/media-motion-return-meizu-final-mixed-edge.json"
+        }
+      ],
+      "qualityComparison": [
+        {
+          "name": "real-largest-image-0",
+          "fullBitmapAndHdrParametersEqual": true,
+          "pqBefore": [
+            2397,
+            3192
+          ],
+          "pqAfter": [
+            2397,
+            3192
+          ]
+        },
+        {
+          "name": "real-largest-image-0-hdr-restored",
+          "fullBitmapAndHdrParametersEqual": true,
+          "pqBefore": [
+            2397,
+            3192
+          ],
+          "pqAfter": [
+            2397,
+            3192
+          ]
+        },
+        {
+          "name": "real-largest-sdr-0",
+          "fullBitmapAndHdrParametersEqual": true,
+          "pqBefore": [
+            null,
+            null
+          ],
+          "pqAfter": [
+            null,
+            null
+          ]
+        },
+        {
+          "name": "real-largest-motion-0",
+          "fullBitmapAndHdrParametersEqual": true,
+          "pqBefore": [
+            2951,
+            2216
+          ],
+          "pqAfter": [
+            2854,
+            2143
+          ]
+        },
+        {
+          "name": "real-largest-motion-0-hdr-restored",
+          "fullBitmapAndHdrParametersEqual": true,
+          "pqBefore": [
+            2951,
+            2216
+          ],
+          "pqAfter": [
+            2854,
+            2143
+          ]
+        },
+        {
+          "name": "real-many-first-0",
+          "fullBitmapAndHdrParametersEqual": true,
+          "pqBefore": [
+            null,
+            null
+          ],
+          "pqAfter": [
+            null,
+            null
+          ]
+        },
+        {
+          "name": "real-many-last-0",
+          "fullBitmapAndHdrParametersEqual": true,
+          "pqBefore": [
+            null,
+            null
+          ],
+          "pqAfter": [
+            null,
+            null
+          ]
+        }
+      ],
+      "openingSamples": [
+        {
+          "name": "real-largest-image-0-enter",
+          "prepareMs": 547.74
+        },
+        {
+          "name": "real-largest-sdr-0-enter",
+          "prepareMs": 169.47
+        },
+        {
+          "name": "real-largest-video-0-enter",
+          "prepareMs": 181.6
+        },
+        {
+          "name": "real-largest-gif-0-enter",
+          "prepareMs": 165.37
+        },
+        {
+          "name": "real-largest-motion-0-enter",
+          "prepareMs": 180.66
+        },
+        {
+          "name": "real-many-first-0-enter",
+          "prepareMs": 164.48
+        },
+        {
+          "name": "real-many-last-0-enter",
+          "prepareMs": 171.26
+        }
+      ]
+    }
+  ],
+  "geometry": [
+    {
+      "device": "samsung",
+      "mode": "final",
+      "iteration": 0,
+      "target": "frozen-capture",
+      "matches": 7166,
+      "inliers": 7165,
+      "scaleRatio": 0.9999998155496835,
+      "passed": true
+    },
+    {
+      "device": "samsung",
+      "mode": "final",
+      "iteration": 0,
+      "target": "return-0",
+      "matches": 4426,
+      "inliers": 4352,
+      "scaleRatio": 0.9999816576214084,
+      "passed": true
+    },
+    {
+      "device": "samsung",
+      "mode": "final",
+      "iteration": 0,
+      "target": "return-1",
+      "matches": 3428,
+      "inliers": 3357,
+      "scaleRatio": 0.999942352814153,
+      "passed": true
+    },
+    {
+      "device": "samsung",
+      "mode": "final",
+      "iteration": 0,
+      "target": "return-2",
+      "matches": 1303,
+      "inliers": 1231,
+      "scaleRatio": 1.000065291119789,
+      "passed": true
+    },
+    {
+      "device": "samsung",
+      "mode": "final",
+      "iteration": 1,
+      "target": "frozen-capture",
+      "matches": 4790,
+      "inliers": 4790,
+      "scaleRatio": 1.0,
+      "passed": true
+    },
+    {
+      "device": "samsung",
+      "mode": "final",
+      "iteration": 1,
+      "target": "return-0",
+      "matches": 3603,
+      "inliers": 3570,
+      "scaleRatio": 0.9999855977186435,
+      "passed": true
+    },
+    {
+      "device": "samsung",
+      "mode": "final",
+      "iteration": 1,
+      "target": "return-1",
+      "matches": 3087,
+      "inliers": 3063,
+      "scaleRatio": 0.9999537557698053,
+      "passed": true
+    },
+    {
+      "device": "samsung",
+      "mode": "final",
+      "iteration": 1,
+      "target": "return-2",
+      "matches": 858,
+      "inliers": 763,
+      "scaleRatio": 1.0000134095191016,
+      "passed": true
+    },
+    {
+      "device": "samsung",
+      "mode": "final-native",
+      "iteration": 0,
+      "target": "frozen-capture",
+      "matches": 6476,
+      "inliers": 6470,
+      "scaleRatio": 0.9999959255108929,
+      "passed": true
+    },
+    {
+      "device": "samsung",
+      "mode": "final-native",
+      "iteration": 0,
+      "target": "return-0",
+      "matches": 4710,
+      "inliers": 4664,
+      "scaleRatio": 1.0000114170636272,
+      "passed": true
+    },
+    {
+      "device": "samsung",
+      "mode": "final-native",
+      "iteration": 0,
+      "target": "return-1",
+      "matches": 3613,
+      "inliers": 3566,
+      "scaleRatio": 0.9999760852179201,
+      "passed": true
+    },
+    {
+      "device": "samsung",
+      "mode": "final-native",
+      "iteration": 0,
+      "target": "return-2",
+      "matches": 1398,
+      "inliers": 1336,
+      "scaleRatio": 1.0001730275117406,
+      "passed": true
+    },
+    {
+      "device": "samsung",
+      "mode": "final-native",
+      "iteration": 1,
+      "target": "frozen-capture",
+      "matches": 4420,
+      "inliers": 4413,
+      "scaleRatio": 1.0000062809971448,
+      "passed": true
+    },
+    {
+      "device": "samsung",
+      "mode": "final-native",
+      "iteration": 1,
+      "target": "return-0",
+      "matches": 3599,
+      "inliers": 3567,
+      "scaleRatio": 0.999995839760692,
+      "passed": true
+    },
+    {
+      "device": "samsung",
+      "mode": "final-native",
+      "iteration": 1,
+      "target": "return-1",
+      "matches": 3078,
+      "inliers": 3053,
+      "scaleRatio": 0.9999666023710181,
+      "passed": true
+    },
+    {
+      "device": "samsung",
+      "mode": "final-native",
+      "iteration": 1,
+      "target": "return-2",
+      "matches": 803,
+      "inliers": 765,
+      "scaleRatio": 1.000112151710259,
+      "passed": true
+    },
+    {
+      "device": "oneplus",
+      "mode": "final",
+      "iteration": 0,
+      "target": "frozen-capture",
+      "matches": 6751,
+      "inliers": 6751,
+      "scaleRatio": 0.9999998555471413,
+      "passed": true
+    },
+    {
+      "device": "oneplus",
+      "mode": "final",
+      "iteration": 0,
+      "target": "return-0",
+      "matches": 4020,
+      "inliers": 3915,
+      "scaleRatio": 1.0005472215143094,
+      "passed": true
+    },
+    {
+      "device": "oneplus",
+      "mode": "final",
+      "iteration": 0,
+      "target": "return-1",
+      "matches": 3015,
+      "inliers": 2914,
+      "scaleRatio": 1.0005900976612312,
+      "passed": true
+    },
+    {
+      "device": "oneplus",
+      "mode": "final",
+      "iteration": 0,
+      "target": "return-2",
+      "matches": 452,
+      "inliers": 353,
+      "scaleRatio": 1.0008700343034111,
+      "passed": true
+    },
+    {
+      "device": "oneplus",
+      "mode": "final",
+      "iteration": 1,
+      "target": "frozen-capture",
+      "matches": 4921,
+      "inliers": 4921,
+      "scaleRatio": 1.0,
+      "passed": true
+    },
+    {
+      "device": "oneplus",
+      "mode": "final",
+      "iteration": 1,
+      "target": "return-0",
+      "matches": 2871,
+      "inliers": 2715,
+      "scaleRatio": 1.0004525394009007,
+      "passed": true
+    },
+    {
+      "device": "oneplus",
+      "mode": "final",
+      "iteration": 1,
+      "target": "return-1",
+      "matches": 2459,
+      "inliers": 2326,
+      "scaleRatio": 1.0005572968857683,
+      "passed": true
+    },
+    {
+      "device": "oneplus",
+      "mode": "final",
+      "iteration": 1,
+      "target": "return-2",
+      "matches": 296,
+      "inliers": 239,
+      "scaleRatio": 1.0001991223360824,
+      "passed": true
+    },
+    {
+      "device": "oneplus",
+      "mode": "final-native",
+      "iteration": 0,
+      "target": "frozen-capture",
+      "matches": 3188,
+      "inliers": 3172,
+      "scaleRatio": 1.0000122197334593,
+      "passed": true
+    },
+    {
+      "device": "oneplus",
+      "mode": "final-native",
+      "iteration": 0,
+      "target": "return-0",
+      "matches": 2298,
+      "inliers": 2192,
+      "scaleRatio": 1.0004590253870442,
+      "passed": true
+    },
+    {
+      "device": "oneplus",
+      "mode": "final-native",
+      "iteration": 0,
+      "target": "return-1",
+      "matches": 1721,
+      "inliers": 1633,
+      "scaleRatio": 1.0004493951534434,
+      "passed": true
+    },
+    {
+      "device": "oneplus",
+      "mode": "final-native",
+      "iteration": 0,
+      "target": "return-2",
+      "matches": 366,
+      "inliers": 295,
+      "scaleRatio": 1.000638988017071,
+      "passed": true
+    },
+    {
+      "device": "oneplus",
+      "mode": "final-native",
+      "iteration": 1,
+      "target": "frozen-capture",
+      "matches": 2697,
+      "inliers": 2684,
+      "scaleRatio": 1.000047799443824,
+      "passed": true
+    },
+    {
+      "device": "oneplus",
+      "mode": "final-native",
+      "iteration": 1,
+      "target": "return-0",
+      "matches": 2289,
+      "inliers": 2263,
+      "scaleRatio": 1.00012234020252,
+      "passed": true
+    },
+    {
+      "device": "oneplus",
+      "mode": "final-native",
+      "iteration": 1,
+      "target": "return-1",
+      "matches": 1958,
+      "inliers": 1939,
+      "scaleRatio": 1.0001241308530924,
+      "passed": true
+    },
+    {
+      "device": "oneplus",
+      "mode": "final-native",
+      "iteration": 1,
+      "target": "return-2",
+      "matches": 489,
+      "inliers": 449,
+      "scaleRatio": 0.9999568555386655,
+      "passed": true
+    },
+    {
+      "device": "meizu",
+      "mode": "final",
+      "iteration": 0,
+      "target": "frozen-capture",
+      "matches": 7422,
+      "inliers": 7422,
+      "scaleRatio": 0.9999985996376803,
+      "passed": true
+    },
+    {
+      "device": "meizu",
+      "mode": "final",
+      "iteration": 0,
+      "target": "return-0",
+      "matches": 4754,
+      "inliers": 4670,
+      "scaleRatio": 1.0000146587199197,
+      "passed": true
+    },
+    {
+      "device": "meizu",
+      "mode": "final",
+      "iteration": 0,
+      "target": "return-1",
+      "matches": 3608,
+      "inliers": 3563,
+      "scaleRatio": 0.9999781850775676,
+      "passed": true
+    },
+    {
+      "device": "meizu",
+      "mode": "final",
+      "iteration": 0,
+      "target": "return-2",
+      "matches": 1344,
+      "inliers": 1260,
+      "scaleRatio": 1.0002811103219158,
+      "passed": true
+    },
+    {
+      "device": "meizu",
+      "mode": "final",
+      "iteration": 1,
+      "target": "frozen-capture",
+      "matches": 5257,
+      "inliers": 5257,
+      "scaleRatio": 1.0,
+      "passed": true
+    },
+    {
+      "device": "meizu",
+      "mode": "final",
+      "iteration": 1,
+      "target": "return-0",
+      "matches": 3972,
+      "inliers": 3923,
+      "scaleRatio": 0.999995836581464,
+      "passed": true
+    },
+    {
+      "device": "meizu",
+      "mode": "final",
+      "iteration": 1,
+      "target": "return-1",
+      "matches": 3377,
+      "inliers": 3227,
+      "scaleRatio": 0.9999527448156278,
+      "passed": true
+    },
+    {
+      "device": "meizu",
+      "mode": "final",
+      "iteration": 1,
+      "target": "return-2",
+      "matches": 873,
+      "inliers": 810,
+      "scaleRatio": 0.9999489832380909,
+      "passed": true
+    },
+    {
+      "device": "meizu",
+      "mode": "final-native",
+      "iteration": 0,
+      "target": "frozen-capture",
+      "matches": 6657,
+      "inliers": 6643,
+      "scaleRatio": 0.9999966264960026,
+      "passed": true
+    },
+    {
+      "device": "meizu",
+      "mode": "final-native",
+      "iteration": 0,
+      "target": "return-0",
+      "matches": 4793,
+      "inliers": 4759,
+      "scaleRatio": 0.999996158493017,
+      "passed": true
+    },
+    {
+      "device": "meizu",
+      "mode": "final-native",
+      "iteration": 0,
+      "target": "return-1",
+      "matches": 3658,
+      "inliers": 3612,
+      "scaleRatio": 0.9999618561866959,
+      "passed": true
+    },
+    {
+      "device": "meizu",
+      "mode": "final-native",
+      "iteration": 0,
+      "target": "return-2",
+      "matches": 1405,
+      "inliers": 1326,
+      "scaleRatio": 1.0002746181103113,
+      "passed": true
+    },
+    {
+      "device": "meizu",
+      "mode": "final-native",
+      "iteration": 1,
+      "target": "frozen-capture",
+      "matches": 4849,
+      "inliers": 4845,
+      "scaleRatio": 1.000003958277265,
+      "passed": true
+    },
+    {
+      "device": "meizu",
+      "mode": "final-native",
+      "iteration": 1,
+      "target": "return-0",
+      "matches": 3968,
+      "inliers": 3825,
+      "scaleRatio": 1.0000455822366598,
+      "passed": true
+    },
+    {
+      "device": "meizu",
+      "mode": "final-native",
+      "iteration": 1,
+      "target": "return-1",
+      "matches": 3321,
+      "inliers": 3288,
+      "scaleRatio": 0.999983269714262,
+      "passed": true
+    },
+    {
+      "device": "meizu",
+      "mode": "final-native",
+      "iteration": 1,
+      "target": "return-2",
+      "matches": 825,
+      "inliers": 771,
+      "scaleRatio": 1.0000696082466647,
+      "passed": true
+    }
+  ],
+  "jvm": {
+    "tests": 1732,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3
+  },
+  "checks": 1749,
+  "cleanup": [
+    {
+      "device": "samsung",
+      "home": true,
+      "rotationLockedPortrait": true,
+      "diagnosticsRemoved": true
+    },
+    {
+      "device": "oneplus",
+      "home": true,
+      "rotationLockedPortrait": true,
+      "diagnosticsRemoved": true
+    },
+    {
+      "device": "meizu",
+      "home": true,
+      "rotationLockedPortrait": true,
+      "diagnosticsRemoved": true
+    }
+  ],
+  "cleanupJobs": [
+    {
+      "device": "samsung",
+      "fixtureJobs": 17,
+      "activeFixtureJobs": [],
+      "cleaned": true,
+      "removedDerivedPreviews": 17
+    },
+    {
+      "device": "oneplus",
+      "fixtureJobs": 15,
+      "activeFixtureJobs": [],
+      "cleaned": true,
+      "removedDerivedPreviews": 15
+    },
+    {
+      "device": "meizu",
+      "fixtureJobs": 15,
+      "activeFixtureJobs": [],
+      "cleaned": true,
+      "removedDerivedPreviews": 15
+    }
+  ],
+  "publication": {
+    "debugUpdateCode": 202610211633,
+    "publishedAt": "2026-10-21T16:33:23.379721400Z",
+    "sha256": "32562e11492c167329d5f8384221ee59ed35fed467973396615686fd598715cd",
+    "sizeBytes": 36917279,
+    "apkUrl": "http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202610211633.apk",
+    "devices": [
+      {
+        "device": "samsung",
+        "version": 202610211633,
+        "installedSha256": "32562e11492c167329d5f8384221ee59ed35fed467973396615686fd598715cd",
+        "checks": 179,
+        "originalRows": 375,
+        "rowsUnchanged": true,
+        "failures": 0,
+        "runs": [
+          {
+            "phase": "motion",
+            "checks": 49,
+            "motionSnapshots": [
+              {
+                "name": "real-hdr-motion-0",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "textureWidth": 1440,
+                "textureHeight": 3088,
+                "textureTransform": [
+                  1,
+                  0,
+                  0,
+                  0,
+                  0.34974092,
+                  1004,
+                  0,
+                  0,
+                  1
+                ],
+                "viewScaleX": 1,
+                "viewScaleY": 1,
+                "compatibility": true,
+                "meanChannelError": 0,
+                "mismatchFraction": 0,
+                "spatialCorrelation": 1
+              },
+              {
+                "name": "real-hdr-motion-1",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "textureWidth": 1440,
+                "textureHeight": 3088,
+                "textureTransform": [
+                  1,
+                  0,
+                  0,
+                  0,
+                  0.34974092,
+                  1004,
+                  0,
+                  0,
+                  1
+                ],
+                "viewScaleX": 2,
+                "viewScaleY": 2,
+                "compatibility": true,
+                "meanChannelError": 0,
+                "mismatchFraction": 0,
+                "spatialCorrelation": 1
+              }
+            ]
+          },
+          {
+            "phase": "all",
+            "checks": 130,
+            "motionSnapshots": []
+          }
+        ]
+      },
+      {
+        "device": "oneplus",
+        "version": 202610211633,
+        "installedSha256": "32562e11492c167329d5f8384221ee59ed35fed467973396615686fd598715cd",
+        "checks": 175,
+        "originalRows": 115,
+        "rowsUnchanged": true,
+        "failures": 0,
+        "runs": [
+          {
+            "phase": "motion",
+            "checks": 47,
+            "motionSnapshots": [
+              {
+                "name": "real-hdr-motion-0",
+                "videoWidth": 1422,
+                "videoHeight": 1067,
+                "textureWidth": 1216,
+                "textureHeight": 2640,
+                "textureTransform": [
+                  1,
+                  0,
+                  0,
+                  0,
+                  0.3456165,
+                  863.78625,
+                  0,
+                  0,
+                  1
+                ],
+                "viewScaleX": 1,
+                "viewScaleY": 1,
+                "compatibility": true,
+                "meanChannelError": 0,
+                "mismatchFraction": 0,
+                "spatialCorrelation": 1
+              },
+              {
+                "name": "real-hdr-motion-1",
+                "videoWidth": 1422,
+                "videoHeight": 1067,
+                "textureWidth": 1216,
+                "textureHeight": 2640,
+                "textureTransform": [
+                  1,
+                  0,
+                  0,
+                  0,
+                  0.3456165,
+                  863.78625,
+                  0,
+                  0,
+                  1
+                ],
+                "viewScaleX": 2,
+                "viewScaleY": 2,
+                "compatibility": true,
+                "meanChannelError": 0,
+                "mismatchFraction": 0,
+                "spatialCorrelation": 1
+              }
+            ]
+          },
+          {
+            "phase": "all",
+            "checks": 128,
+            "motionSnapshots": []
+          }
+        ]
+      },
+      {
+        "device": "meizu",
+        "version": 202610211633,
+        "installedSha256": "32562e11492c167329d5f8384221ee59ed35fed467973396615686fd598715cd",
+        "checks": 179,
+        "originalRows": 182,
+        "rowsUnchanged": true,
+        "failures": 0,
+        "runs": [
+          {
+            "phase": "motion",
+            "checks": 49,
+            "motionSnapshots": [
+              {
+                "name": "real-hdr-motion-0",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "textureWidth": 1368,
+                "textureHeight": 3192,
+                "textureTransform": [
+                  1,
+                  0,
+                  0,
+                  0,
+                  0.32142857,
+                  1083,
+                  0,
+                  0,
+                  1
+                ],
+                "viewScaleX": 1,
+                "viewScaleY": 1,
+                "compatibility": true,
+                "meanChannelError": 0,
+                "mismatchFraction": 0,
+                "spatialCorrelation": 1
+              },
+              {
+                "name": "real-hdr-motion-1",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "textureWidth": 1368,
+                "textureHeight": 3192,
+                "textureTransform": [
+                  1,
+                  0,
+                  0,
+                  0,
+                  0.32142857,
+                  1083,
+                  0,
+                  0,
+                  1
+                ],
+                "viewScaleX": 2,
+                "viewScaleY": 2,
+                "compatibility": true,
+                "meanChannelError": 0,
+                "mismatchFraction": 0,
+                "spatialCorrelation": 1
+              }
+            ]
+          },
+          {
+            "phase": "all",
+            "checks": 130,
+            "motionSnapshots": []
+          }
+        ]
+      }
+    ],
+    "checks": 533,
+    "fullBitmapAndHdrParametersEqual": true
+  }
+}

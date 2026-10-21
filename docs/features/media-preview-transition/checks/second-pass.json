@@ -1,0 +1,403 @@
+[
+  {
+    "device": "samsung",
+    "checks": 159,
+    "failures": 0,
+    "originalRows": 374,
+    "baseline": [
+      {
+        "run": "real-largest-image-0-enter",
+        "ms": 448.47
+      },
+      {
+        "run": "real-largest-image-0-return",
+        "ms": 316.82
+      },
+      {
+        "run": "real-largest-image-1-enter",
+        "ms": 314.92
+      },
+      {
+        "run": "real-largest-image-1-return",
+        "ms": 387.23
+      }
+    ],
+    "final": [
+      {
+        "run": "real-largest-image-0-enter",
+        "ms": 282.37
+      },
+      {
+        "run": "real-largest-image-0-return",
+        "ms": 213.87
+      },
+      {
+        "run": "real-largest-image-1-enter",
+        "ms": 197.82
+      },
+      {
+        "run": "real-largest-image-1-return",
+        "ms": 209.98
+      }
+    ],
+    "samples": [
+      {
+        "id": 1258,
+        "index": 1,
+        "attachmentCount": 7,
+        "bytes": 36248874,
+        "video": false,
+        "gif": false,
+        "width": 12256,
+        "height": 16320,
+        "motion": false,
+        "hdr": true,
+        "decodedWidth": 2319,
+        "decodedHeight": 3088,
+        "hdrWindowObserved": true,
+        "name": "largest-image"
+      },
+      {
+        "id": 1259,
+        "index": 0,
+        "attachmentCount": 1,
+        "bytes": 3643341,
+        "video": true,
+        "gif": false,
+        "width": 1620,
+        "height": 1080,
+        "motion": false,
+        "hdr": false,
+        "durationMs": 2926,
+        "decodedWidth": 4632,
+        "decodedHeight": 3088,
+        "playbackObserved": false,
+        "name": "largest-video"
+      },
+      {
+        "id": 1258,
+        "index": 4,
+        "attachmentCount": 7,
+        "bytes": 1976836,
+        "video": false,
+        "gif": true,
+        "width": 428,
+        "height": 240,
+        "motion": false,
+        "hdr": false,
+        "decodedWidth": 1440,
+        "decodedHeight": 807,
+        "name": "largest-gif"
+      },
+      {
+        "id": 1258,
+        "index": 0,
+        "attachmentCount": 7,
+        "bytes": 6445461,
+        "video": false,
+        "gif": false,
+        "width": 3392,
+        "height": 2544,
+        "motion": true,
+        "hdr": false,
+        "decodedWidth": 4117,
+        "decodedHeight": 3088,
+        "playbackObserved": false,
+        "name": "largest-motion"
+      },
+      {
+        "id": 1258,
+        "index": 6,
+        "attachmentCount": 7,
+        "bytes": 1318258,
+        "video": false,
+        "gif": false,
+        "width": 1440,
+        "height": 1440,
+        "motion": false,
+        "hdr": false,
+        "decodedWidth": 3088,
+        "decodedHeight": 3088,
+        "name": "many-last"
+      }
+    ],
+    "fixtureChecks": 176,
+    "fixtureFailures": 0,
+    "visualChecks": 35,
+    "visualFailures": 0
+  },
+  {
+    "device": "oneplus",
+    "checks": 188,
+    "failures": 0,
+    "originalRows": 114,
+    "baseline": [
+      {
+        "run": "real-largest-image-0-enter",
+        "ms": 238.07
+      },
+      {
+        "run": "real-largest-image-0-return",
+        "ms": 292.29
+      },
+      {
+        "run": "real-largest-image-1-enter",
+        "ms": 212.16
+      },
+      {
+        "run": "real-largest-image-1-return",
+        "ms": 329.97
+      }
+    ],
+    "final": [
+      {
+        "run": "real-largest-image-0-enter",
+        "ms": 171.06
+      },
+      {
+        "run": "real-largest-image-0-return",
+        "ms": 169.29
+      },
+      {
+        "run": "real-largest-image-1-enter",
+        "ms": 203.29
+      },
+      {
+        "run": "real-largest-image-1-return",
+        "ms": 220.17
+      }
+    ],
+    "samples": [
+      {
+        "id": 1264,
+        "index": 1,
+        "attachmentCount": 7,
+        "bytes": 36248874,
+        "video": false,
+        "gif": false,
+        "width": 12256,
+        "height": 16320,
+        "motion": false,
+        "hdr": true,
+        "decodedWidth": 1983,
+        "decodedHeight": 2640,
+        "hdrWindowObserved": true,
+        "name": "largest-image"
+      },
+      {
+        "id": 2235,
+        "index": 0,
+        "attachmentCount": 2,
+        "bytes": 168695573,
+        "video": true,
+        "gif": false,
+        "width": 3840,
+        "height": 2160,
+        "motion": false,
+        "hdr": false,
+        "namedSample": true,
+        "durationMs": 15637,
+        "decodedWidth": 1485,
+        "decodedHeight": 2640,
+        "playbackObserved": false,
+        "name": "largest-video"
+      },
+      {
+        "id": 15,
+        "index": 1,
+        "attachmentCount": 6,
+        "bytes": 6592871,
+        "video": false,
+        "gif": true,
+        "width": 200,
+        "height": 200,
+        "motion": false,
+        "hdr": false,
+        "decodedWidth": 1216,
+        "decodedHeight": 1216,
+        "name": "largest-gif"
+      },
+      {
+        "id": 689,
+        "index": 1,
+        "attachmentCount": 2,
+        "bytes": 24052632,
+        "video": false,
+        "gif": false,
+        "width": 5888,
+        "height": 4416,
+        "motion": true,
+        "hdr": true,
+        "decodedWidth": 3520,
+        "decodedHeight": 2640,
+        "playbackObserved": false,
+        "hdrWindowObserved": true,
+        "name": "largest-motion"
+      },
+      {
+        "id": 1264,
+        "index": 0,
+        "attachmentCount": 7,
+        "bytes": 6445461,
+        "video": false,
+        "gif": false,
+        "width": 3392,
+        "height": 2544,
+        "motion": true,
+        "hdr": false,
+        "decodedWidth": 3520,
+        "decodedHeight": 2640,
+        "playbackObserved": false,
+        "name": "many-first"
+      },
+      {
+        "id": 1264,
+        "index": 6,
+        "attachmentCount": 7,
+        "bytes": 1318258,
+        "video": false,
+        "gif": false,
+        "width": 1440,
+        "height": 1440,
+        "motion": false,
+        "hdr": false,
+        "decodedWidth": 2640,
+        "decodedHeight": 2640,
+        "name": "many-last"
+      }
+    ],
+    "edgeRerunChecks": 86,
+    "fixtureChecks": 176,
+    "fixtureFailures": 0,
+    "visualChecks": 66,
+    "visualFailures": 0
+  },
+  {
+    "device": "meizu",
+    "checks": 158,
+    "failures": 0,
+    "originalRows": 181,
+    "baseline": [
+      {
+        "run": "real-largest-image-0-enter",
+        "ms": 704.38
+      },
+      {
+        "run": "real-largest-image-0-return",
+        "ms": 392.97
+      },
+      {
+        "run": "real-largest-image-1-enter",
+        "ms": 329.08
+      },
+      {
+        "run": "real-largest-image-1-return",
+        "ms": 286.0
+      }
+    ],
+    "final": [
+      {
+        "run": "real-largest-image-0-enter",
+        "ms": 517.6
+      },
+      {
+        "run": "real-largest-image-0-return",
+        "ms": 216.39
+      },
+      {
+        "run": "real-largest-image-1-enter",
+        "ms": 216.23
+      },
+      {
+        "run": "real-largest-image-1-return",
+        "ms": 173.62
+      }
+    ],
+    "samples": [
+      {
+        "id": 779,
+        "index": 1,
+        "attachmentCount": 7,
+        "bytes": 36248874,
+        "video": false,
+        "gif": false,
+        "width": 12256,
+        "height": 16320,
+        "motion": false,
+        "hdr": true,
+        "decodedWidth": 2397,
+        "decodedHeight": 3192,
+        "hdrWindowObserved": true,
+        "name": "largest-image"
+      },
+      {
+        "id": 782,
+        "index": 0,
+        "attachmentCount": 2,
+        "bytes": 168695573,
+        "video": true,
+        "gif": false,
+        "width": 3840,
+        "height": 2160,
+        "motion": false,
+        "hdr": false,
+        "namedSample": true,
+        "durationMs": 15637,
+        "decodedWidth": 1796,
+        "decodedHeight": 3192,
+        "playbackObserved": false,
+        "name": "largest-video"
+      },
+      {
+        "id": 779,
+        "index": 4,
+        "attachmentCount": 7,
+        "bytes": 1976836,
+        "video": false,
+        "gif": true,
+        "width": 428,
+        "height": 240,
+        "motion": false,
+        "hdr": false,
+        "decodedWidth": 1368,
+        "decodedHeight": 767,
+        "name": "largest-gif"
+      },
+      {
+        "id": 779,
+        "index": 0,
+        "attachmentCount": 7,
+        "bytes": 6445461,
+        "video": false,
+        "gif": false,
+        "width": 3392,
+        "height": 2544,
+        "motion": true,
+        "hdr": false,
+        "decodedWidth": 4256,
+        "decodedHeight": 3192,
+        "playbackObserved": false,
+        "name": "largest-motion"
+      },
+      {
+        "id": 779,
+        "index": 6,
+        "attachmentCount": 7,
+        "bytes": 1318258,
+        "video": false,
+        "gif": false,
+        "width": 1440,
+        "height": 1440,
+        "motion": false,
+        "hdr": false,
+        "decodedWidth": 3192,
+        "decodedHeight": 3192,
+        "name": "many-last"
+      }
+    ],
+    "fixtureChecks": 176,
+    "fixtureFailures": 0,
+    "visualChecks": 35,
+    "visualFailures": 0
+  }
+]

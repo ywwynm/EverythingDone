@@ -36,3 +36,7 @@
 ## 更新（2026-07-25）
 
 [ADR-0017](0017-detail-animated-playback-modes.md) 修订了本文"详情附件列表（默认与定制模式）播放"的无条件结论：详情附件网格的播放改由新的四档 **Detail Autoplay** 设置管控（默认「同时循环播放」，即行为不变），且全部档位**按滚动视口生效**——因为该网格一次性全量布局、不按视口回收，本文所依赖的 Glide 屏外自动暂停在那里是失效的。同时详情页的视频首次接入 Thing Card Video Preview，全屏预览的普通视频改为自动播放真视频。本文对全屏预览、Thing Card 各面、裁切编辑器、RemoteViews 的结论不变。
+
+## 更新（2026-10-21）：详情动态 WebP 的平台解码分支
+
+上文「GIF／动态 WebP 均由 Glide 位图变换逐帧裁剪」的实现假设不成立：Glide 4.16.0 在 Android 9 及以上将动态 WebP 解码为 `AnimatedImageDrawable`，要求位图变换会直接加载失败。详情页改用绘制时裁剪的 Drawable，复用静态／GIF 的同一几何计算。平台动画实例与播放回调按 holder 独占，循环与一次均隔离；不播放时明确请求静态首帧。全屏仍保持完整动画请求。见[诊断与验证](../features/media-preview-transition/animated-webp-2026-10-21.md)。

@@ -98,6 +98,7 @@ class DetailAttachmentPlaybackController(
     fun setTransitionPaused(paused: Boolean) {
         if (transitionPaused == paused || disposed) return
         transitionPaused = paused
+        adapter?.preserveTransitionPlayback(paused)
         adapter?.refreshAttachedPlayback()
         if (!paused) scheduleEvaluation()
     }
@@ -168,7 +169,7 @@ class DetailAttachmentPlaybackController(
 
     /** 循环档离屏只暂停解码，资源仍用 GIF；「一次」结束和关闭档才回静态代表帧。 */
     fun usesAnimatedResource(position: Int): Boolean =
-        DetailAutoplayMode.loops(mode) || shouldPlay(position)
+        DetailAutoplayMode.loops(mode) || playing.contains(position)
 
     /** 只有「同时循环播放」档是无限循环；长按手动播放永远只播一轮。 */
     fun shouldLoop(position: Int): Boolean =

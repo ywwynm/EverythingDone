@@ -269,7 +269,7 @@ internal object ParticleHardwareSnapshot {
                 complete(null)
             }
         } catch (error: Throwable) {
-            ParticleCaptureDiagnostics.note("硬件离屏异常=${error.javaClass.simpleName}")
+            ParticleCaptureDiagnostics.note("硬件离屏异常=${error.javaClass.simpleName}: ${error.stackTraceToString()}")
             complete(null)
         } finally {
             // 包含上面的 sync，但不跨越 Surface PixelCopy、阴影准备或 GPU 读回回调。

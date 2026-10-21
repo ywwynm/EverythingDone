@@ -1,5 +1,13 @@
 # 决策记录 / 详情页动态内容播放（Detail Animated Playback）
 
+## 2026-10-21：动态 WebP 不能共用平台动画实例
+
+Glide 的平台动态 WebP 资源直接返回同一个 `AnimatedImageDrawable`；因此详情循环档和全屏重复页也按显示者隔离解码所有权。GIF 现有共享循环与独立单轮策略保持。详情 WebP 采用 Drawable 绘制裁剪，关闭／等待／播放结束显式请求首帧，主动暂停清除结束通知，防止误推进逐一队列。平台 start 会从首帧恢复，不宣称具备 GIF 的任意帧接续能力；转场期间保留同一 Drawable 和暂停画面。详见[诊断](../media-preview-transition/animated-webp-2026-10-21.md)。
+
+## 2026-10-21：媒体转场暂停保留资源与当前帧
+
+媒体预览返回期间的临时暂停只控制播放开关，不切换 GIF／静态资源。暂停前记录仍绑定于当前附件的 GIF，恢复时只对同一实例接续播放；随后重新应用既有播放调度。真实离屏、删除重排、播放结束回代表帧等原有规则继续生效。避免「播放一次」在转场结束时从第 5／14 帧跳回第 0 帧。复现、帧号和三机回归见 `../media-preview-transition/diagnosis-2026-10-21-second-pass.md`。
+
 ## 2026-10-20：从首帧播放一次的附件必须独占 GIF 解码状态
 
 `crash_20261020091302.log` 暴露了 D21 的边界：`GifDrawable.isRunning` 只表示当前 drawable

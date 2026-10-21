@@ -52,10 +52,14 @@ object MediaCropBitmapRenderer {
 
     /** 调用方提供已清空的目标位图；静态烘焙和动图帧共用原有裁切数学。 */
     internal fun renderCropInto(source: Bitmap, output: Bitmap, crop: Crop) {
-        val targetWidth = output.width
-        val targetHeight = output.height
-        val sourceWidth = source.width
-        val sourceHeight = source.height
+        Canvas(output).drawBitmap(source, cropMatrix(source.width, source.height,
+            output.width, output.height, crop), null)
+    }
+
+    /** 静态烘焙、GIF 帧和平台动画使用同一套裁剪坐标。 */
+    internal fun cropMatrix(
+        sourceWidth: Int, sourceHeight: Int, targetWidth: Int, targetHeight: Int, crop: Crop
+    ): Matrix {
         val sourceAspectRatio = normalizeSourceAspectRatio(crop.sourceAspectRatio)
         val cropSourceW: Float
         val cropSourceH: Float
@@ -98,7 +102,7 @@ object MediaCropBitmapRenderer {
         val matrix = Matrix()
         matrix.setScale(effectiveScale, effectiveScale)
         matrix.postTranslate(left, top)
-        Canvas(output).drawBitmap(source, matrix, null)
+        return matrix
     }
 
     private fun getSourceBitmap(drawable: Drawable): Bitmap? {

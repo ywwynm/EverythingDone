@@ -4,6 +4,7 @@ package com.ywwynm.everythingdone.activities
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.content.Context
 import android.content.res.Configuration
 import androidx.activity.OnBackPressedCallback
 import android.graphics.Point
@@ -38,6 +39,7 @@ import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Build
+import android.os.Bundle
 import android.os.ParcelFileDescriptor
 import android.view.GestureDetector
 import android.view.HapticFeedbackConstants
@@ -46,6 +48,8 @@ import android.view.Surface
 import android.view.TextureView
 
 import com.bumptech.glide.Glide
+import com.bumptech.glide.Priority
+import com.bumptech.glide.RequestBuilder
 import android.graphics.drawable.Drawable
 import android.util.Log
 import com.bumptech.glide.load.DataSource
@@ -65,6 +69,7 @@ import com.ywwynm.everythingdone.fragments.AttachmentInfoDialogFragment
 import com.ywwynm.everythingdone.fragments.ThreeActionsAlertDialogFragment
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.helpers.MotionPhotoDetector
+import com.ywwynm.everythingdone.helpers.MediaPreviewThumbnail
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.permission.DirectionSensorHint
 import com.ywwynm.everythingdone.spatial.SpatialAlphaData
@@ -98,6 +103,8 @@ import com.ywwynm.everythingdone.utils.EdgeEffectUtil
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.utils.FileUtil
 import com.ywwynm.everythingdone.views.HdrBadgeView
+import com.ywwynm.everythingdone.views.MediaPreviewTransition
+import com.ywwynm.everythingdone.views.ThingDetailTransition
 
 import java.io.File
 import java.util.ArrayList
@@ -105,6 +112,43 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
 open class ImageViewerActivity : EverythingDoneBaseActivity() {
+
+    private var mPreviewTransition: MediaPreviewTransition? = null
+    private var mPreviewTransitionBlocked = false
+    private val mDeferredPreviewLoads = mutableListOf<() -> Unit>()
+    private val mFullResolutionImages = mutableSetOf<PhotoView>()
+    private val mPreviewPlaceholders = mutableMapOf<PhotoView, BitmapDrawable>()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        MediaPreviewTransition.mark("viewer-create")
+        if (savedInstanceState != null) intent.removeExtra(MediaPreviewTransition.EXTRA_TOKEN)
+        mPreviewTransitionBlocked = intent.hasExtra(MediaPreviewTransition.EXTRA_TOKEN)
+        super.onCreate(savedInstanceState)
+        mPreviewTransition = MediaPreviewTransition.attach(this, {
+            mTabs?.getOrNull(mVpImage?.currentItem ?: mPosition)?.findViewById(R.id.iv_image_attachment)
+        }) {
+            mPreviewTransitionBlocked = false
+            if (mPreviewTransition?.returning != true && mViewerResumed) {
+                resumeDeferredPreviewLoads()
+                applyHdrStateForCurrentPage()
+                scheduleAutoplayForCurrentPage()
+            }
+        }
+        if (mPreviewTransition == null) {
+            mPreviewTransitionBlocked = false
+            resumeDeferredPreviewLoads()
+        }
+    }
+
+    private fun resumeDeferredPreviewLoads() {
+        mVpImage?.post {
+            if (mPreviewTransitionBlocked || mPreviewTransition?.returning == true ||
+                !mViewerResumed || isFinishing || isDestroyed) return@post
+            val loads = mDeferredPreviewLoads.toList()
+            mDeferredPreviewLoads.clear()
+            loads.forEach { it() }
+        }
+    }
 
     private var mSystemUiVisible: Boolean = true
 
@@ -163,6 +207,18 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     private val mMotionBaseRect = RectF()
     private val mMotionMatrix = Matrix()
     private var mMotionRevealed = false
+
+    /** 返回动画读取正在显示的视频几何，不能用静态主图比例代替内嵌视频比例。 */
+    internal fun motionPreviewBounds(photo: PhotoView): RectF? {
+        val texture = mMotionTexture ?: return null
+        if (!mMotionRevealed || mMotionPhotoView !== photo || texture.alpha <= 0f) return null
+        val parent = texture.parent as? View ?: return null
+        val location = ThingDetailTransition.bounds(parent, window.decorView)
+        return RectF(mMotionBaseRect).apply {
+            texture.matrix.mapRect(this)
+            offset(texture.left + location.left, texture.top + location.top)
+        }
+    }
 
     // —— 普通视频页的播放（ADR-0017 / decisions.md D11–D12）——
 
@@ -315,11 +371,14 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
 
             // 内存缓存可能同步回调；先登记页，当前静图可在首次 onResume 前开始 HDR 准备。
             mTabs!!.add(tab)
-            loadImage(index, pathName, iv, pb, size, videoFrameMsOf(index))
-
-            if (type == AttachmentHelper.IMAGE && AttachmentHelper.isMotionPhotoCandidate(pathName)) {
-                detectMotionPhotoAsync(index)
+            val load = {
+                loadImage(index, pathName, iv, pb, size, videoFrameMsOf(index))
+                if (type == AttachmentHelper.IMAGE && AttachmentHelper.isMotionPhotoCandidate(pathName)) {
+                    detectMotionPhotoAsync(index)
+                }
             }
+            // 多附件记事只让当前页参与展开准备，避免旁页的大图和 GIF 同时抢占解码。
+            if (mPreviewTransitionBlocked && index != mPosition) mDeferredPreviewLoads += load else load()
 
         }
 
@@ -409,28 +468,70 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         // Animated Image (GIF / animated WebP) carries no HDR gain map, so the
         // asBitmap HDR path has nothing to preserve here; load it as a Drawable so
         // Glide animates it. See ADR-0007.
-        if (AttachmentHelper.isAnimatedImageCandidate(pathName)) {
+        if (!MediaPreviewThumbnail.isStaticImage(pathName)) {
             loadAnimatedImage(position, pathName, iv, pb, size)
             return
         }
+        val smallPreview = mPreviewTransitionBlocked && position == mPosition
+        if (smallPreview) {
+            mDeferredPreviewLoads.add(0) { loadImage(position, pathName, iv, pb, size, videoFrameMs) }
+            val key = mTypePathNames?.getOrNull(position)
+            if (key?.startsWith("0") == true) {
+                MediaPreviewTransition.mark("image-$position-embedded-request")
+                val prepared = MediaPreviewTransition.preparedPreview(this, key) ?: MediaPreviewThumbnail.prepare(pathName)
+                prepared.thenAccept { result ->
+                    val preview = result?.bitmap
+                    runOnUiThread {
+                        if (isFinishing || isDestroyed || !mPreviewTransitionBlocked) {
+                            preview?.recycle()
+                            MediaPreviewTransition.mark("image-$position-embedded-discarded")
+                            return@runOnUiThread
+                        }
+                        if (preview != null) {
+                            val drawable = BitmapDrawable(resources, preview)
+                            mPreviewPlaceholders[iv] = drawable
+                            mFullResolutionImages.remove(iv)
+                            iv.setImageDrawable(drawable)
+                            pb.visibility = View.GONE
+                            val origin = if (result.fromDetail) "detail-preview" else "embedded"
+                            MediaPreviewTransition.mark("image-$position-$origin-ready:${preview.width}x${preview.height}")
+                        } else {
+                            MediaPreviewTransition.mark("image-$position-embedded-unavailable")
+                            loadBitmapImage(position, pathName, iv, pb, size, videoFrameMs, smallPreview = true)
+                        }
+                    }
+                }
+                return
+            }
+        }
+        loadBitmapImage(position, pathName, iv, pb, size, videoFrameMs, smallPreview)
+    }
+
+    private fun loadBitmapImage(
+        position: Int, pathName: String, iv: PhotoView, pb: ProgressBar,
+        size: IntArray, videoFrameMs: Long, smallPreview: Boolean
+    ) {
         // asBitmap + dontTransform + disallowHardwareConfig: decode straight to
         // an ARGB_8888 bitmap that still carries the UltraHDR gain map, with no
         // software-Canvas transform step that would flatten it to SDR. PhotoView
         // does its own matrix fit/zoom, so no Glide fitting transform is needed.
-        var request = Glide.with(this)
-            .asBitmap()
-            .load(pathName)
-            .dontTransform()
-            .disallowHardwareConfig()
-        if (mPqController != null && mTypePathNames?.getOrNull(position)?.startsWith("0") == true) {
-            request = request.downsample(com.ywwynm.everythingdone.hdr.HdrViewerDownsampleStrategy)
-                // 直接读取附件原文件；旧的重编码资源缓存可能已放大小图或丢失 HDR 元数据。
-                .diskCacheStrategy(com.bumptech.glide.load.engine.DiskCacheStrategy.NONE)
+        var request = previewBitmapRequest(this, pathName, videoFrameMs,
+            mPqController != null && mTypePathNames?.getOrNull(position)?.startsWith("0") == true)
+        val loadStage = "image-$position-${if (smallPreview) "preview" else "full"}"
+        if (mPreviewTransitionBlocked) {
+            request = request.priority(if (position == mPosition) Priority.IMMEDIATE else Priority.LOW)
+            // 展开只解码完整构图的小图，避免同一大图的两次解码竞争。
+            // 正常清晰度请求在转场结束后恢复，沿用相同增益图保留策略。
+            if (smallPreview) request = request.sizeMultiplier(.2f)
         }
-        if (videoFrameMs > 0L) {
-            // 视频页的静帧用 Thing Card Video Frame，与详情网格看到的是同一帧；
-            // 自动播放也从这里起播、播完回到这里。见 ADR-0017。
-            request = request.apply(RequestOptions.frameOf(videoFrameMs * 1000L))
+        val embedded = if (!smallPreview) mPreviewPlaceholders.remove(iv) else null
+        if (embedded != null) {
+            // 独立拥有的完整预览可安全跨过 Glide 请求替换；不再重复解码原图的小预览。
+            request = request.placeholder(embedded)
+        } else if (!smallPreview && iv.drawable != null) {
+            // 接管小图请求时立即复用同身份缓存，完整图片就绪前持续显示小图。
+            // 缩略请求不继承下面的大图回调，避免把缓存小图误报为正常清晰度。
+            request = request.thumbnail(request.clone().sizeMultiplier(.2f))
         }
         request
             .listener(object : RequestListener<Bitmap> {
@@ -446,7 +547,9 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                     resource: Bitmap, model: Any, target: Target<Bitmap>?,
                     dataSource: DataSource, isFirstResource: Boolean
                 ): Boolean {
+                    MediaPreviewTransition.mark("$loadStage-ready:${resource.width}x${resource.height}:$dataSource")
                     iv.setImageBitmap(resource)
+                    if (smallPreview) mFullResolutionImages.remove(iv) else mFullResolutionImages.add(iv)
                     val hdr = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
                             resource.hasGainmap()
                     if (position in mHasGainmap.indices) {
@@ -456,10 +559,12 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                         applyHdrStateForCurrentPage()
                     }
                     if (mPqController?.isAwaitingFirstFrame(iv) != true) pb.visibility = View.GONE
+                    MediaPreviewTransition.mark("$loadStage-applied")
                     return true
                 }
             })
             .override(size[0], size[1])
+            .also { MediaPreviewTransition.mark("$loadStage-request") }
             .into(iv)
     }
 
@@ -472,9 +577,15 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         if (position in mHasGainmap.indices) {
             mHasGainmap[position] = false
         }
-        Glide.with(this)
+        var request = Glide.with(this)
             .load(pathName)
             .override(size[0], size[1])
+            .priority(if (!mPreviewTransitionBlocked) Priority.NORMAL else if (position == mPosition) Priority.IMMEDIATE else Priority.LOW)
+        if (Build.VERSION.SDK_INT >= 28 && pathName.endsWith(".webp", ignoreCase = true)) {
+            // 平台动态 WebP 的缓存资源是同一个 Drawable；重复附件的页面不能共享播放回调。
+            request = request.apply(com.ywwynm.everythingdone.helpers.DetailGifPlaybackOwner().requestOptions)
+        }
+        request
             .listener(object : RequestListener<Drawable> {
                 override fun onLoadFailed(
                     e: GlideException?, model: Any?, target: Target<Drawable>,
@@ -540,6 +651,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
 
     /** 打开或翻到某 Motion Photo 页时,自动播放一遍(带触感),播完回到静态。 */
     private fun maybeAutoplayCurrentMotionPage() {
+        if (mPreviewTransitionBlocked || mPreviewTransition?.returning == true || !mViewerResumed) return
         if (mMotionPlayer != null) return
         val page = mVpImage?.currentItem ?: return
         val info = mMotionInfos.getOrNull(page) ?: return
@@ -564,6 +676,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
      */
     private fun scheduleAutoplayForCurrentPage() {
         cancelScheduledAutoplay()
+        if (mPreviewTransitionBlocked || mPreviewTransition?.returning == true || !mViewerResumed) return
         val page = mVpImage?.currentItem ?: return
         if (!isVideoPage(page)) {
             // Motion Photo 走既有路径：检测完成回调本身就是"已稳定"的时刻。
@@ -582,6 +695,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         val runnable = Runnable {
             mAutoplayRunnable = null
             if (isFinishing || isDestroyed) return@Runnable
+            if (mPreviewTransitionBlocked || mPreviewTransition?.returning == true || !mViewerResumed) return@Runnable
             if (mVpImage?.currentItem != page) return@Runnable
             if (mMotionPlayer != null) return@Runnable
             val tab = mTabs?.getOrNull(page) ?: return@Runnable
@@ -981,6 +1095,8 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                         mSpatialExecutor.execute { mSpatialStore.remove(sourcePath) }
                     }
                     mTypePathNames!!.removeAt(currentIndex)
+                    mTabs?.getOrNull(currentIndex)?.findViewById<PhotoView>(R.id.iv_image_attachment)
+                        ?.let(mFullResolutionImages::remove)
                     mHasGainmap = mHasGainmap
                         .filterIndexed { index, _ -> index != currentIndex }
                         .toBooleanArray()
@@ -2015,9 +2131,12 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         val still = source?.startsWith("0") == true &&
             !AttachmentHelper.isAnimatedImageCandidate(source.substring(1))
         val forcedSdr = mForcedSdr.getOrElse(pos) { false }
+        // PQ 会持有当前图片的纹理；只在正常尺寸请求完成后准备，不能永久接管转场小图。
+        val fullResolutionReady = photo in mFullResolutionImages
         mPqController?.update(if (still) photo else null, if (still) source?.substring(1) else null,
-            mViewerResumed && mPagerIdle && !mSpatialMode, !forcedSdr,
-            prepareWhileInactive = !mViewerHasResumed, playingVideo = mMotionPlayer != null)
+            mViewerResumed && mPagerIdle && !mSpatialMode && !mPreviewTransitionBlocked && fullResolutionReady, !forcedSdr,
+            prepareWhileInactive = !mViewerHasResumed && !mPreviewTransitionBlocked && fullResolutionReady,
+            playingVideo = mMotionPlayer != null)
         if (mSpatialMode) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 window.colorMode = ActivityInfo.COLOR_MODE_DEFAULT
@@ -2028,7 +2147,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         val isHdr = mHasGainmap.getOrElse(pos) { false } || (photo != null && mPqHdrImages[photo] == true)
         val boostOn = isHdr && !forcedSdr
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            val mode = if (boostOn && mPqController == null) ActivityInfo.COLOR_MODE_HDR else ActivityInfo.COLOR_MODE_DEFAULT
+            val mode = if (boostOn && mPqController == null && !mPreviewTransitionBlocked) ActivityInfo.COLOR_MODE_HDR else ActivityInfo.COLOR_MODE_DEFAULT
             if (window.colorMode != mode) {
                 window.colorMode = mode
             }
@@ -2123,6 +2242,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     }
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        if (mPreviewTransitionBlocked || mPreviewTransition?.returning == true) return super.dispatchTouchEvent(ev)
         val page = mVpImage?.currentItem ?: -1
         val isMotionPage = page in mMotionInfos.indices && mMotionInfos[page] != null
         // 自动播放进行中也接受长按（由它接管），只有"按住播放"进行中不再重复触发。
@@ -2139,6 +2259,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     }
 
     override fun onPause() {
+        mPreviewTransition?.cancelEnter()
         mPqController?.freezeWindow()
         mViewerResumed = false
         applyHdrStateForCurrentPage()
@@ -2152,10 +2273,13 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
 
     override fun onResume() {
         super.onResume()
+        val firstResume = !mViewerHasResumed
         mPqController?.resumeWindow()
         mViewerResumed = true
         mViewerHasResumed = true
+        resumeDeferredPreviewLoads()
         mVpImage?.post { applyHdrStateForCurrentPage() }
+        if (firstResume) mVpImage?.post { scheduleAutoplayForCurrentPage() }
         if (mSpatialMode) {
             mSpatialPhotoView?.activate(SpatialPreferences.deviceTiltEnabled(this))
         }
@@ -2164,6 +2288,8 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     }
 
     override fun onDestroy() {
+        mPreviewTransition?.cancelEnter()
+        mPreviewTransition = null
         mPqController?.close()
         cancelSpatialGeneration(showMessage = false)
         mSpatialPhotoView?.releaseRenderer()
@@ -2175,6 +2301,14 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     }
 
     override fun finish() {
+        cancelScheduledAutoplay()
+        val photo = mTabs?.getOrNull(mVpImage?.currentItem ?: mPosition)?.findViewById<PhotoView>(R.id.iv_image_attachment)
+        val key = mTypePathNames?.getOrNull(mVpImage?.currentItem ?: mPosition)
+        if (mPreviewTransition?.returnToDetail(photo, key) { finishPreviewWindow() } == true) return
+        finishPreviewWindow()
+    }
+
+    private fun finishPreviewWindow() {
         mPqController?.freezeWindow()
         super.finish()
     }
@@ -2186,6 +2320,16 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
 
     companion object {
         const val TAG: String = "ImageViewerActivity"
+
+        private fun previewBitmapRequest(context: Context, path: String, frameMs: Long,
+                                         compatibility: Boolean): RequestBuilder<Bitmap> {
+            var request = Glide.with(context).asBitmap().load(path).dontTransform().disallowHardwareConfig()
+            if (compatibility) request = request
+                .downsample(com.ywwynm.everythingdone.hdr.HdrViewerDownsampleStrategy)
+                .diskCacheStrategy(com.bumptech.glide.load.engine.DiskCacheStrategy.NONE)
+            if (frameMs > 0) request = request.apply(RequestOptions.frameOf(frameMs * 1000L))
+            return request
+        }
 
         /** 翻页停稳多久后才起播——视频不静音，快速划过时不该发出声音碎片。 */
         private const val AUTOPLAY_SETTLE_MS = 360L

@@ -122,7 +122,7 @@ class DetailMediaOverlayColors(private val tile: ViewGroup, private val image: I
         } else requestStatic()
     }
 
-    fun onMediaReady(identity: String, bitmap: Bitmap? = null) {
+    fun onMediaReady(identity: String, bitmap: Bitmap? = null, completeImage: Boolean = false) {
         if (key != identity) return
         if (mediaReady == 0L) mediaReady = SystemClock.uptimeMillis()
         image.postInvalidateOnAnimation()
@@ -133,8 +133,11 @@ class DetailMediaOverlayColors(private val tile: ViewGroup, private val image: I
         cancelTarget()
         val time = if (BuildConfig.DEBUG) System.nanoTime() else 0L
         val (w, h) = sampleSize()
-        val small = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-        Canvas(small).drawBitmap(bitmap, null, Rect(0, 0, w, h), samplePaint)
+        val small = if (completeImage) {
+            MediaCropBitmapRenderer.renderCrop(bitmap, w, h, MediaCropBitmapRenderer.Crop(.5, .5, 1.0)) ?: return
+        } else Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888).also {
+            Canvas(it).drawBitmap(bitmap, null, Rect(0, 0, w, h), samplePaint)
+        }
         val pixels = IntArray(w * h)
         small.getPixels(pixels, 0, w, 0, 0, w, h)
         small.recycle()
@@ -151,15 +154,22 @@ class DetailMediaOverlayColors(private val tile: ViewGroup, private val image: I
         val identity = key ?: return
         if (target != null || targetWidth <= 0 || targetHeight <= 0) return
         val (w, h) = sampleSize()
+        val previewSource = if (!video && MediaPreviewThumbnail.isStaticImage(source)) MediaPreviewThumbnail.source(source) else null
         val requestTarget = object : CustomTarget<Bitmap>(w, h) {
             override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
                 if (target !== this || key != identity) return
                 val time = if (BuildConfig.DEBUG) System.nanoTime() else 0L
-                val width = resource.width
-                val height = resource.height
+                // 动态照片播放派生动画时，取色请求仍取得静态主图；复用该次解码，不新增预加载。
+                val sampled = if (previewSource != null) {
+                    MediaPreviewThumbnail.remember(previewSource, resource)
+                    MediaCropBitmapRenderer.renderCrop(resource, w, h, crop ?: MediaCropBitmapRenderer.Crop(.5, .5, 1.0)) ?: return
+                } else resource
+                val width = sampled.width
+                val height = sampled.height
                 val pixels = IntArray(width * height)
                 // 单次复制至多 256×256 像素；后台只持有副本，不依赖 Glide 位图的回收时机。
-                resource.getPixels(pixels, 0, width, 0, 0, width, height)
+                sampled.getPixels(pixels, 0, width, 0, 0, width, height)
+                if (sampled !== resource) sampled.recycle()
                 if (BuildConfig.DEBUG) lastCaptureMicros = (System.nanoTime() - time) / 1000
                 prepareRaster(identity, width, height, pixels)
             }
@@ -175,7 +185,8 @@ class DetailMediaOverlayColors(private val tile: ViewGroup, private val image: I
             .priority(Priority.HIGH)
             .signature(ObjectKey("detail-overlay-static-v1:$identity"))
         if (video && videoFrameMs != null) request = request.apply(RequestOptions.frameOf(videoFrameMs!! * 1000L))
-        request = crop?.let { request.transform(MediaCropTransformation(w, h, it)) } ?: request.centerCrop()
+        request = if (previewSource != null) request.dontTransform()
+            else crop?.let { request.transform(MediaCropTransformation(w, h, it)) } ?: request.centerCrop()
         request.into(requestTarget)
     }
 

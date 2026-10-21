@@ -1,5 +1,9 @@
 # 实现决策
 
+## 2026-10-22：混合离屏树保留 TextureView 原生绘制
+
+- HDR 动态照片返回复现出 `TextureView.bitmap` 替代会丢失内容矩阵；手动补矩阵仍遗漏部分设备的解码缓冲裁剪。因此一次性与缓存树都保留 `TextureView.draw` 的硬件纹理绘制，仅隔离真正独立的 Surface 生产者。详见[播放中返回诊断](../media-preview-transition/motion-return-stretch-2026-10-22.md)。
+
 ## 2026-10-14：Doing 卡片使用真实节拍推进惯性与边缘重绘
 
 - 所有卡型共用 `DoingRecyclerView`。普通帧保留 UI 动画阶段执行原 ViewFlinger；检测到动画时间超前实际时间超过 1ms 时，将同一次回调交给异步 UI 队列，等当前阶段解除时间锁定后执行。不修改滚动／回弹物理参数，不按品牌切换。

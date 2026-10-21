@@ -57,6 +57,7 @@ class DetailToolbarContrast(
 
     private val buttons = mutableMapOf<View, Button>()
     private var toolbarDark: Boolean? = null
+    internal var snapshotGeneration = 0; private set
     private var lastFrame: Frame? = null
     private var revision = 0
     private var closed = false
@@ -77,6 +78,9 @@ class DetailToolbarContrast(
     init { root.viewTreeObserver.addOnPreDrawListener(preDraw) }
 
     fun refresh() { revision++; toolbar.invalidate() }
+
+    /** 转场截图前提交当前静态媒体的取色，等待本次计算完成再冻结顶栏。 */
+    internal fun isReadyForSnapshot(): Boolean { update(); return !pending }
 
     fun dispose() {
         closed = true
@@ -272,6 +276,7 @@ class DetailToolbarContrast(
     }
 
     private fun applyTogether(glyphs: List<Glyph>, dark: Boolean) {
+        if (toolbarDark != dark) snapshotGeneration++
         glyphs.forEach { apply(it.button, dark) }
         toolbarDark = dark
     }

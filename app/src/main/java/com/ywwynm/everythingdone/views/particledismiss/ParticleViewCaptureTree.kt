@@ -79,7 +79,6 @@ internal object ParticleViewCaptureTree {
                     when (view) {
                         is SurfaceView, is ParticleDirectSurfaceSource -> frames[view]?.let { target.drawBitmap(it, null,
                             Rect(0, 0, view.width, view.height), Paint(Paint.FILTER_BITMAP_FLAG)) }
-                        is TextureView -> view.bitmap?.let { target.drawBitmap(it, 0f, 0f, null); it.recycle() }
                         else -> view.draw(target)
                     }
                 }
@@ -125,10 +124,8 @@ internal object ParticleViewCaptureTree {
                     Paint(Paint.FILTER_BITMAP_FLAG)) }
                 return
             }
-            if (view is TextureView) {
-                view.bitmap?.let { pixels -> target.drawBitmap(pixels, 0f, 0f, null); pixels.recycle() }
-                return
-            }
+            // TextureView 仍走原生硬件绘制，保留内容矩阵和解码缓冲裁剪。
+            // getBitmap 再绘制会丢失这些信息；它也不是需要隔离 RenderNode 的独立 Surface。
             if (view !is ViewGroup || view !in affected) {
                 borrowedViews?.add(view)
                 view.draw(target)

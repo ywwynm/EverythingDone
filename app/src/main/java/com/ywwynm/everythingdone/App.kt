@@ -103,6 +103,7 @@ open class App : Application() {
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
         if (level >= TRIM_MEMORY_RUNNING_LOW) {
+            com.ywwynm.everythingdone.helpers.MediaPreviewThumbnail.clear()
             com.ywwynm.everythingdone.helpers.DetailViewPreparation.clear()
             ParticleGl.trimMemory()
             // 退后台（界面不可见）与任何内存告警都放掉提前算好的创建页轨迹与预测素材：
@@ -113,6 +114,7 @@ open class App : Application() {
 
     override fun onLowMemory() {
         super.onLowMemory()
+        com.ywwynm.everythingdone.helpers.MediaPreviewThumbnail.clear()
         com.ywwynm.everythingdone.helpers.DetailViewPreparation.clear()
         ParticleGl.trimMemory()
         ParticleCreationPrewarm.trimMemory()

@@ -10,6 +10,8 @@ import android.graphics.Canvas
 import android.graphics.PorterDuff
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.AnimatedImageDrawable
+import android.os.Build
 import android.util.LruCache
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.GridLayoutManager
@@ -34,12 +36,14 @@ import com.bumptech.glide.request.target.Target
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
+import com.ywwynm.everythingdone.helpers.AnimatedMediaCropDrawable
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.helpers.DetailAttachmentPlaybackController
 import com.ywwynm.everythingdone.helpers.DetailGifPlaybackOwner
 import com.ywwynm.everythingdone.helpers.DetailMediaOverlayColors
 import com.ywwynm.everythingdone.helpers.MediaCropBitmapRenderer
 import com.ywwynm.everythingdone.helpers.MediaCropTransformation
+import com.ywwynm.everythingdone.helpers.MediaPreviewThumbnail
 import com.ywwynm.everythingdone.helpers.HdrImageDetector
 import com.ywwynm.everythingdone.helpers.MotionPhotoCoverHelper
 import com.ywwynm.everythingdone.helpers.MotionPhotoDetector
@@ -113,6 +117,30 @@ open class ImageAttachmentAdapter(
 
     /** Detail Autoplay 的调度器；为空时（如未接入的界面）一律停在静态代表帧。 */
     private var mPlaybackController: DetailAttachmentPlaybackController? = null
+    private val mTransitionGifs = mutableMapOf<ImageView, GifDrawable>()
+
+    /** 暂停前记住同一实例，返回后接续其播放帧；真正离屏或资源替换仍走原重播规则。 */
+    internal fun preserveTransitionPlayback(paused: Boolean) {
+        if (paused) {
+            mTransitionGifs.clear()
+            val list = mRecyclerView ?: return
+            for (i in 0 until list.childCount) {
+                val holder = list.getChildViewHolder(list.getChildAt(i)) as? ImageViewHolder ?: continue
+                if (holder.bindingAdapter !== this) continue
+                val image = holder.ivImage ?: continue
+                val gif = image.drawable as? GifDrawable ?: continue
+                if (mPlaybackController?.usesAnimatedResource(holder.bindingAdapterPosition) == true)
+                    mTransitionGifs[image] = gif
+            }
+        } else {
+            mTransitionGifs.forEach { (image, gif) ->
+                val position = currentPosition(image, image.getTag(R.id.tag_detail_attachment_bound_source) as? String)
+                if (image.drawable === gif && position != RecyclerView.NO_POSITION &&
+                    mPlaybackController?.shouldPlay(position) == true) gif.start()
+            }
+            mTransitionGifs.clear()
+        }
+    }
 
     // 只保存独立帧位图，不持有 GIF/decoder。生命周期随详情 Adapter，最多 8 MiB，
     // 小堆设备进一步按堆上限缩减；淘汰时由 GC 回收，不能 recycle 仍作为占位图的位图。
@@ -209,6 +237,7 @@ open class ImageAttachmentAdapter(
 
     open fun setPlaybackController(controller: DetailAttachmentPlaybackController?) {
         mPlaybackController = controller
+        if (controller == null) mTransitionGifs.clear()
     }
 
     /**
@@ -300,7 +329,9 @@ open class ImageAttachmentAdapter(
         imageView.imageMatrix = null
 
         val animated = type == AttachmentHelper.IMAGE &&
-                AttachmentHelper.isAnimatedImageCandidate(pathName)
+                !MediaPreviewThumbnail.isStaticImage(pathName)
+        val platformAnimated = animated && pathName.endsWith(".webp", ignoreCase = true) &&
+            Build.VERSION.SDK_INT >= 28
         val motionCandidate = type == AttachmentHelper.IMAGE && !animated &&
                 AttachmentHelper.isMotionPhotoCandidate(pathName)
         val videoCandidate = type == AttachmentHelper.VIDEO
@@ -336,7 +367,11 @@ open class ImageAttachmentAdapter(
         }
 
         val animatedPlayback = derivedGifPath != null || (useAnimatedResource && animated)
-        val independentPlayback = animatedPlayback && !loop
+        val completeStill = !videoCandidate && !animated && derivedGifPath == null
+        val previewSource = if (completeStill && !mTakingScreenshot) MediaPreviewThumbnail.source(pathName) else null
+        // 平台动画的 Glide Resource.get() 返回同一个实例（含 callback 和播放位置），
+        // 因此循环模式也要按 holder 隔离；不能让两张相同 WebP 互相停止或抢走回调。
+        val independentPlayback = animatedPlayback && (!loop || platformAnimated)
         val loadSource = derivedGifPath ?: pathName
 
         // 所有显示模式都记录完整请求身份。拖拽排序或播放调度只要没有改变实际资源，就只更新
@@ -418,7 +453,9 @@ open class ImageAttachmentAdapter(
                 RequestOptions.frameOf(videoFrameMs * 1000L)
             )
         }
-        if (customized) {
+        if (platformAnimated && animatedPlayback) {
+            request = request.override(size[0], size[1]).dontTransform()
+        } else if (customized) {
             request = request.override(size[0], size[1])
             request = if (animatedPlayback && presentation != null) {
                 // 逐帧套用用户的裁切，使其在保持裁切的同时真的动起来，而不是烘焙成单帧。见 ADR-0007。
@@ -431,11 +468,17 @@ open class ImageAttachmentAdapter(
                 request.dontTransform().disallowHardwareConfig().dontAnimate()
             }
         } else {
-            request = request.centerCrop()
+            // 静图由 ImageView 保持原来的居中裁剪，解码资源保留完整构图，供点击后的展开复用。
+            request = if (completeStill) request.dontTransform() else request.centerCrop()
             if (!animatedPlayback) {
                 // 默认模式下 GIF 此前是无条件动的；不播时必须显式停在首帧。
                 request = request.dontAnimate()
             }
+        }
+        if (platformAnimated && !animatedPlayback) {
+            // dontAnimate 只禁用 Glide GIF 解码器，不会禁用平台 WebP 动画解码器。
+            // 关闭／等待／播完时明确请求首帧，保留既有静态裁剪路径。
+            request = request.decode(Bitmap::class.java)
         }
         // 静态首帧与动态解码必须使用不同的磁盘缓存身份；仅修改 View tag 不足以隔离 Glide 缓存。
         request = request.signature(ObjectKey(resourceKey))
@@ -480,6 +523,9 @@ open class ImageAttachmentAdapter(
                     }
                     updateOverlayVisibility(holder)
                     holder.pbLoading!!.visibility = View.GONE
+                    (resource as? BitmapDrawable)?.bitmap?.let { bitmap ->
+                        previewSource?.let { MediaPreviewThumbnail.remember(it, bitmap) }
+                    }
                     if (customized && !animatedPlayback) {
                         val renderRequest = imageView.getTag(
                             R.id.tag_detail_attachment_image_render_request
@@ -520,7 +566,17 @@ open class ImageAttachmentAdapter(
                         is GifDrawable -> resource.firstFrame
                         else -> null
                     } else null
-                    holder.overlayColors.onMediaReady(baseLoadKey, staticBitmap)
+                    holder.overlayColors.onMediaReady(baseLoadKey, staticBitmap, completeImage = completeStill && !customized)
+                    if (Build.VERSION.SDK_INT >= 28 && resource is AnimatedImageDrawable) {
+                        val cropped = AnimatedMediaCropDrawable(resource, size[0], size[1],
+                            presentation?.crop?.let(::getDetailAttachmentBitmapCrop) ?:
+                                MediaCropBitmapRenderer.Crop(.5, .5, 1.0))
+                        imageView.setImageDrawable(cropped)
+                        cacheMediaPoster(imageView, posterKey, cropped)
+                        applyGifPlaybackState(imageView, cropped, current, playNow,
+                            mPlaybackController?.shouldLoop(current) == true)
+                        return true
+                    }
                     if (resource is GifDrawable) {
                         // 请求完成时可能已离屏或重排。按此刻的位置决定播放，并接管 target，
                         // 防止 Glide 在本回调之后无条件 start() 使离屏资源重新播放。
@@ -556,7 +612,7 @@ open class ImageAttachmentAdapter(
                 context, pathName, videoFrameMsOf(position)
             ) != null
         }
-        if (AttachmentHelper.isAnimatedImageCandidate(pathName)) return true
+        if (!MediaPreviewThumbnail.isStaticImage(pathName)) return true
         if (!AttachmentHelper.isMotionPhotoCandidate(pathName)) return false
         return MotionPhotoCoverHelper.getReadyGif(context, pathName) != null
     }
@@ -612,6 +668,14 @@ open class ImageAttachmentAdapter(
         imageView: ImageView, drawable: Drawable?, position: Int,
         animatedPlayback: Boolean, loop: Boolean
     ) {
+        if (Build.VERSION.SDK_INT >= 28 && drawable is AnimatedMediaCropDrawable) {
+            val source = mItems?.getOrNull(position)
+            drawable.setPlayback(animatedPlayback, loop) {
+                // 平台回调可能在 draw 内到达；沿用延后重绑，且核对实际持有的资源。
+                notifyPlaybackUnavailable(imageView, source, drawable)
+            }
+            return
+        }
         val gif = drawable as? GifDrawable
         if (gif == null) {
             // 说好要播、拿回来的却不是动图（解码退化成单帧、或 isPlayableNow 与实际不符）。
@@ -660,9 +724,10 @@ open class ImageAttachmentAdapter(
             mItems?.getOrNull(position) == source) position else RecyclerView.NO_POSITION
     }
 
-    private fun notifyPlaybackUnavailable(imageView: ImageView, source: String?) {
+    private fun notifyPlaybackUnavailable(imageView: ImageView, source: String?, expected: Drawable? = null) {
         val controller = mPlaybackController ?: return
         imageView.post {
+            if (expected != null && imageView.drawable !== expected) return@post
             val position = currentPosition(imageView, source)
             if (position != RecyclerView.NO_POSITION) {
                 controller.onPlaybackFinished(position)
@@ -672,6 +737,7 @@ open class ImageAttachmentAdapter(
 
     private fun stopExistingGif(imageView: ImageView) {
         val current = imageView.drawable
+        if (Build.VERSION.SDK_INT >= 28 && current is AnimatedMediaCropDrawable) current.stop()
         if (current is GifDrawable) {
             current.clearAnimationCallbacks()
             current.stop()
@@ -688,6 +754,7 @@ open class ImageAttachmentAdapter(
         val firstFrame = when (resource) {
             is GifDrawable -> resource.firstFrame
             is BitmapDrawable -> resource.bitmap
+            is AnimatedMediaCropDrawable -> null
             else -> return
         }
         val maxPixels = minOf(MAX_CACHED_POSTER_PIXELS, mMediaPosters.maxSize() / 4L)

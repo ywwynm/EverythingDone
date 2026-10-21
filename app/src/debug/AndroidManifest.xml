@@ -4,6 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <instrumentation android:name=".detail.MediaPreviewTransitionProbe"
+        android:targetPackage="${applicationId}" android:label="详情媒体预览转场与附件类型回归" />
     <instrumentation android:name=".detail.ThingDetailTransitionProbe"
         android:targetPackage="${applicationId}" android:label="卡片展开详情及原数据完整性回归" />
     <instrumentation android:name=".views.particledismiss.ParticleDefaultDirectionProbe"

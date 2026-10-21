@@ -1,0 +1,1527 @@
+{
+  "device": "PLZ110",
+  "originalRows": 114,
+  "fixtureChecks": [
+    {
+      "name": "动态照片夹具包含有效内嵌视频",
+      "passed": true
+    },
+    {
+      "name": "image 使用自定义展开",
+      "passed": true
+    },
+    {
+      "name": "image 展开具有目标图片几何",
+      "passed": true
+    },
+    {
+      "name": "image 展开进度单调",
+      "passed": true
+    },
+    {
+      "name": "image 动画期间不提前播放或提亮",
+      "passed": true
+    },
+    {
+      "name": "image 查看器输入恢复",
+      "passed": true
+    },
+    {
+      "name": "image 展开后可见图片",
+      "passed": true
+    },
+    {
+      "name": "image 返回类型正确",
+      "passed": true
+    },
+    {
+      "name": "image 返回完成并释放",
+      "passed": true
+    },
+    {
+      "name": "image 返回进度单调",
+      "passed": true
+    },
+    {
+      "name": "image 返回当前附件位置",
+      "passed": true
+    },
+    {
+      "name": "gif 使用自定义展开",
+      "passed": true
+    },
+    {
+      "name": "gif 展开具有目标图片几何",
+      "passed": true
+    },
+    {
+      "name": "gif 展开进度单调",
+      "passed": true
+    },
+    {
+      "name": "gif 动画期间不提前播放或提亮",
+      "passed": true
+    },
+    {
+      "name": "gif 查看器输入恢复",
+      "passed": true
+    },
+    {
+      "name": "gif 展开后可见图片",
+      "passed": true
+    },
+    {
+      "name": "gif 返回类型正确",
+      "passed": true
+    },
+    {
+      "name": "gif 返回完成并释放",
+      "passed": true
+    },
+    {
+      "name": "gif 返回进度单调",
+      "passed": true
+    },
+    {
+      "name": "gif 返回当前附件位置",
+      "passed": true
+    },
+    {
+      "name": "video 使用自定义展开",
+      "passed": true
+    },
+    {
+      "name": "video 展开具有目标图片几何",
+      "passed": true
+    },
+    {
+      "name": "video 展开进度单调",
+      "passed": true
+    },
+    {
+      "name": "video 动画期间不提前播放或提亮",
+      "passed": true
+    },
+    {
+      "name": "video 查看器输入恢复",
+      "passed": true
+    },
+    {
+      "name": "video 展开后可见图片",
+      "passed": true
+    },
+    {
+      "name": "video 播放晚于展开",
+      "passed": true
+    },
+    {
+      "name": "video 返回类型正确",
+      "passed": true
+    },
+    {
+      "name": "video 返回完成并释放",
+      "passed": true
+    },
+    {
+      "name": "video 返回进度单调",
+      "passed": true
+    },
+    {
+      "name": "video 返回当前附件位置",
+      "passed": true
+    },
+    {
+      "name": "motion 使用自定义展开",
+      "passed": true
+    },
+    {
+      "name": "motion 展开具有目标图片几何",
+      "passed": true
+    },
+    {
+      "name": "motion 展开进度单调",
+      "passed": true
+    },
+    {
+      "name": "motion 动画期间不提前播放或提亮",
+      "passed": true
+    },
+    {
+      "name": "motion 查看器输入恢复",
+      "passed": true
+    },
+    {
+      "name": "motion 展开后可见图片",
+      "passed": true
+    },
+    {
+      "name": "motion 播放晚于展开",
+      "passed": true
+    },
+    {
+      "name": "motion 返回类型正确",
+      "passed": true
+    },
+    {
+      "name": "motion 返回完成并释放",
+      "passed": true
+    },
+    {
+      "name": "motion 返回进度单调",
+      "passed": true
+    },
+    {
+      "name": "motion 返回当前附件位置",
+      "passed": true
+    },
+    {
+      "name": "hdr 使用自定义展开",
+      "passed": true
+    },
+    {
+      "name": "hdr 展开具有目标图片几何",
+      "passed": true
+    },
+    {
+      "name": "hdr 展开进度单调",
+      "passed": true
+    },
+    {
+      "name": "hdr 动画期间不提前播放或提亮",
+      "passed": true
+    },
+    {
+      "name": "hdr 查看器输入恢复",
+      "passed": true
+    },
+    {
+      "name": "hdr 展开后可见图片",
+      "passed": true
+    },
+    {
+      "name": "hdr 返回类型正确",
+      "passed": true
+    },
+    {
+      "name": "hdr 返回完成并释放",
+      "passed": true
+    },
+    {
+      "name": "hdr 返回进度单调",
+      "passed": true
+    },
+    {
+      "name": "hdr 返回当前附件位置",
+      "passed": true
+    },
+    {
+      "name": "page-switch 使用自定义展开",
+      "passed": true
+    },
+    {
+      "name": "page-switch 展开具有目标图片几何",
+      "passed": true
+    },
+    {
+      "name": "page-switch 展开进度单调",
+      "passed": true
+    },
+    {
+      "name": "page-switch 动画期间不提前播放或提亮",
+      "passed": true
+    },
+    {
+      "name": "page-switch 查看器输入恢复",
+      "passed": true
+    },
+    {
+      "name": "page-switch 展开后可见图片",
+      "passed": true
+    },
+    {
+      "name": "page-switch 返回类型正确",
+      "passed": true
+    },
+    {
+      "name": "page-switch 返回完成并释放",
+      "passed": true
+    },
+    {
+      "name": "page-switch 返回进度单调",
+      "passed": true
+    },
+    {
+      "name": "page-switch 返回当前附件位置",
+      "passed": true
+    },
+    {
+      "name": "delete 使用自定义展开",
+      "passed": true
+    },
+    {
+      "name": "delete 展开具有目标图片几何",
+      "passed": true
+    },
+    {
+      "name": "delete 展开进度单调",
+      "passed": true
+    },
+    {
+      "name": "delete 动画期间不提前播放或提亮",
+      "passed": true
+    },
+    {
+      "name": "delete 查看器输入恢复",
+      "passed": true
+    },
+    {
+      "name": "delete 展开后可见图片",
+      "passed": true
+    },
+    {
+      "name": "delete 返回类型正确",
+      "passed": true
+    },
+    {
+      "name": "delete 返回完成并释放",
+      "passed": true
+    },
+    {
+      "name": "delete 返回进度单调",
+      "passed": true
+    },
+    {
+      "name": "delete 返回当前附件位置",
+      "passed": true
+    },
+    {
+      "name": "删除后详情附件结果正确",
+      "passed": true
+    },
+    {
+      "name": "快速返回保留自定义收回",
+      "passed": true
+    },
+    {
+      "name": "landscape 使用自定义展开",
+      "passed": true
+    },
+    {
+      "name": "landscape 展开具有目标图片几何",
+      "passed": true
+    },
+    {
+      "name": "landscape 展开进度单调",
+      "passed": true
+    },
+    {
+      "name": "landscape 动画期间不提前播放或提亮",
+      "passed": true
+    },
+    {
+      "name": "landscape 查看器输入恢复",
+      "passed": true
+    },
+    {
+      "name": "landscape 展开后可见图片",
+      "passed": true
+    },
+    {
+      "name": "横屏展开",
+      "passed": true
+    },
+    {
+      "name": "landscape 返回类型正确",
+      "passed": true
+    },
+    {
+      "name": "landscape 返回完成并释放",
+      "passed": true
+    },
+    {
+      "name": "landscape 返回进度单调",
+      "passed": true
+    },
+    {
+      "name": "landscape 返回当前附件位置",
+      "passed": true
+    },
+    {
+      "name": "cropped 使用自定义展开",
+      "passed": true
+    },
+    {
+      "name": "cropped 展开具有目标图片几何",
+      "passed": true
+    },
+    {
+      "name": "cropped 展开进度单调",
+      "passed": true
+    },
+    {
+      "name": "cropped 动画期间不提前播放或提亮",
+      "passed": true
+    },
+    {
+      "name": "cropped 查看器输入恢复",
+      "passed": true
+    },
+    {
+      "name": "cropped 展开后可见图片",
+      "passed": true
+    },
+    {
+      "name": "cropped 返回类型正确",
+      "passed": true
+    },
+    {
+      "name": "cropped 返回完成并释放",
+      "passed": true
+    },
+    {
+      "name": "cropped 返回进度单调",
+      "passed": true
+    },
+    {
+      "name": "cropped 返回当前附件位置",
+      "passed": true
+    },
+    {
+      "name": "rotate-after-open 使用自定义展开",
+      "passed": true
+    },
+    {
+      "name": "rotate-after-open 展开具有目标图片几何",
+      "passed": true
+    },
+    {
+      "name": "rotate-after-open 展开进度单调",
+      "passed": true
+    },
+    {
+      "name": "rotate-after-open 动画期间不提前播放或提亮",
+      "passed": true
+    },
+    {
+      "name": "rotate-after-open 查看器输入恢复",
+      "passed": true
+    },
+    {
+      "name": "rotate-after-open 展开后可见图片",
+      "passed": true
+    },
+    {
+      "name": "rotate-after-open 返回类型正确",
+      "passed": true
+    },
+    {
+      "name": "rotate-after-open 返回完成并释放",
+      "passed": true
+    },
+    {
+      "name": "rotate-after-open 返回进度单调",
+      "passed": true
+    },
+    {
+      "name": "rotate-after-open 返回当前附件位置",
+      "passed": true
+    },
+    {
+      "name": "offscreen 使用自定义展开",
+      "passed": true
+    },
+    {
+      "name": "offscreen 展开具有目标图片几何",
+      "passed": true
+    },
+    {
+      "name": "offscreen 展开进度单调",
+      "passed": true
+    },
+    {
+      "name": "offscreen 动画期间不提前播放或提亮",
+      "passed": true
+    },
+    {
+      "name": "offscreen 查看器输入恢复",
+      "passed": true
+    },
+    {
+      "name": "offscreen 展开后可见图片",
+      "passed": true
+    },
+    {
+      "name": "offscreen 返回类型正确",
+      "passed": true
+    },
+    {
+      "name": "offscreen 返回完成并释放",
+      "passed": true
+    },
+    {
+      "name": "offscreen 返回进度单调",
+      "passed": true
+    },
+    {
+      "name": "pq-hdr 使用自定义展开",
+      "passed": true
+    },
+    {
+      "name": "pq-hdr 展开具有目标图片几何",
+      "passed": true
+    },
+    {
+      "name": "pq-hdr 展开进度单调",
+      "passed": true
+    },
+    {
+      "name": "pq-hdr 动画期间不提前播放或提亮",
+      "passed": true
+    },
+    {
+      "name": "pq-hdr 查看器输入恢复",
+      "passed": true
+    },
+    {
+      "name": "pq-hdr 展开后可见图片",
+      "passed": true
+    },
+    {
+      "name": "pq-hdr 返回类型正确",
+      "passed": true
+    },
+    {
+      "name": "pq-hdr 返回完成并释放",
+      "passed": true
+    },
+    {
+      "name": "pq-hdr 返回进度单调",
+      "passed": true
+    },
+    {
+      "name": "pq-hdr 返回当前附件位置",
+      "passed": true
+    },
+    {
+      "name": "原有记事逐行摘要不变",
+      "passed": true
+    }
+  ],
+  "realChecks": [
+    {
+      "name": "真实附件样本非空",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-0 使用自定义展开",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-0 展开具有目标图片几何",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-0 展开进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-0 动画期间不提前播放或提亮",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-0 查看器输入恢复",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-0 展开后可见图片",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-0 返回类型正确",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-0 返回完成并释放",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-0 返回进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-0 返回当前附件位置",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-0 真实记事不变",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-1 使用自定义展开",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-1 展开具有目标图片几何",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-1 展开进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-1 动画期间不提前播放或提亮",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-1 查看器输入恢复",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-1 展开后可见图片",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-1 返回类型正确",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-1 返回完成并释放",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-1 返回进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-1 返回当前附件位置",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-1 真实记事不变",
+      "passed": true
+    },
+    {
+      "name": "real-largest-video-0 使用自定义展开",
+      "passed": true
+    },
+    {
+      "name": "real-largest-video-0 展开具有目标图片几何",
+      "passed": true
+    },
+    {
+      "name": "real-largest-video-0 展开进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-largest-video-0 动画期间不提前播放或提亮",
+      "passed": true
+    },
+    {
+      "name": "real-largest-video-0 查看器输入恢复",
+      "passed": true
+    },
+    {
+      "name": "real-largest-video-0 展开后可见图片",
+      "passed": true
+    },
+    {
+      "name": "real-largest-video-0 返回类型正确",
+      "passed": true
+    },
+    {
+      "name": "real-largest-video-0 返回完成并释放",
+      "passed": true
+    },
+    {
+      "name": "real-largest-video-0 返回进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-largest-video-0 返回当前附件位置",
+      "passed": true
+    },
+    {
+      "name": "real-largest-video-0 真实记事不变",
+      "passed": true
+    },
+    {
+      "name": "real-largest-video-1 使用自定义展开",
+      "passed": true
+    },
+    {
+      "name": "real-largest-video-1 展开具有目标图片几何",
+      "passed": true
+    },
+    {
+      "name": "real-largest-video-1 展开进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-largest-video-1 动画期间不提前播放或提亮",
+      "passed": true
+    },
+    {
+      "name": "real-largest-video-1 查看器输入恢复",
+      "passed": true
+    },
+    {
+      "name": "real-largest-video-1 展开后可见图片",
+      "passed": true
+    },
+    {
+      "name": "real-largest-video-1 返回类型正确",
+      "passed": true
+    },
+    {
+      "name": "real-largest-video-1 返回完成并释放",
+      "passed": true
+    },
+    {
+      "name": "real-largest-video-1 返回进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-largest-video-1 返回当前附件位置",
+      "passed": true
+    },
+    {
+      "name": "real-largest-video-1 真实记事不变",
+      "passed": true
+    },
+    {
+      "name": "real-largest-gif-0 使用自定义展开",
+      "passed": true
+    },
+    {
+      "name": "real-largest-gif-0 展开具有目标图片几何",
+      "passed": true
+    },
+    {
+      "name": "real-largest-gif-0 展开进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-largest-gif-0 动画期间不提前播放或提亮",
+      "passed": true
+    },
+    {
+      "name": "real-largest-gif-0 查看器输入恢复",
+      "passed": true
+    },
+    {
+      "name": "real-largest-gif-0 展开后可见图片",
+      "passed": true
+    },
+    {
+      "name": "real-largest-gif-0 返回类型正确",
+      "passed": true
+    },
+    {
+      "name": "real-largest-gif-0 返回完成并释放",
+      "passed": true
+    },
+    {
+      "name": "real-largest-gif-0 返回进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-largest-gif-0 返回当前附件位置",
+      "passed": true
+    },
+    {
+      "name": "real-largest-gif-0 真实记事不变",
+      "passed": true
+    },
+    {
+      "name": "real-largest-gif-1 使用自定义展开",
+      "passed": true
+    },
+    {
+      "name": "real-largest-gif-1 展开具有目标图片几何",
+      "passed": true
+    },
+    {
+      "name": "real-largest-gif-1 展开进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-largest-gif-1 动画期间不提前播放或提亮",
+      "passed": true
+    },
+    {
+      "name": "real-largest-gif-1 查看器输入恢复",
+      "passed": true
+    },
+    {
+      "name": "real-largest-gif-1 展开后可见图片",
+      "passed": true
+    },
+    {
+      "name": "real-largest-gif-1 返回类型正确",
+      "passed": true
+    },
+    {
+      "name": "real-largest-gif-1 返回完成并释放",
+      "passed": true
+    },
+    {
+      "name": "real-largest-gif-1 返回进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-largest-gif-1 返回当前附件位置",
+      "passed": true
+    },
+    {
+      "name": "real-largest-gif-1 真实记事不变",
+      "passed": true
+    },
+    {
+      "name": "real-largest-motion-0 使用自定义展开",
+      "passed": true
+    },
+    {
+      "name": "real-largest-motion-0 展开具有目标图片几何",
+      "passed": true
+    },
+    {
+      "name": "real-largest-motion-0 展开进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-largest-motion-0 动画期间不提前播放或提亮",
+      "passed": true
+    },
+    {
+      "name": "real-largest-motion-0 查看器输入恢复",
+      "passed": true
+    },
+    {
+      "name": "real-largest-motion-0 展开后可见图片",
+      "passed": true
+    },
+    {
+      "name": "real-largest-motion-0 返回类型正确",
+      "passed": true
+    },
+    {
+      "name": "real-largest-motion-0 返回完成并释放",
+      "passed": true
+    },
+    {
+      "name": "real-largest-motion-0 返回进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-largest-motion-0 返回当前附件位置",
+      "passed": true
+    },
+    {
+      "name": "real-largest-motion-0 真实记事不变",
+      "passed": true
+    },
+    {
+      "name": "real-largest-motion-1 使用自定义展开",
+      "passed": true
+    },
+    {
+      "name": "real-largest-motion-1 展开具有目标图片几何",
+      "passed": true
+    },
+    {
+      "name": "real-largest-motion-1 展开进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-largest-motion-1 动画期间不提前播放或提亮",
+      "passed": true
+    },
+    {
+      "name": "real-largest-motion-1 查看器输入恢复",
+      "passed": true
+    },
+    {
+      "name": "real-largest-motion-1 展开后可见图片",
+      "passed": true
+    },
+    {
+      "name": "real-largest-motion-1 返回类型正确",
+      "passed": true
+    },
+    {
+      "name": "real-largest-motion-1 返回完成并释放",
+      "passed": true
+    },
+    {
+      "name": "real-largest-motion-1 返回进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-largest-motion-1 返回当前附件位置",
+      "passed": true
+    },
+    {
+      "name": "real-largest-motion-1 真实记事不变",
+      "passed": true
+    },
+    {
+      "name": "real-many-first-0 使用自定义展开",
+      "passed": true
+    },
+    {
+      "name": "real-many-first-0 展开具有目标图片几何",
+      "passed": true
+    },
+    {
+      "name": "real-many-first-0 展开进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-many-first-0 动画期间不提前播放或提亮",
+      "passed": true
+    },
+    {
+      "name": "real-many-first-0 查看器输入恢复",
+      "passed": true
+    },
+    {
+      "name": "real-many-first-0 展开后可见图片",
+      "passed": true
+    },
+    {
+      "name": "real-many-first-0 返回类型正确",
+      "passed": true
+    },
+    {
+      "name": "real-many-first-0 返回完成并释放",
+      "passed": true
+    },
+    {
+      "name": "real-many-first-0 返回进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-many-first-0 返回当前附件位置",
+      "passed": true
+    },
+    {
+      "name": "real-many-first-0 真实记事不变",
+      "passed": true
+    },
+    {
+      "name": "real-many-first-1 使用自定义展开",
+      "passed": true
+    },
+    {
+      "name": "real-many-first-1 展开具有目标图片几何",
+      "passed": true
+    },
+    {
+      "name": "real-many-first-1 展开进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-many-first-1 动画期间不提前播放或提亮",
+      "passed": true
+    },
+    {
+      "name": "real-many-first-1 查看器输入恢复",
+      "passed": true
+    },
+    {
+      "name": "real-many-first-1 展开后可见图片",
+      "passed": true
+    },
+    {
+      "name": "real-many-first-1 返回类型正确",
+      "passed": true
+    },
+    {
+      "name": "real-many-first-1 返回完成并释放",
+      "passed": true
+    },
+    {
+      "name": "real-many-first-1 返回进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-many-first-1 返回当前附件位置",
+      "passed": true
+    },
+    {
+      "name": "real-many-first-1 真实记事不变",
+      "passed": true
+    },
+    {
+      "name": "real-many-last-0 使用自定义展开",
+      "passed": true
+    },
+    {
+      "name": "real-many-last-0 展开具有目标图片几何",
+      "passed": true
+    },
+    {
+      "name": "real-many-last-0 展开进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-many-last-0 动画期间不提前播放或提亮",
+      "passed": true
+    },
+    {
+      "name": "real-many-last-0 查看器输入恢复",
+      "passed": true
+    },
+    {
+      "name": "real-many-last-0 展开后可见图片",
+      "passed": true
+    },
+    {
+      "name": "real-many-last-0 返回类型正确",
+      "passed": true
+    },
+    {
+      "name": "real-many-last-0 返回完成并释放",
+      "passed": true
+    },
+    {
+      "name": "real-many-last-0 返回进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-many-last-0 返回当前附件位置",
+      "passed": true
+    },
+    {
+      "name": "real-many-last-0 真实记事不变",
+      "passed": true
+    },
+    {
+      "name": "real-many-last-1 使用自定义展开",
+      "passed": true
+    },
+    {
+      "name": "real-many-last-1 展开具有目标图片几何",
+      "passed": true
+    },
+    {
+      "name": "real-many-last-1 展开进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-many-last-1 动画期间不提前播放或提亮",
+      "passed": true
+    },
+    {
+      "name": "real-many-last-1 查看器输入恢复",
+      "passed": true
+    },
+    {
+      "name": "real-many-last-1 展开后可见图片",
+      "passed": true
+    },
+    {
+      "name": "real-many-last-1 返回类型正确",
+      "passed": true
+    },
+    {
+      "name": "real-many-last-1 返回完成并释放",
+      "passed": true
+    },
+    {
+      "name": "real-many-last-1 返回进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-many-last-1 返回当前附件位置",
+      "passed": true
+    },
+    {
+      "name": "real-many-last-1 真实记事不变",
+      "passed": true
+    },
+    {
+      "name": "真实附件文件 SHA-256 不变",
+      "passed": true
+    },
+    {
+      "name": "原有记事逐行摘要不变",
+      "passed": true
+    }
+  ],
+  "visualChecks": [
+    {
+      "name": "真实附件样本非空",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-0 使用自定义展开",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-0 展开具有目标图片几何",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-0 展开进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-0 动画期间不提前播放或提亮",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-0 查看器输入恢复",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-0 展开后可见图片",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-0 返回类型正确",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-0 返回完成并释放",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-0 返回进度单调",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-0 返回当前附件位置",
+      "passed": true
+    },
+    {
+      "name": "real-largest-image-0 真实记事不变",
+      "passed": true
+    },
+    {
+      "name": "真实附件文件 SHA-256 不变",
+      "passed": true
+    },
+    {
+      "name": "原有记事逐行摘要不变",
+      "passed": true
+    }
+  ],
+  "realMedia": {
+    "availableAttachments": 43,
+    "availableNotes": 24,
+    "samples": [
+      {
+        "id": 1264,
+        "index": 1,
+        "attachmentCount": 7,
+        "bytes": 36248874,
+        "video": false,
+        "gif": false,
+        "width": 12256,
+        "height": 16320,
+        "motion": false,
+        "hdr": true,
+        "decodedWidth": 1983,
+        "decodedHeight": 2640,
+        "hdrWindowObserved": true,
+        "name": "largest-image"
+      },
+      {
+        "id": 2235,
+        "index": 0,
+        "attachmentCount": 2,
+        "bytes": 168695573,
+        "video": true,
+        "gif": false,
+        "width": 3840,
+        "height": 2160,
+        "motion": false,
+        "hdr": false,
+        "durationMs": 15637,
+        "decodedWidth": 1485,
+        "decodedHeight": 2640,
+        "playbackObserved": true,
+        "name": "largest-video"
+      },
+      {
+        "id": 15,
+        "index": 1,
+        "attachmentCount": 6,
+        "bytes": 6592871,
+        "video": false,
+        "gif": true,
+        "width": 200,
+        "height": 200,
+        "motion": false,
+        "hdr": false,
+        "decodedWidth": 1216,
+        "decodedHeight": 1216,
+        "name": "largest-gif"
+      },
+      {
+        "id": 689,
+        "index": 1,
+        "attachmentCount": 2,
+        "bytes": 24052632,
+        "video": false,
+        "gif": false,
+        "width": 5888,
+        "height": 4416,
+        "motion": true,
+        "hdr": true,
+        "decodedWidth": 3520,
+        "decodedHeight": 2640,
+        "playbackObserved": true,
+        "hdrWindowObserved": true,
+        "name": "largest-motion"
+      },
+      {
+        "id": 1264,
+        "index": 0,
+        "attachmentCount": 7,
+        "bytes": 6445461,
+        "video": false,
+        "gif": false,
+        "width": 3392,
+        "height": 2544,
+        "motion": true,
+        "hdr": false,
+        "decodedWidth": 3520,
+        "decodedHeight": 2640,
+        "playbackObserved": true,
+        "name": "many-first"
+      },
+      {
+        "id": 1264,
+        "index": 6,
+        "attachmentCount": 7,
+        "bytes": 1318258,
+        "video": false,
+        "gif": false,
+        "width": 1440,
+        "height": 1440,
+        "motion": false,
+        "hdr": false,
+        "decodedWidth": 2640,
+        "decodedHeight": 2640,
+        "name": "many-last"
+      }
+    ]
+  },
+  "performance": [
+    {
+      "name": "real-largest-image-0-enter",
+      "readyMs": 246.32,
+      "totalMs": 605.7,
+      "animationMs": 359.19,
+      "intervalP95Ms": 8.53,
+      "intervalMaxMs": 9.44,
+      "frames": 44,
+      "frameP95Ms": 8.29,
+      "frameMaxMs": 15.47,
+      "missedDeadlines": 0,
+      "droppedMetricCallbacks": 0
+    },
+    {
+      "name": "real-largest-image-0-return",
+      "readyMs": 275.68,
+      "totalMs": 597.04,
+      "animationMs": 321.17,
+      "intervalP95Ms": 8.56,
+      "intervalMaxMs": 8.7,
+      "frames": 39,
+      "frameP95Ms": 9.12,
+      "frameMaxMs": 16.53,
+      "missedDeadlines": 1,
+      "droppedMetricCallbacks": 0
+    },
+    {
+      "name": "real-largest-image-1-enter",
+      "readyMs": 200.07,
+      "totalMs": 571.07,
+      "animationMs": 370.91,
+      "intervalP95Ms": 16.84,
+      "intervalMaxMs": 16.92,
+      "frames": 34,
+      "frameP95Ms": 8.08,
+      "frameMaxMs": 8.62,
+      "missedDeadlines": 0,
+      "droppedMetricCallbacks": 0
+    },
+    {
+      "name": "real-largest-image-1-return",
+      "readyMs": 316.91,
+      "totalMs": 654.58,
+      "animationMs": 337.51,
+      "intervalP95Ms": 16.86,
+      "intervalMaxMs": 17.1,
+      "frames": 20,
+      "frameP95Ms": 10.57,
+      "frameMaxMs": 20.54,
+      "missedDeadlines": 0,
+      "droppedMetricCallbacks": 0
+    },
+    {
+      "name": "real-largest-video-0-enter",
+      "readyMs": 146.17,
+      "totalMs": 511.93,
+      "animationMs": 365.43,
+      "intervalP95Ms": 8.5,
+      "intervalMaxMs": 9.09,
+      "frames": 44,
+      "frameP95Ms": 8.64,
+      "frameMaxMs": 8.83,
+      "missedDeadlines": 0,
+      "droppedMetricCallbacks": 0
+    },
+    {
+      "name": "real-largest-video-0-return",
+      "readyMs": 230.55,
+      "totalMs": 581.95,
+      "animationMs": 351.24,
+      "intervalP95Ms": 8.51,
+      "intervalMaxMs": 8.52,
+      "frames": 39,
+      "frameP95Ms": 39.99,
+      "frameMaxMs": 47.34,
+      "missedDeadlines": 1,
+      "droppedMetricCallbacks": 0
+    },
+    {
+      "name": "real-largest-video-1-enter",
+      "readyMs": 186.02,
+      "totalMs": 546.43,
+      "animationMs": 360.18,
+      "intervalP95Ms": 16.91,
+      "intervalMaxMs": 17.02,
+      "frames": 22,
+      "frameP95Ms": 4.96,
+      "frameMaxMs": 8.0,
+      "missedDeadlines": 0,
+      "droppedMetricCallbacks": 0
+    },
+    {
+      "name": "real-largest-video-1-return",
+      "readyMs": 279.08,
+      "totalMs": 644.84,
+      "animationMs": 365.62,
+      "intervalP95Ms": 16.86,
+      "intervalMaxMs": 17.06,
+      "frames": 21,
+      "frameP95Ms": 27.37,
+      "frameMaxMs": 43.04,
+      "missedDeadlines": 1,
+      "droppedMetricCallbacks": 0
+    },
+    {
+      "name": "real-largest-gif-0-enter",
+      "readyMs": 143.91,
+      "totalMs": 510.88,
+      "animationMs": 366.86,
+      "intervalP95Ms": 8.46,
+      "intervalMaxMs": 10.35,
+      "frames": 45,
+      "frameP95Ms": 4.81,
+      "frameMaxMs": 9.73,
+      "missedDeadlines": 0,
+      "droppedMetricCallbacks": 0
+    },
+    {
+      "name": "real-largest-gif-0-return",
+      "readyMs": 117.38,
+      "totalMs": 447.47,
+      "animationMs": 329.83,
+      "intervalP95Ms": 8.55,
+      "intervalMaxMs": 8.56,
+      "frames": 39,
+      "frameP95Ms": 28.52,
+      "frameMaxMs": 30.2,
+      "missedDeadlines": 1,
+      "droppedMetricCallbacks": 0
+    },
+    {
+      "name": "real-largest-gif-1-enter",
+      "readyMs": 121.81,
+      "totalMs": 487.3,
+      "animationMs": 365.39,
+      "intervalP95Ms": 8.4,
+      "intervalMaxMs": 8.51,
+      "frames": 45,
+      "frameP95Ms": 4.29,
+      "frameMaxMs": 5.91,
+      "missedDeadlines": 0,
+      "droppedMetricCallbacks": 0
+    },
+    {
+      "name": "real-largest-gif-1-return",
+      "readyMs": 110.77,
+      "totalMs": 439.43,
+      "animationMs": 328.54,
+      "intervalP95Ms": 10.05,
+      "intervalMaxMs": 10.71,
+      "frames": 39,
+      "frameP95Ms": 13.76,
+      "frameMaxMs": 27.43,
+      "missedDeadlines": 1,
+      "droppedMetricCallbacks": 0
+    },
+    {
+      "name": "real-largest-motion-0-enter",
+      "readyMs": 174.12,
+      "totalMs": 548.79,
+      "animationMs": 374.58,
+      "intervalP95Ms": 8.39,
+      "intervalMaxMs": 8.42,
+      "frames": 45,
+      "frameP95Ms": 10.52,
+      "frameMaxMs": 19.87,
+      "missedDeadlines": 1,
+      "droppedMetricCallbacks": 0
+    },
+    {
+      "name": "real-largest-motion-0-return",
+      "readyMs": 176.97,
+      "totalMs": 501.34,
+      "animationMs": 324.22,
+      "intervalP95Ms": 8.68,
+      "intervalMaxMs": 8.68,
+      "frames": 39,
+      "frameP95Ms": 15.48,
+      "frameMaxMs": 23.2,
+      "missedDeadlines": 1,
+      "droppedMetricCallbacks": 0
+    },
+    {
+      "name": "real-largest-motion-1-enter",
+      "readyMs": 230.44,
+      "totalMs": 604.98,
+      "animationMs": 374.42,
+      "intervalP95Ms": 16.74,
+      "intervalMaxMs": 16.86,
+      "frames": 23,
+      "frameP95Ms": 7.88,
+      "frameMaxMs": 23.19,
+      "missedDeadlines": 1,
+      "droppedMetricCallbacks": 0
+    },
+    {
+      "name": "real-largest-motion-1-return",
+      "readyMs": 247.54,
+      "totalMs": 588.15,
+      "animationMs": 340.47,
+      "intervalP95Ms": 17.09,
+      "intervalMaxMs": 17.18,
+      "frames": 20,
+      "frameP95Ms": 8.43,
+      "frameMaxMs": 22.52,
+      "missedDeadlines": 1,
+      "droppedMetricCallbacks": 0
+    },
+    {
+      "name": "real-many-first-0-enter",
+      "readyMs": 151.05,
+      "totalMs": 525.45,
+      "animationMs": 374.2,
+      "intervalP95Ms": 8.44,
+      "intervalMaxMs": 8.86,
+      "frames": 45,
+      "frameP95Ms": 8.6,
+      "frameMaxMs": 17.13,
+      "missedDeadlines": 1,
+      "droppedMetricCallbacks": 0
+    },
+    {
+      "name": "real-many-first-0-return",
+      "readyMs": 251.28,
+      "totalMs": 589.23,
+      "animationMs": 337.76,
+      "intervalP95Ms": 16.91,
+      "intervalMaxMs": 16.97,
+      "frames": 20,
+      "frameP95Ms": 7.81,
+      "frameMaxMs": 17.68,
+      "missedDeadlines": 1,
+      "droppedMetricCallbacks": 0
+    },
+    {
+      "name": "real-many-first-1-enter",
+      "readyMs": 218.01,
+      "totalMs": 593.01,
+      "animationMs": 374.87,
+      "intervalP95Ms": 16.75,
+      "intervalMaxMs": 16.78,
+      "frames": 22,
+      "frameP95Ms": 12.83,
+      "frameMaxMs": 16.3,
+      "missedDeadlines": 0,
+      "droppedMetricCallbacks": 0
+    },
+    {
+      "name": "real-many-first-1-return",
+      "readyMs": 214.29,
+      "totalMs": 553.67,
+      "animationMs": 339.23,
+      "intervalP95Ms": 16.87,
+      "intervalMaxMs": 16.89,
+      "frames": 20,
+      "frameP95Ms": 8.47,
+      "frameMaxMs": 22.81,
+      "missedDeadlines": 1,
+      "droppedMetricCallbacks": 0
+    },
+    {
+      "name": "real-many-last-0-enter",
+      "readyMs": 183.21,
+      "totalMs": 547.35,
+      "animationMs": 364.05,
+      "intervalP95Ms": 8.47,
+      "intervalMaxMs": 10.44,
+      "frames": 44,
+      "frameP95Ms": 9.05,
+      "frameMaxMs": 15.46,
+      "missedDeadlines": 1,
+      "droppedMetricCallbacks": 0
+    },
+    {
+      "name": "real-many-last-0-return",
+      "readyMs": 131.54,
+      "totalMs": 445.46,
+      "animationMs": 313.78,
+      "intervalP95Ms": 8.82,
+      "intervalMaxMs": 9.29,
+      "frames": 37,
+      "frameP95Ms": 8.05,
+      "frameMaxMs": 12.12,
+      "missedDeadlines": 0,
+      "droppedMetricCallbacks": 0
+    },
+    {
+      "name": "real-many-last-1-enter",
+      "readyMs": 155.07,
+      "totalMs": 519.23,
+      "animationMs": 364.09,
+      "intervalP95Ms": 8.45,
+      "intervalMaxMs": 8.64,
+      "frames": 44,
+      "frameP95Ms": 5.58,
+      "frameMaxMs": 8.06,
+      "missedDeadlines": 0,
+      "droppedMetricCallbacks": 0
+    },
+    {
+      "name": "real-many-last-1-return",
+      "readyMs": 101.68,
+      "totalMs": 422.95,
+      "animationMs": 321.16,
+      "intervalP95Ms": 16.86,
+      "intervalMaxMs": 16.89,
+      "frames": 31,
+      "frameP95Ms": 15.32,
+      "frameMaxMs": 20.22,
+      "missedDeadlines": 1,
+      "droppedMetricCallbacks": 0
+    }
+  ],
+  "failures": 0
+}

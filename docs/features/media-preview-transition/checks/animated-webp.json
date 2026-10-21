@@ -1,0 +1,670 @@
+{
+  "checks": 2369,
+  "failures": 0,
+  "originalRows": 669,
+  "jvm": {
+    "tests": 1732,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3
+  },
+  "devices": [
+    {
+      "device": "samsung",
+      "rows": 374,
+      "realAnimatedWebpCount": 0,
+      "webpChecks": 187,
+      "webpPrepareMsRange": [
+        165.4,
+        227.8
+      ],
+      "noEmbedded200mpPrepareMs": [
+        210.5,
+        182.6
+      ],
+      "qualityComparisons": [
+        {
+          "mode": "native",
+          "name": "real-largest-image-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        },
+        {
+          "mode": "native",
+          "name": "real-largest-image-0-hdr-restored",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        },
+        {
+          "mode": "native",
+          "name": "real-largest-sdr-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        },
+        {
+          "mode": "native",
+          "name": "real-largest-motion-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        },
+        {
+          "mode": "native",
+          "name": "real-many-last-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        },
+        {
+          "mode": "compat",
+          "name": "real-largest-image-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256",
+            "pqRatioMin",
+            "pqRatioMax",
+            "pqGamma",
+            "pqMinimum",
+            "pqFull"
+          ]
+        },
+        {
+          "mode": "compat",
+          "name": "real-largest-image-0-hdr-restored",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256",
+            "pqRatioMin",
+            "pqRatioMax",
+            "pqGamma",
+            "pqMinimum",
+            "pqFull"
+          ]
+        },
+        {
+          "mode": "compat",
+          "name": "real-largest-sdr-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        },
+        {
+          "mode": "compat",
+          "name": "real-largest-motion-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        },
+        {
+          "mode": "compat",
+          "name": "real-many-last-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        }
+      ]
+    },
+    {
+      "device": "oneplus",
+      "rows": 114,
+      "realAnimatedWebpCount": 0,
+      "webpChecks": 187,
+      "webpPrepareMsRange": [
+        127.7,
+        173.9
+      ],
+      "noEmbedded200mpPrepareMs": [
+        157.6,
+        154.8
+      ],
+      "qualityComparisons": [
+        {
+          "mode": "native",
+          "name": "real-largest-image-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        },
+        {
+          "mode": "native",
+          "name": "real-largest-image-0-hdr-restored",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        },
+        {
+          "mode": "native",
+          "name": "real-largest-sdr-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        },
+        {
+          "mode": "native",
+          "name": "real-largest-motion-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        },
+        {
+          "mode": "native",
+          "name": "real-largest-motion-0-hdr-restored",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        },
+        {
+          "mode": "native",
+          "name": "real-many-first-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        },
+        {
+          "mode": "native",
+          "name": "real-many-last-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        },
+        {
+          "mode": "compat",
+          "name": "real-largest-image-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256",
+            "pqRatioMin",
+            "pqRatioMax",
+            "pqGamma",
+            "pqMinimum",
+            "pqFull"
+          ]
+        },
+        {
+          "mode": "compat",
+          "name": "real-largest-image-0-hdr-restored",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256",
+            "pqRatioMin",
+            "pqRatioMax",
+            "pqGamma",
+            "pqMinimum",
+            "pqFull"
+          ]
+        },
+        {
+          "mode": "compat",
+          "name": "real-largest-sdr-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        },
+        {
+          "mode": "compat",
+          "name": "real-largest-motion-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256",
+            "pqRatioMin",
+            "pqRatioMax",
+            "pqGamma",
+            "pqMinimum",
+            "pqFull"
+          ]
+        },
+        {
+          "mode": "compat",
+          "name": "real-largest-motion-0-hdr-restored",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256",
+            "pqRatioMin",
+            "pqRatioMax",
+            "pqGamma",
+            "pqMinimum",
+            "pqFull"
+          ]
+        },
+        {
+          "mode": "compat",
+          "name": "real-many-first-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        },
+        {
+          "mode": "compat",
+          "name": "real-many-last-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        }
+      ]
+    },
+    {
+      "device": "meizu",
+      "rows": 181,
+      "realAnimatedWebpCount": 0,
+      "webpChecks": 187,
+      "webpPrepareMsRange": [
+        177.4,
+        403.6
+      ],
+      "noEmbedded200mpPrepareMs": [
+        290.1,
+        176.8
+      ],
+      "qualityComparisons": [
+        {
+          "mode": "native",
+          "name": "real-largest-image-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        },
+        {
+          "mode": "native",
+          "name": "real-largest-image-0-hdr-restored",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        },
+        {
+          "mode": "native",
+          "name": "real-largest-sdr-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        },
+        {
+          "mode": "native",
+          "name": "real-largest-motion-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        },
+        {
+          "mode": "native",
+          "name": "real-many-last-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        },
+        {
+          "mode": "compat",
+          "name": "real-largest-image-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256",
+            "pqRatioMin",
+            "pqRatioMax",
+            "pqGamma",
+            "pqMinimum",
+            "pqFull"
+          ]
+        },
+        {
+          "mode": "compat",
+          "name": "real-largest-image-0-hdr-restored",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256",
+            "pqRatioMin",
+            "pqRatioMax",
+            "pqGamma",
+            "pqMinimum",
+            "pqFull"
+          ]
+        },
+        {
+          "mode": "compat",
+          "name": "real-largest-sdr-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        },
+        {
+          "mode": "compat",
+          "name": "real-largest-motion-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        },
+        {
+          "mode": "compat",
+          "name": "real-many-last-0",
+          "unchanged": [
+            "bitmapWidth",
+            "bitmapHeight",
+            "bitmapColorSpace",
+            "bitmapGainmap",
+            "bitmapSha256"
+          ]
+        }
+      ]
+    }
+  ],
+  "reports": [
+    {
+      "name": "media-webp-samsung-final-webp-webp",
+      "checks": 187,
+      "failures": 0
+    },
+    {
+      "name": "media-webp-samsung-final-native-all",
+      "checks": 109,
+      "failures": 0
+    },
+    {
+      "name": "media-webp-samsung-final-compat-all",
+      "checks": 109,
+      "failures": 0
+    },
+    {
+      "name": "media-webp-samsung-final-compat-generic",
+      "checks": 243,
+      "failures": 0
+    },
+    {
+      "name": "media-webp-samsung-final-compat-edge",
+      "checks": 88,
+      "failures": 0
+    },
+    {
+      "name": "media-webp-samsung-final-compat-pressure",
+      "checks": 41,
+      "failures": 0
+    },
+    {
+      "name": "media-webp-oneplus-final-webp-webp",
+      "checks": 187,
+      "failures": 0
+    },
+    {
+      "name": "media-webp-oneplus-final-native-all",
+      "checks": 128,
+      "failures": 0
+    },
+    {
+      "name": "media-webp-oneplus-final-compat-all",
+      "checks": 128,
+      "failures": 0
+    },
+    {
+      "name": "media-webp-oneplus-final-compat-generic",
+      "checks": 243,
+      "failures": 0
+    },
+    {
+      "name": "media-webp-oneplus-final-compat-edge",
+      "checks": 88,
+      "failures": 0
+    },
+    {
+      "name": "media-webp-oneplus-final-compat-pressure",
+      "checks": 41,
+      "failures": 0
+    },
+    {
+      "name": "media-webp-meizu-final-webp-webp",
+      "checks": 187,
+      "failures": 0
+    },
+    {
+      "name": "media-webp-meizu-final-native-all",
+      "checks": 109,
+      "failures": 0
+    },
+    {
+      "name": "media-webp-meizu-final-compat-all",
+      "checks": 109,
+      "failures": 0
+    },
+    {
+      "name": "media-webp-meizu-final-compat-generic",
+      "checks": 243,
+      "failures": 0
+    },
+    {
+      "name": "media-webp-meizu-final-compat-edge",
+      "checks": 88,
+      "failures": 0
+    },
+    {
+      "name": "media-webp-meizu-final-compat-pressure",
+      "checks": 41,
+      "failures": 0
+    }
+  ],
+  "method": "动态 WebP 使用专用模拟记事；真实记事只读回归 JPEG、GIF、视频、动态照片及 HDR。未清空用户图片缓存。",
+  "limitations": [
+    "三机真实记事没有动态 WebP，不将合成素材称为真实 WebP。",
+    "卓易通兼容输出通过三机强制走 PQ 路径验证，未连接卓易通宿主。",
+    "截图不能量化物理 HDR 高光，已核对最终位图、纹理尺寸和增益参数。"
+  ],
+  "retainedFailures": [
+    "media-webp-before.json：原详情裁剪加载失败。",
+    "media-webp-oneplus-suite1-webp.json：探针索引／采样断言不正确，未计入通过项。",
+    "media-webp-oneplus-ownership-webp.json：全屏重复附件共享实例的两项失败。"
+  ],
+  "published": {
+    "metadata": {
+      "channel": "debug",
+      "debugUpdateCode": 202610211431,
+      "versionCode": 43,
+      "versionName": "2.0.0",
+      "apkUrl": "http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202610211431.apk",
+      "sha256": "d540ad957c27a9c417467522a236c8c7f6ccd9a0236fccaac4decd2464b543b2",
+      "sizeBytes": 36917279,
+      "publishedAt": "2026-10-21T14:31:17.005119600Z",
+      "releaseNotes": "## 修复动态 WebP 的裁剪加载与播放\n\n用户要求在上一轮无内嵌预览优化之后，一并修复动态 WebP 的裁剪加载失败，并继续在三星 R5CW20BLNKL、一加 192.168.100.184:36007、魅族 192.168.100.67:40807 验证，保持播放、转场、最终清晰度和 HDR。\n\n复现确认详情 Glide 的 centerCrop／自定义位图变换不能处理平台 AnimatedImageDrawable。新增 AnimatedMediaCropDrawable，在每帧绘制时复用 MediaCropBitmapRenderer 的裁剪几何，保留原动画；详情接入四档播放、手动单轮、离屏暂停及返回恢复，静态状态明确请求首帧。同一 WebP 的平台资源不能在多个视图之间共享，详情所有动态请求和全屏重复页均隔离解码所有权。原 GIF、静态图片和 HDR 加载尺寸及渲染逻辑保持。\n\n三机共 2369 项相关实机检查通过，包含小动画、3072×2048 高分辨率动画、透明帧、偏心放大裁剪、2 倍查看、四档播放、重复文件、滚动回收、打开与返回和顶栏稳定性。真实记事回归覆盖 200MP 照片、大视频、GIF、普通／HDR 动态照片，以及无内嵌预览的大图压力副本。三机无内嵌 200MP 副本首次展开约 211／158／290 ms，未超过 500 ms 验收限制。真实记事中没有动态 WebP，该格式使用专用合成记事验证。\n\nJVM 1732 项测试无失败／错误，3 项既有跳过。669 条原记事及所选真实附件散列不变；最终位图尺寸、像素、色彩空间、增益图标志和 HDR 参数与上一版一致。PQ 纹理满足原显示分辨率且未降低，一加 HDR 动态照片的纹理因既有内存预算略增；没有调整预算。卓易通兼容路径通过三机强制 PQ 输出验证，未直接连接宿主；普通截图不用于量化物理 HDR 高光。\n\n正在发布并复核远端、本地及三机安装包；发布后再次运行动态 WebP 与真实大图／HDR 检查。未创建 Git 提交。诊断与完整证据：docs/features/media-preview-transition/animated-webp-2026-10-21.md、checks/animated-webp.json。"
+    },
+    "devices": [
+      {
+        "device": "samsung",
+        "version": 202610211431,
+        "installedHash": "d540ad957c27a9c417467522a236c8c7f6ccd9a0236fccaac4decd2464b543b2",
+        "checks": 51,
+        "originalRows": 374,
+        "rowsUnchanged": true,
+        "failures": 0,
+        "webpChecks": 187,
+        "finalPixelsAndHdrUnchanged": true
+      },
+      {
+        "device": "oneplus",
+        "version": 202610211431,
+        "installedHash": "d540ad957c27a9c417467522a236c8c7f6ccd9a0236fccaac4decd2464b543b2",
+        "checks": 69,
+        "originalRows": 114,
+        "rowsUnchanged": true,
+        "failures": 0,
+        "webpChecks": 187,
+        "finalPixelsAndHdrUnchanged": true
+      },
+      {
+        "device": "meizu",
+        "version": 202610211431,
+        "installedHash": "d540ad957c27a9c417467522a236c8c7f6ccd9a0236fccaac4decd2464b543b2",
+        "checks": 51,
+        "originalRows": 181,
+        "rowsUnchanged": true,
+        "failures": 0,
+        "webpChecks": 187,
+        "finalPixelsAndHdrUnchanged": true
+      }
+    ],
+    "checks": 732
+  },
+  "cleanup": [
+    {
+      "device": "samsung",
+      "home": true,
+      "rotationLockedPortrait": true,
+      "diagnosticsRemoved": true
+    },
+    {
+      "device": "oneplus",
+      "home": true,
+      "rotationLockedPortrait": true,
+      "diagnosticsRemoved": true
+    },
+    {
+      "device": "meizu",
+      "home": true,
+      "rotationLockedPortrait": true,
+      "diagnosticsRemoved": true
+    }
+  ],
+  "cleanupJobs": [
+    {
+      "device": "samsung",
+      "fixtureJobs": 16,
+      "activeFixtureJobs": [],
+      "cleaned": true,
+      "removedDerivedPreviews": 16
+    },
+    {
+      "device": "oneplus",
+      "fixtureJobs": 14,
+      "activeFixtureJobs": [],
+      "cleaned": true,
+      "removedDerivedPreviews": 14
+    },
+    {
+      "device": "meizu",
+      "fixtureJobs": 14,
+      "activeFixtureJobs": [],
+      "cleaned": true,
+      "removedDerivedPreviews": 14
+    }
+  ]
+}

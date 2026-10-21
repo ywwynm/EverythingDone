@@ -1,5 +1,9 @@
 # Detail Attachment Media Appearance Decisions
 
+## 2026-10-21 — 为预览转场保留完整构图
+
+静态图片解码保留完整画面，默认显示仍由 ImageView 居中裁剪，自定义外观仍经原裁剪器处理；在裁剪前生成有界的独立转场小图。详情取色仍依据显示区域。静态 WebP 通过 Glide 文件头与动画区分，GIF 和动态 WebP 保留播放分支。范围、缓存约束与验证见[无内嵌预览的大图展开](../media-preview-transition/opening-without-thumbnail-2026-10-21.md)。
+
 ## 2026-10-21 — 复用不可变 JSON 解析结果
 
 详情附件外观按完整 JSON 复用解析结果，缓存限量且只驻留内存；来源和呈现集合不可修改。实际裁剪、比例、选帧、删除及导入重写创建新值，完整列表重读可立即看到新 JSON，不使用记事 ID／更新时间判断外观是否过期。背景小组件与界面并发读取安全，附件内容和鉴权状态不进入缓存。详见 [详情转场解析优化](../thing-detail-transition/appearance-parsing-2026-10-21.md)。
