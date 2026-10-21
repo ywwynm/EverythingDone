@@ -98,6 +98,7 @@ import com.ywwynm.everythingdone.adapters.CheckListAdapter
 import com.ywwynm.everythingdone.adapters.ImageAttachmentAdapter
 import com.ywwynm.everythingdone.helpers.DetailAttachmentPlaybackController
 import com.ywwynm.everythingdone.helpers.DetailContentLayout
+import com.ywwynm.everythingdone.helpers.DetailViewPreparation
 import com.ywwynm.everythingdone.helpers.DetailScreenshotRenderer
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper
 import com.ywwynm.everythingdone.appwidgets.CreateWidget
@@ -170,6 +171,8 @@ import com.ywwynm.everythingdone.services.AudioRecordingService
 import com.ywwynm.everythingdone.views.ThingBackgroundEditor
 import com.ywwynm.everythingdone.views.particledismiss.ParticleLaunchTrace
 import com.ywwynm.everythingdone.views.particledismiss.ThingCreationTransition
+import com.ywwynm.everythingdone.views.ThingDetailTransition
+import com.ywwynm.everythingdone.views.ThingDetailReturnTransition
 import com.ywwynm.everythingdone.views.pickers.DateTimePicker
 import com.ywwynm.everythingdone.views.recording.AudioInputPreferences
 import kotlin.math.abs
@@ -307,6 +310,10 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
     private var mNormalSnackbar: Snackbar? = null
 
+    private fun normalSnackbar(): Snackbar = mNormalSnackbar ?: Snackbar(
+        mApp!!, Snackbar.NORMAL, mFlRoot!!, null
+    ).also { mNormalSnackbar = it }
+
     private var mChangeColorTo: Int = 0
 
     private var mExecutor: ExecutorService? = null
@@ -351,6 +358,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     @JvmField var shouldAddToActionList: Boolean = false
 
     private var tapUpdateReceiver: TapDetailReceiveController? = null
+    private var deferTapUpdateSetup = false
     private val tapHistoryOwner = Any()
     private val tapHistoryAttachments = LinkedHashSet<String>()
     private val tapUpdateOrigin = java.util.UUID.randomUUID().toString()
@@ -420,15 +428,31 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     override fun getLayoutResource(): Int = R.layout.activity_detail
 
     private var creationTransition: ThingCreationTransition? = null
+    private var detailTransition: ThingDetailTransition? = null
+    private var preparedDetailSections: LinearLayout? = null
+    private var preparedQuickPicker: View? = null
+
+    override fun setContentView(layoutResID: Int) {
+        val prepared = if (layoutResID == R.layout.activity_detail) DetailViewPreparation.take(this) else null
+        if (prepared == null) super.setContentView(layoutResID)
+        else {
+            preparedDetailSections = prepared.sections
+            preparedQuickPicker = prepared.quickPicker
+            super.setContentView(prepared.root)
+        }
+    }
 
     /** 新建时可以等入场动画结束再做、与首帧无关的那点工作。 */
     private var deferredAfterEnter: Runnable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        ThingDetailTransition.mark("create")
         val key = ThingCreationTransition.EXTRA_TOKEN
         if (savedInstanceState != null) intent.removeExtra(key)
+        if (savedInstanceState != null) intent.removeExtra(ThingDetailTransition.EXTRA_TOKEN)
         if (intent.hasExtra(key)) mark("detail-create")
         super.onCreate(savedInstanceState)
+        ThingDetailTransition.mark("created")
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -452,21 +476,38 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     override fun init() {
+        ThingDetailTransition.mark("inflated")
         initMembers() // if we found thing is null, just finish this Activity
+        ThingDetailTransition.mark("members")
         if (mThing != null) {
             mark("detail-members")
             findViews()
+            ThingDetailTransition.mark("views")
             mark("detail-views")
             initUI()
+            ThingDetailTransition.mark("ui")
             mark("detail-ui")
             recordRenderedThingSnapshot()
             setActionbar()
             setEvents()
-            setupTapUpdate()
+            // 接收控制器及 NFC 查询不参与展开画面，等转场结束后再准备。
+            deferTapUpdateSetup = intent.hasExtra(ThingDetailTransition.EXTRA_TOKEN)
+            if (!deferTapUpdateSetup) setupTapUpdate()
+            ThingDetailTransition.mark("events")
             mark("detail-events")
 
             creationTransition = ThingCreationTransition
                 .attach(this, mFlRoot!!, mThing!!.getBackground() ?: ThingBackground.pure(mThing!!.getColor()))
+            ThingDetailReturnTransition.bindOrigin(this, mThing!!.id)
+            detailTransition = ThingDetailTransition.attach(this, mFlRoot!!, mThing!!.id) {
+                if (!committedReturnPending) mAttachmentPlaybackController?.setTransitionPaused(false)
+                // 本帧先完成真实页面交接，服务查询不占用最后一帧的绘制。
+                mFlRoot!!.post { finishDeferredTapUpdateSetup() }
+            }
+            if (detailTransition == null) {
+                mAttachmentPlaybackController?.setTransitionPaused(false)
+                finishDeferredTapUpdateSetup()
+            }
             // 入场动画期间主线程要留给首帧与粒子交接；没有入场动画时立即执行。
             deferredAfterEnter?.let { pending ->
                 deferredAfterEnter = null
@@ -483,6 +524,11 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             ContextCompat.registerReceiver(this, mReceiver, intentFilter,
                 ContextCompat.RECEIVER_NOT_EXPORTED)
         }
+    }
+
+    override fun beforeSetContentView() {
+        super.beforeSetContentView()
+        ThingDetailTransition.mark("before-layout")
     }
 
     override fun initMembers() {
@@ -570,7 +616,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         mDetailAttachmentMediaAppearance = mThing!!.detailAttachmentMediaAppearance
         if (mEditable) {
             mShowNormalSnackbar = Runnable {
-                mNormalSnackbar!!.show()
+                normalSnackbar().show()
             }
         }
 
@@ -866,7 +912,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                                 try {
                                     urlSpan.onClick(et)
                                 } catch (_: ActivityNotFoundException) {
-                                    mNormalSnackbar!!.setMessage(R.string.error_activity_not_found)
+                                    normalSnackbar().setMessage(R.string.error_activity_not_found)
                                     mFlRoot!!.postDelayed(mShowNormalSnackbar,
                                         KeyboardUtil.HIDE_DELAY.toLong())
                                 }
@@ -922,10 +968,12 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         mImageCover      = f(R.id.view_image_cover)
 
         mDetailList = f(R.id.sv_detail)
-        mDetailContent = DetailContentLayout(mDetailList!!)
+        mDetailContent = DetailContentLayout(mDetailList!!, preparedDetailSections)
+        preparedDetailSections = null
         mToolbarContrast = DetailToolbarContrast(mFlRoot!!, mActionbar!!, mDetailList!!,
             mImageCover!!, ::getAccentBackground)
         mAttachmentPlaybackController = DetailAttachmentPlaybackController(mDetailList!!)
+        mAttachmentPlaybackController?.setTransitionPaused(intent.hasExtra(ThingDetailTransition.EXTRA_TOKEN))
         mEtTitle = mDetailContent.view(R.id.et_title)
         mEtContent = mDetailContent.view(R.id.et_content)
         mTvThingFolderPath = mDetailContent.view(R.id.tv_thing_folder_path)
@@ -938,10 +986,10 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         BackgroundUtil.applyCheckboxAccent(cbQuickRemind!!, App.defaultAccentBackground)
         tvQuickRemind      = f(R.id.tv_quick_remind)
 
-        mNormalSnackbar = Snackbar(mApp!!, Snackbar.NORMAL, mFlRoot!!, null)
         if (mEditable) {
             createEditablePickers()
         }
+        preparedQuickPicker = null
     }
 
     private fun createDateTimeDialogFragment() {
@@ -952,7 +1000,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         val decorView: View = window.decorView
         quickRemindPicker = DateTimePicker(
             this, decorView,
-            Def.PickerType.AFTER_TIME, getAccentColor()
+            Def.PickerType.AFTER_TIME, getAccentColor(), preparedQuickPicker
         )
         val currentBg: ThingBackground? = getAccentBackground()
         if (currentBg != null) quickRemindPicker!!.setAccentBackground(currentBg)
@@ -1586,8 +1634,16 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 }
             }
         }
-        menu.findItem(R.id.act_tap_update)?.isVisible = canTapUpdate()
-        if (canTapUpdate()) {
+        updateTapUpdateMenu(menu)
+        updateUndoRedoActionButtonState()
+        mToolbarContrast?.refresh()
+        return true
+    }
+
+    private fun updateTapUpdateMenu(menu: Menu) {
+        val available = canTapUpdate()
+        menu.findItem(R.id.act_tap_update)?.isVisible = available
+        if (available) {
             if (menu.findItem(R.id.act_undo) == null) {
                 menu.add(Menu.NONE, R.id.act_undo, Menu.NONE, R.string.act_undo)
                     .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
@@ -1595,9 +1651,6 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                     .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
             }
         }
-        updateUndoRedoActionButtonState()
-        mToolbarContrast?.refresh()
-        return true
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -1670,6 +1723,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     override fun finish() {
+        ThingDetailReturnTransition.forgetOrigin(this)
         if (mThing == null) {
             super.finish()
             return
@@ -1685,6 +1739,20 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
         dontSaveAfterOnPause = true
         super.finish()
+    }
+
+    private var committedReturnPending = false
+
+    /** 只在校验、确认及业务结果已经完成的退出点调用，普通 finish／后台保存不进入动画。 */
+    private fun finishCommittedReturn() {
+        if (committedReturnPending || isFinishing) return
+        committedReturnPending = true
+        dontSaveAfterOnPause = true
+        val thing = mThing
+        if (mType != CREATE && thing != null &&
+            ThingDetailReturnTransition.captureAndFinish(this, thing,
+                detailTransition?.takeIf { it.isRunning }) { finish() }) return
+        finish()
     }
 
     private fun toggleCheckListActionItem(menu: Menu, toDisable: Boolean) {
@@ -2051,7 +2119,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
     private fun chooseHowToShareThing() {
         if (!canShareThing()) {
-            mNormalSnackbar!!.setMessage(getString(R.string.alert_cannot_share_empty_thing))
+            normalSnackbar().setMessage(getString(R.string.alert_cannot_share_empty_thing))
             mFlRoot!!.postDelayed(mShowNormalSnackbar, KeyboardUtil.HIDE_DELAY.toLong())
             return
         }
@@ -2150,11 +2218,22 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     private fun canTapUpdate(): Boolean {
+        if (deferTapUpdateSetup) return false
         val thing = mThing ?: return false
         return mType == UPDATE && Thing.isRealThingType(thing.type) &&
             (thing.state == Thing.UNDERWAY || thing.state == Thing.FINISHED) &&
             ThingFolderDAO.getInstance(this)?.isEffectivelyDeleted(thing.folderId) != true &&
             com.ywwynm.everythingdone.taptransfer.TapTransfer.isEntryAvailable(this)
+    }
+
+    private fun finishDeferredTapUpdateSetup() {
+        if (!deferTapUpdateSetup) return
+        deferTapUpdateSetup = false
+        if (isFinishing || isDestroyed) return
+        setupTapUpdate()
+        // 只补齐溢出菜单状态，不重建正在交接的可见工具栏按钮。
+        mActionbar?.menu?.let(::updateTapUpdateMenu)
+        updateUndoRedoActionButtonState()
     }
 
     private fun setupTapUpdate() {
@@ -2393,6 +2472,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
+        detailTransition?.finish()
+        detailTransition = null
         creationTransition?.finish()
         creationTransition = null
         super.onConfigurationChanged(newConfig)
@@ -2546,6 +2627,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     override fun onNewIntent(intent: Intent) {
+        ThingDetailReturnTransition.forgetOrigin(this)
         super.onNewIntent(intent)
         setIntent(intent)
         openAudioRecordingDialogFromNotification(intent)
@@ -2600,6 +2682,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     override fun onPause() {
+        detailTransition?.finish()
+        detailTransition = null
         cancelDetailCropPreview()
         creationTransition?.finish()
         creationTransition = null
@@ -2704,6 +2788,9 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     override fun onDestroy() {
+        ThingDetailReturnTransition.forgetOrigin(this)
+        detailTransition?.finish()
+        detailTransition = null
         tapUpdateReceiver?.exit()
         mApp?.releaseAttachmentsForHistory(tapHistoryOwner)
         mDetailCropPreviewLoader?.close()
@@ -2766,7 +2853,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 }
                 if (pathName == null) {
                     Log.w(TAG, "chooseMediaFile pathName is null, showing error")
-                    mNormalSnackbar!!.setMessage(R.string.error_cannot_add_from_network)
+                    normalSnackbar().setMessage(R.string.error_cannot_add_from_network)
                     mFlRoot!!.postDelayed(mShowNormalSnackbar, KeyboardUtil.HIDE_DELAY.toLong())
                     return
                 }
@@ -2775,7 +2862,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 Log.d(TAG, "chooseMediaFile attachmentTypePathName=$attachmentTypePathName")
                 if (attachmentTypePathName == null) {
                     Log.w(TAG, "chooseMediaFile getTypePathName returned null, showing error")
-                    mNormalSnackbar!!.setMessage(R.string.error_unsupported_file_type)
+                    normalSnackbar().setMessage(R.string.error_unsupported_file_type)
                     mFlRoot!!.postDelayed(mShowNormalSnackbar, KeyboardUtil.HIDE_DELAY.toLong())
                     return
                 }
@@ -2801,8 +2888,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     fun showNormalSnackbar(stringRes: Int) {
-        mNormalSnackbar!!.setMessage(stringRes)
-        mNormalSnackbar!!.show()
+        normalSnackbar().setMessage(stringRes)
+        normalSnackbar().show()
     }
 
     /**
@@ -3382,7 +3469,10 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
         val lightBg = light
         mFlRoot!!.post {
-            if (lightBg) {
+            val entering = detailTransition?.takeIf { it.isRunning }
+            if (entering != null) {
+                entering.setTargetLightStatusBars(lightBg)
+            } else if (lightBg) {
                 DisplayUtil.darkStatusBar(this@DetailActivity)
             } else {
                 DisplayUtil.cancelDarkStatusBar(this@DetailActivity)
@@ -3540,18 +3630,19 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     private fun prepareForReturnNormally(): Boolean {
+        if (committedReturnPending || isFinishing) return false
         if (mAudioAttachmentAdapter != null && mAudioAttachmentAdapter!!.getPlayingIndex() != -1) {
             mAudioAttachmentAdapter!!.stopPlaying()
         }
 
         if (!mEditable) {
             setResult(Def.Communication.RESULT_NO_UPDATE)
-            finish()
+            finishCommittedReturn()
             return false
         }
 
         KeyboardUtil.hideKeyboard(currentFocus)
-        mNormalSnackbar!!.dismiss()
+        mNormalSnackbar?.dismiss()
 
         if (App.isSomethingUpdatedSpecially()) {
             updateThingAndItsPosition(mThing!!.id)
@@ -3600,7 +3691,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         if (cbQuickRemind!!.isChecked && rhParams.habitDetail == null
             && reminderTime <= System.currentTimeMillis()
         ) {
-            mNormalSnackbar!!.setMessage(R.string.error_later)
+            normalSnackbar().setMessage(R.string.error_later)
             mFlRoot!!.postDelayed(mShowNormalSnackbar, 120)
             return
         }
@@ -3644,8 +3735,10 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             App.setJustNotifyAll(true)
         }
 
-        afterCreateOrUpdateThing(intent, resultCode)
-        finish()
+        // 无修改返回不重新渲染桌面小组件：视频静态封面取帧会占住主线程，延后转场回调。
+        afterCreateOrUpdateThing(intent, resultCode,
+            refreshWidgets = resultCode != Def.Communication.RESULT_NO_UPDATE)
+        finishCommittedReturn()
     }
 
     private fun createOrUpdateThing(
@@ -3696,7 +3789,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         mThing!!.detailAttachmentMediaAppearance = mDetailAttachmentMediaAppearance
     }
 
-    private fun afterCreateOrUpdateThing(intent: Intent, resultCode: Int) {
+    private fun afterCreateOrUpdateThing(intent: Intent, resultCode: Int, refreshWidgets: Boolean = true) {
         if (App.isSomethingUpdatedSpecially()
             && resultCode != Def.Communication.RESULT_NO_UPDATE
         ) {
@@ -3710,8 +3803,11 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         intent.putExtra(Def.Communication.KEY_THING, mThing)
         App.setLastUpdateUiIntent(intent)
 
-        AppWidgetHelper.updateSingleThingAppWidgets(this, mThing!!.id)
-        AppWidgetHelper.updateThingsListAppWidgetsForType(this, mThing!!.type)
+        // 自动保存沿用默认刷新；只有正常返回且正式判定为无修改时跳过。
+        if (refreshWidgets) {
+            AppWidgetHelper.updateSingleThingAppWidgets(this, mThing!!.id)
+            AppWidgetHelper.updateThingsListAppWidgetsForType(this, mThing!!.type)
+        }
 
         if (resultCode == Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME
             || resultCode == Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_DIFFERENT
@@ -3767,6 +3863,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     private fun returnToThingsActivity(stateAfter: Int) {
+        if (committedReturnPending || isFinishing) return
         if (mAudioAttachmentAdapter != null && mAudioAttachmentAdapter!!.getPlayingIndex() != -1) {
             mAudioAttachmentAdapter!!.stopPlaying()
         }
@@ -4160,7 +4257,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
         AppWidgetHelper.updateSingleThingAppWidgets(this, mThing!!.id)
         AppWidgetHelper.updateThingsListAppWidgetsForType(this, mThing!!.type)
-        finish()
+        finishCommittedReturn()
     }
 
     private fun shouldSendBroadCast(): Boolean {

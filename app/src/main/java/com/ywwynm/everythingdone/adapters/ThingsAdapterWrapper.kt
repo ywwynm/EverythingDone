@@ -19,6 +19,44 @@ open class ThingsAdapterWrapper(adapter: ThingsAdapter?) {
     private var mAdapter: ThingsAdapter? = adapter
 
     private var mShouldWaitNotify: Boolean = false
+    private var presentationHeld = false
+    internal var presentationDirty = false
+        private set
+
+    internal fun holdPresentation(entries: List<ThingListEntry>) {
+        presentationHeld = true
+        presentationDirty = false
+        mAdapter!!.holdContentUpdateEntries(entries)
+    }
+
+    internal fun publishPresentation(entries: List<ThingListEntry>, diff: DiffUtil.DiffResult,
+                                     immediateRebind: Boolean = false) {
+        mAdapter!!.holdContentUpdateEntries(entries)
+        mAdapter!!.setShouldThingsAnimWhenAppearing(false)
+        clearNotify()
+        presentationDirty = false
+        if (immediateRebind) mAdapter!!.notifyDataSetChanged()
+        else diff.dispatchUpdatesTo(mAdapter!!)
+    }
+
+    internal fun releasePresentation() {
+        presentationHeld = false
+        mAdapter!!.holdContentUpdateEntries(null)
+        clearNotify()
+    }
+
+    /** 认证失效需立即遮蔽当前展示；不能为等待保存而继续显示已揭示的私密内容。 */
+    internal fun rebindPrivacy() {
+        if (!presentationHeld) { notifyDataSetChanged(); return }
+        presentationDirty = true
+        mAdapter!!.notifyDataSetChanged()
+    }
+
+    private fun deferPresentation(): Boolean {
+        if (!presentationHeld) return false
+        presentationDirty = true
+        return true
+    }
 
     internal interface NotifyAction {
         fun notifyAdapter()
@@ -34,6 +72,7 @@ open class ThingsAdapterWrapper(adapter: ThingsAdapter?) {
     }
 
     open fun tryToNotify() {
+        if (deferPresentation()) return
         if (!mNotifyActions!!.isEmpty()) {
             mNotifyActions!![mNotifyActions!!.size - 1].notifyAdapter()
             mNotifyActions!!.clear()
@@ -47,11 +86,13 @@ open class ThingsAdapterWrapper(adapter: ThingsAdapter?) {
     internal fun snapshotContentUpdateEntries() = mAdapter!!.snapshotContentUpdateEntries()
 
     internal fun holdContentUpdateEntries(entries: List<ThingListEntry>?) {
+        if (presentationHeld) return
         mAdapter!!.holdContentUpdateEntries(entries)
     }
 
     /** 整批差异必须在可见时一起发布，不能进入只保留最后一项的旧延迟队列。 */
     internal fun publishContentUpdate(diff: DiffUtil.DiffResult) {
+        if (deferPresentation()) return
         check(!mShouldWaitNotify)
         mAdapter!!.holdContentUpdateEntries(null)
         mAdapter!!.setShouldThingsAnimWhenAppearing(false)
@@ -112,6 +153,7 @@ open class ThingsAdapterWrapper(adapter: ThingsAdapter?) {
     }
 
     open fun notifyDataSetChanged() {
+        if (deferPresentation()) return
         if (mShouldWaitNotify) {
             mNotifyActions!!.add(object : NotifyAction {
                 override fun notifyAdapter() {
@@ -125,6 +167,7 @@ open class ThingsAdapterWrapper(adapter: ThingsAdapter?) {
     }
 
     open fun notifyItemInserted(position: Int) {
+        if (deferPresentation()) return
         if (mShouldWaitNotify) {
             mNotifyActions!!.add(object : NotifyAction {
                 override fun notifyAdapter() {
@@ -137,6 +180,7 @@ open class ThingsAdapterWrapper(adapter: ThingsAdapter?) {
     }
 
     open fun notifyItemChanged(position: Int) {
+        if (deferPresentation()) return
         if (mShouldWaitNotify) {
             mNotifyActions!!.add(object : NotifyAction {
                 override fun notifyAdapter() {
@@ -149,6 +193,7 @@ open class ThingsAdapterWrapper(adapter: ThingsAdapter?) {
     }
 
     open fun notifyItemRemoved(position: Int) {
+        if (deferPresentation()) return
         if (mShouldWaitNotify) {
             mNotifyActions!!.add(object : NotifyAction {
                 override fun notifyAdapter() {
@@ -161,6 +206,7 @@ open class ThingsAdapterWrapper(adapter: ThingsAdapter?) {
     }
 
     open fun notifyItemMoved(from: Int, to: Int) {
+        if (deferPresentation()) return
         mAdapter!!.notifyItemMoved(from, to)
     }
 

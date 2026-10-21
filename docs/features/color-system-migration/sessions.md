@@ -1,5 +1,9 @@
 # Color System Migration Sessions
 
+## 2026-10-21 - 背景解析结果复用
+
+不可变 `ThingBackground` 接入按完整 JSON 匹配的有界缓存，保留纯色、渐变、未知方向和旧颜色回退。三机原数据的解析结果与优化前一致，模拟记事背景变更及横竖屏返回验证通过。随 debug `202610210308` 发布并安装，详见 [详情转场解析优化](../thing-detail-transition/appearance-parsing-2026-10-21.md)。没有 Git 提交。
+
 ## 2026-06-25 - accent 渐变背景统一配白色前景
 
 - 需求：所有"根据颜色/渐变背景自适应前景明暗"的地方，当背景是 App 默认强调渐变

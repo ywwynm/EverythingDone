@@ -40,7 +40,8 @@ class DetailToolbarContrast(
     private val accent: () -> ThingBackground?
 ) {
     private data class Point(val x: Float, val y: Float, val alpha: Int)
-    private class Button(val view: View, val icon: Drawable, val points: List<Point>) {
+    private class Button(val view: View, val icon: Drawable) {
+        var points: List<Point>? = null
         var dark: Boolean? = null
         var ripple: GradientRippleDrawable? = null
     }
@@ -117,6 +118,12 @@ class DetailToolbarContrast(
             if (BuildConfig.DEBUG) lastMainMicros = (System.nanoTime() - started) / 1000
             return
         }
+        // 无媒体时只用记事底色，图标像素不参与判定。等媒体实际进入按钮区域再取样，
+        // 避免每次打开纯文字详情都在首帧栅格化整排图标。
+        glyphs.forEach { glyph ->
+            val button = glyph.button
+            if (button.points == null) button.points = capturePoints(button.icon)
+        }
         val previous = toolbarDark
         // 新菜单按钮先继承整排现有颜色，异步计算期间也保持一致。
         applyTogether(glyphs, previous ?: fallback)
@@ -131,7 +138,7 @@ class DetailToolbarContrast(
             val workerStart = if (BuildConfig.DEBUG) System.nanoTime() else 0L
             var visibleMedia = false
             val groups = glyphs.map { glyph ->
-                glyph.button.points.map { point ->
+                glyph.button.points.orEmpty().map { point ->
                     val sx = glyph.bounds.left + point.x * glyph.bounds.width()
                     val sy = glyph.bounds.top + point.y * glyph.bounds.height()
                     val x = (sx - toolbarBounds.left) / toolbarBounds.width()
@@ -215,7 +222,7 @@ class DetailToolbarContrast(
         if (bounds.isEmpty) return null
         val button = buttons[view]?.takeIf { it.icon === icon } ?: run {
             buttons.remove(view)?.ripple?.stopAnimations()
-            Button(view, icon, capturePoints(icon)).also { buttons[view] = it }
+            Button(view, icon).also { buttons[view] = it }
         }
         val location = IntArray(2).also(view::getLocationOnScreen)
         bounds.offset(location[0].toFloat(), location[1].toFloat())
@@ -235,10 +242,15 @@ class DetailToolbarContrast(
         val pixels = IntArray(width * height)
         bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
         bitmap.recycle()
-        val visible = pixels.indices.filter { pixels[it] ushr 24 >= 24 }
-        val count = minOf(128, visible.size)
+        // 保持原来的采样顺序与位置，避免为每个像素下标装箱。
+        val visible = IntArray(pixels.size)
+        var visibleCount = 0
+        for (index in pixels.indices) {
+            if (pixels[index] ushr 24 >= 24) visible[visibleCount++] = index
+        }
+        val count = minOf(128, visibleCount)
         return List(count) { index ->
-            val pixel = visible[index * visible.size / count]
+            val pixel = visible[index * visibleCount / count]
             Point((pixel % width + .5f) / width, (pixel / width + .5f) / height, pixels[pixel] ushr 24)
         }
     }

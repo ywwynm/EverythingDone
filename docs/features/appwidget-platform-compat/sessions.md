@@ -1,5 +1,11 @@
 # AppWidget Platform Compatibility Sessions
 
+## 2026-10-21：后台刷新及真实宿主回归
+
+单记事与列表小组件采用 WorkManager 后台刷新，确保实际编辑后的必要更新不阻塞详情返回。验证覆盖真实 RemoteViews 新内容、延迟保存、旧工作替换、清单与私密、尺寸变化、列表投影和渲染期间移除。修正测试宿主的 AppCompat inflater 与未完成配置流程问题，未为这些测试问题修改生产平台规则。
+
+一加 15T、三星和魅族回归通过，原有配置及绑定未变。debug `202610210122` 已发布并安装三机，包散列一致。实现及证据见 [详情转场报告](../thing-detail-transition/widget-quick-return-2026-10-21.md)。本轮未新增资源 ID，没有 Git 提交。
+
 ## 2026-06-20 - Align AppWidget doing cover icon with Thing Cards
 
 - Updated `app_widget_item_thing.xml` and `app_widget_thing.xml` so Things

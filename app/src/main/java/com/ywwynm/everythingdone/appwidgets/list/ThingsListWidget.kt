@@ -8,10 +8,8 @@ import android.content.Context
 import android.os.Bundle
 import android.util.Log
 
-import com.ywwynm.everythingdone.R
-import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper
+import com.ywwynm.everythingdone.appwidgets.AppWidgetUpdateWorker
 import com.ywwynm.everythingdone.database.AppWidgetDAO
-import com.ywwynm.everythingdone.model.ThingWidgetInfo
 
 /**
  * Created by ywwynm on 2016/8/7.
@@ -22,9 +20,7 @@ open class ThingsListWidget : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         super.onUpdate(context, appWidgetManager, appWidgetIds)
-        for (appWidgetId in appWidgetIds) {
-            updateThingsListAppWidget(context, appWidgetManager, appWidgetId)
-        }
+        AppWidgetUpdateWorker.enqueue(context, appWidgetIds, goAsync())
     }
 
     override fun onAppWidgetOptionsChanged(
@@ -34,26 +30,14 @@ open class ThingsListWidget : AppWidgetProvider() {
             newOptions: Bundle) {
         super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
         Log.i(TAG, "onAppWidgetOptionsChanged is called, appWidgetId[$appWidgetId]")
-        updateThingsListAppWidget(context, appWidgetManager, appWidgetId)
-    }
-
-    private fun updateThingsListAppWidget(
-            context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
-        val appWidgetDAO: AppWidgetDAO = AppWidgetDAO.getInstance(context)!!
-        val info: ThingWidgetInfo = appWidgetDAO.getThingWidgetInfoById(appWidgetId) ?: return
-
-        // notify data set changed for things list
-        // _(:3」∠)_, it seems this line should be written above next line....
-        appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.lv_things_list)
-
-        appWidgetManager.updateAppWidget(appWidgetId,
-                AppWidgetHelper.createRemoteViewsForThingsList(context, appWidgetId))
+        AppWidgetUpdateWorker.enqueue(context, intArrayOf(appWidgetId), goAsync())
     }
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
         super.onDeleted(context, appWidgetIds)
         val appWidgetDAO: AppWidgetDAO = AppWidgetDAO.getInstance(context)!!
         for (appWidgetId in appWidgetIds) {
+            AppWidgetUpdateWorker.cancel(context, appWidgetId)
             appWidgetDAO.delete(appWidgetId)
         }
     }

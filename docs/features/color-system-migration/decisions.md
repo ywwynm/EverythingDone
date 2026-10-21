@@ -1,5 +1,9 @@
 # Color System Migration Decisions
 
+## 2026-10-21 - 背景 JSON 解析复用
+
+完全不可变的 `ThingBackground` 按完整 JSON 使用有界内存缓存，与卡片、详情附件外观采用同一机制。纯色、渐变、未知方向及旧颜色回退保持原行为；不改变颜色计算、数据库结构或写入。详见 [详情转场解析优化](../thing-detail-transition/appearance-parsing-2026-10-21.md)。
+
 Migrated from global `memory/decisions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
 ## 2026-05-27 - Widget card icons must be luminance-adaptive like card text

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/ll_bottom_bar_detail"
     android:layout_width="match_parent"
     android:layout_height="56dp"
@@ -14,6 +15,8 @@
         android:layout_height="match_parent"
         android:layout_marginStart="12dp"
         android:layout_marginLeft="12dp"
+        android:button="@null"
+        app:buttonCompat="@null"
         android:theme="@style/EverythingDoneTheme.Detail.CheckBox"/>
 
     <LinearLayout

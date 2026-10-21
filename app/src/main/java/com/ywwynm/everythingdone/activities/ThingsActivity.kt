@@ -40,7 +40,6 @@ import android.os.Handler
 import android.os.Looper
 import android.os.Parcelable
 import androidx.core.app.ActivityCompat
-import androidx.core.app.ActivityOptionsCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
@@ -102,6 +101,9 @@ import com.ywwynm.everythingdone.FrequentSettings
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.utils.LocalizedText
 import com.ywwynm.everythingdone.interaction.UiInteractions
+import com.ywwynm.everythingdone.views.ThingDetailTransition
+import com.ywwynm.everythingdone.views.ThingDetailReturnTransition
+import com.ywwynm.everythingdone.adapters.ThingListPresentation
 import com.ywwynm.everythingdone.adapters.BaseThingsAdapter
 import com.ywwynm.everythingdone.adapters.ThingsAdapter
 import com.ywwynm.everythingdone.adapters.ThingsAdapterWrapper
@@ -458,6 +460,150 @@ class ThingsActivity :
     private var mReceivedContentUpdate: ReceivedContentUpdate? = null
     private var mConsumedContentRevision: Pair<String, Int>? = null
 
+    private var detailReturnTransition: ThingDetailReturnTransition? = null
+    private var returnPresentation: List<ThingListEntry>? = null
+    private var publishingReturn = false
+    private var returnDrawerRefreshPending = false
+    private var returnNeedsRefresh = false
+    private val returnResults = mutableListOf<Pair<Intent, Int>>()
+    private val listResultTasks = linkedMapOf<Runnable, () -> Unit>()
+    private val returnFeedback = mutableListOf<() -> Unit>()
+    private var returnAnimatorDurations: LongArray? = null
+
+    internal fun acceptDetailReturn(frame: ThingDetailReturnTransition.Frame, origin: ThingDetailReturnTransition.Origin) {
+        detailReturnTransition?.finish("replaced")
+        val recycler = mRecyclerView ?: run { frame.release(); return }
+        val adapter = mAdapter ?: run { frame.release(); return }
+        val before = mStoppedContentSnapshot?.takeIf { it.projection == contentReturnProjection() }?.entries
+            ?: adapter.snapshotContentUpdateEntries()
+        returnPresentation = before
+        adapter.holdPresentation(before)
+        recycler.stopScroll()
+        recycler.itemAnimator?.let {
+            it.endAnimations()
+            returnAnimatorDurations = longArrayOf(it.addDuration, it.removeDuration, it.moveDuration, it.changeDuration)
+            it.addDuration = 0; it.removeDuration = 0; it.moveDuration = 0; it.changeDuration = 0
+        }
+        detailReturnTransition = ThingDetailReturnTransition(this, recycler, frame, origin) {
+            finishDetailReturnPresentation()
+        }
+    }
+
+    /** 旧返回路径仍计算撤销／计数等语义；本批通知统一由最终展示差异替代。 */
+    private fun publishDetailReturnList(forceRebind: Boolean = false) {
+        val before = returnPresentation ?: return
+        val rebindAll = forceRebind || App.justNotifyAll() || mAdapter?.presentationDirty == true
+        val receivedChanges = mReceivedContentUpdate?.changedIds.orEmpty().toSet()
+        publishingReturn = true
+        try {
+            val remote = mRemoteIntent
+            mRemoteIntent = null
+            if (remote != null) updateMainUi(remote)
+            val events = returnResults.toList()
+            returnResults.clear()
+            events.forEach { (intent, result) -> updateMainUi(intent, result) }
+            val pending = listResultTasks.toMap()
+            listResultTasks.clear()
+            pending.forEach { (task, action) -> mDrawerLayout!!.removeCallbacks(task); action() }
+            mReceivedContentUpdate?.let {
+                it.scheduled = false
+                publishReceivedContentUpdateWhenVisible()
+            }
+            // 只提交一次最终投影；所有通知仍被 holdPresentation 合并，业务数据无需回滚或冻结。
+            justNotifyAll(false)
+            val after = ThingListPresentation.snapshot(mThingManager!!.getThingListEntries().orEmpty())
+            val changed = ThingListPresentation.changedIds(before, after).toMutableSet()
+            changed += receivedChanges
+            if (rebindAll) changed += after.map { it.stableId }
+            (events.map { it.first } + listOfNotNull(remote)).forEach { intent ->
+                val id = getRemoteIntentThingId(intent)
+                if (id >= 0) {
+                    changed += id
+                    (intent.getParcelableExtra<Thing>(Def.Communication.KEY_THING)
+                        ?: mThingManager!!.getThingById(id))?.let { thing ->
+                        changed += mThingManager!!.getFolderPath(thing.folderId).map { -it.id }
+                    }
+                }
+            }
+            val diff = DiffUtil.calculateDiff(ThingListContentDiff(before.map { it.stableId },
+                after.map { it.stableId }, changed))
+            returnPresentation = after
+            mAdapter!!.publishPresentation(after, diff, immediateRebind = forceRebind)
+            mUpdateMainUiInOnResume = false
+            returnNeedsRefresh = false
+        } finally {
+            publishingReturn = false
+        }
+    }
+
+    private fun finishDetailReturnPresentation() {
+        val completedTransition = detailReturnTransition
+        val reason = completedTransition?.finishReason
+        detailReturnTransition = null
+        val completedPresentation = returnPresentation
+        mRecyclerView?.itemAnimator?.let { animator -> returnAnimatorDurations?.let {
+            animator.addDuration = it[0]; animator.removeDuration = it[1]
+            animator.moveDuration = it[2]; animator.changeDuration = it[3]
+        } }
+        returnAnimatorDurations = null
+        if (reason == "invalid-window-or-auth") {
+            mRecyclerView?.itemAnimator?.endAnimations()
+            mAdapter?.rebindPrivacy()
+        }
+        // 先呈现动画末帧对应的真实列表，下一帧才发布运动中到来的更新。
+        val complete = Runnable {
+            if (returnPresentation == null || returnPresentation !== completedPresentation) {
+                completedTransition?.releaseInput()
+                return@Runnable
+            }
+            try {
+                if (!isDestroyed && (returnResults.isNotEmpty() || listResultTasks.isNotEmpty() ||
+                        returnNeedsRefresh || mAdapter?.presentationDirty == true || reason == "invalid-window-or-auth")) {
+                    publishDetailReturnList(forceRebind = reason == "invalid-window-or-auth")
+                }
+            } finally {
+                mAdapter?.releasePresentation()
+                returnPresentation = null
+                try {
+                    // 关闭的抽屉不参与收回画面；合并到交接后更新，恢复输入前必须完成。
+                    if (returnDrawerRefreshPending) {
+                        returnDrawerRefreshPending = false
+                        if (!isDestroyed) {
+                            mDrawerHeader?.updateCompletionRate()
+                            updateDrawerFolderItems()
+                        }
+                    }
+                } finally {
+                    completedTransition?.releaseInput()
+                }
+                mUpdateMainUiInOnResume = true
+                val feedback = returnFeedback.toList()
+                returnFeedback.clear()
+                if (!isDestroyed && !isFinishing && mCanSeeUi) feedback.forEach { it() }
+                if (!isDestroyed && !isFinishing && mCanSeeUi)
+                    com.ywwynm.everythingdone.helpers.DetailViewPreparation.prepare(this)
+            }
+        }
+        // 取消动画只取消画面，不能取消保存顺序。超时／后台时也须等待保存，
+        // 否则立即重载会用旧数据库内容覆盖 Manager，并提前释放输入。
+        val awaitWrites = Runnable { mThingManager!!.afterPendingWrites { complete.run() } }
+        if (reason == "finished") mRecyclerView?.postOnAnimation(awaitWrites)
+        else awaitWrites.run()
+    }
+
+    /** 只有这一个入口负责返回结果的呈现时机，避免散落的 540/560ms 回调修改动画终点。 */
+    private fun postListResult(action: () -> Unit, delay: Long) {
+        if (publishingReturn) { action(); return }
+        lateinit var task: Runnable
+        task = Runnable {
+            if (returnPresentation != null) return@Runnable
+            listResultTasks.remove(task)
+            action()
+        }
+        listResultTasks[task] = action
+        if (returnPresentation == null) mDrawerLayout!!.postDelayed(task, delay)
+    }
+
     private fun contentReturnProjection() = ContentReturnProjection(
         mThingManager!!.getProjection().key(), App.isSearching,
         mEtSearch!!.text.toString(), mColorPicker!!.getPickedColor()
@@ -499,18 +645,18 @@ class ThingsActivity :
         if (pending.scheduled) return
         pending.scheduled = true
         mUpdateMainUiInOnResume = false
-        mRecyclerView!!.postDelayed({
-            if (mReceivedContentUpdate !== pending || isDestroyed) return@postDelayed
+        postListResult({
+            if (mReceivedContentUpdate !== pending || isDestroyed) return@postListResult
             pending.scheduled = false
-            if (!mCanSeeUi || !lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) {
+            if (!publishingReturn && (!mCanSeeUi || !lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED))) {
                 mUpdateMainUiInOnResume = true
-                return@postDelayed
+                return@postListResult
             }
             if (App.justNotifyAll() || pending.before.projection != contentReturnProjection()) {
                 mConsumedContentRevision = pending.revision
                 justNotifyAll(false)
                 mRemoteIntent = null
-                return@postDelayed
+                return@postListResult
             }
             finishNewItemShiningBorderAnimationIfNeeded()
             if (App.isSearching) {
@@ -538,6 +684,10 @@ class ThingsActivity :
 
     private val mUpdateUiReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
+            if (returnPresentation != null && !publishingReturn) {
+                updateMainUi(intent)
+                return
+            }
             if (collectReceivedContentUpdate(intent)) return
             if (mReceivedContentUpdate != null) {
                 // 混入其它来源的事件时交回原有完整刷新流程，不能丢掉其通知。
@@ -571,7 +721,7 @@ class ThingsActivity :
         }
 
         updateMainUi(remoteIntent)
-        mDrawerLayout!!.postDelayed({
+        postListResult({
             mRemoteIntent = intent
         }, 600)
     }
@@ -820,6 +970,10 @@ class ThingsActivity :
 
     override fun onResume() {
         super.onResume()
+        window.decorView.post {
+            if (!isFinishing && !isDestroyed && mCanSeeUi && returnPresentation == null)
+                com.ywwynm.everythingdone.helpers.DetailViewPreparation.prepare(this)
+        }
         if (mCreationLaunchPending) {
             mCreationLaunchPending = false
             mIsRevealAnimPlaying = false
@@ -840,11 +994,19 @@ class ThingsActivity :
             + "justNotifyAll[" + App.justNotifyAll() + "], "
             + mRemoteIntentInfo)
 
-        if (mReceivedContentUpdate != null) {
+        if (detailReturnTransition != null) {
+            val returning = detailReturnTransition
+            mThingManager!!.afterPendingWrites {
+                if (detailReturnTransition === returning && returning?.isRunning == true) {
+                    publishDetailReturnList()
+                    returning.awaitDestination()
+                }
+            }
+        } else if (mReceivedContentUpdate != null) {
             publishReceivedContentUpdateWhenVisible()
         } else if (mUpdateMainUiInOnResume) {
             if (App.justNotifyAll()) {
-                mRecyclerView!!.postDelayed({
+                postListResult({
                     justNotifyAll(false)
                     mRemoteIntent = null
                 }, 540)
@@ -870,7 +1032,9 @@ class ThingsActivity :
         val authGen = mThingManager!!.getPrivacyAuthGeneration()
         if (authGen != mLastSeenPrivacyAuthGeneration) {
             mLastSeenPrivacyAuthGeneration = authGen
-            mAdapter!!.notifyDataSetChanged()
+            detailReturnTransition?.finish("invalid-window-or-auth")
+            mRecyclerView?.itemAnimator?.endAnimations()
+            mAdapter!!.rebindPrivacy()
             updateDrawerFolderItems()
         }
 
@@ -895,7 +1059,7 @@ class ThingsActivity :
      */
     private fun idleCreationPrewarmKey():
         ParticleCreationKey? {
-        if (mIsRevealAnimPlaying || mCreationLaunchPending) return null
+        if (mIsRevealAnimPlaying || mCreationLaunchPending || returnPresentation != null) return null
         if (mRecyclerView?.scrollState != RecyclerView.SCROLL_STATE_IDLE) return null
         return currentCreationPrewarmKey()
     }
@@ -926,6 +1090,7 @@ class ThingsActivity :
     }
 
     override fun onPause() {
+        detailReturnTransition?.finish("activity-paused")
         mListRemovalAnimator?.finish()
         mSwipeParticleAnimator.reset()
         mSwipeReturnOrNull?.cancel()
@@ -947,6 +1112,7 @@ class ThingsActivity :
 
     override fun onStop() {
         super.onStop()
+        com.ywwynm.everythingdone.helpers.DetailViewPreparation.clear()
         mCanSeeUi = false
         mAdapter!!.setShouldWaitNotify(true)
         mApp!!.deleteAttachmentFiles()
@@ -957,6 +1123,12 @@ class ThingsActivity :
     }
 
     override fun onDestroy() {
+        detailReturnTransition?.finish("activity-destroyed")
+        listResultTasks.keys.forEach { mDrawerLayout?.removeCallbacks(it) }
+        listResultTasks.clear()
+        mAdapter?.releasePresentation()
+        returnPresentation = null
+        returnDrawerRefreshPending = false
         clearReceivedContentUpdate()
         super.onDestroy()
         unregisterReceiver(mUpdateUiReceiver)
@@ -965,6 +1137,7 @@ class ThingsActivity :
     }
 
     override fun onNewIntent(intent: Intent) {
+        detailReturnTransition?.finish("new-navigation")
         super.onNewIntent(intent)
         if (resumeActiveRecordingFromLauncher(intent)) return
         // launched from things list widget
@@ -1178,6 +1351,7 @@ class ThingsActivity :
         animate: Boolean = false,
         animatedFolderToggleId: Long? = null
     ) {
+        if (deferHiddenReturnDrawerRefresh()) return
         val drawerItems = ArrayList<DrawerNavigationView.DrawerItem>()
         val folders = mThingManager!!.getDrawerFolders()
         val folderIds = folders.mapTo(HashSet()) { it.id }
@@ -1641,6 +1815,10 @@ class ThingsActivity :
     }
 
     private fun updateMainUi(data: Intent, resultCode: Int) {
+        if (returnPresentation != null && !publishingReturn) {
+            returnResults += Intent(data) to resultCode
+            return
+        }
         if (collectReceivedContentUpdate(data)) {
             if (mReceivedContentUpdate != null) publishReceivedContentUpdateWhenVisible()
             return
@@ -1661,7 +1839,7 @@ class ThingsActivity :
         dismissSnackbars()
         when (resultCode) {
             Def.Communication.RESULT_JUST_NOTIFY_DATASET_CHANGED ->
-                mDrawerLayout!!.postDelayed({
+                postListResult({
                     justNotifyAll()
                     mUpdateMainUiInOnResume = true
                     mRemoteIntent = null
@@ -1669,7 +1847,7 @@ class ThingsActivity :
             Def.Communication.RESULT_CREATE_THING_DONE ->
                 updateMainUiForCreateDone(data)
             Def.Communication.RESULT_CREATE_BLANK_THING ->
-                mDrawerLayout!!.postDelayed({
+                postListResult({
                     mNormalSnackbar!!.setMessage(R.string.sb_cannot_be_blank)
                     mNormalSnackbar!!.show()
                     mUpdateMainUiInOnResume = true
@@ -1679,7 +1857,7 @@ class ThingsActivity :
                     mRemoteIntent = null
                 }, 560)
             Def.Communication.RESULT_ABANDON_NEW_THING ->
-                mDrawerLayout!!.postDelayed({
+                postListResult({
                     mNormalSnackbar!!.setMessage(R.string.sb_abandon_new_thing)
                     mNormalSnackbar!!.show()
                     mUpdateMainUiInOnResume = true
@@ -1711,7 +1889,7 @@ class ThingsActivity :
                         Def.Communication.KEY_RESULT_CODE, Def.Communication.RESULT_NO_UPDATE
                     )
                     if (mRemoteIntentResultCode == Def.Communication.RESULT_NO_UPDATE) {
-                        mRecyclerView!!.postDelayed({
+                        postListResult({
                             mAdapter!!.tryToNotify()
                             mUpdateMainUiInOnResume = true
                             if (mCanSeeUi) {
@@ -1814,9 +1992,15 @@ class ThingsActivity :
         val justNotifyAll = App.justNotifyAll()
         val thingToCreate: Thing = data.getParcelableExtra(Def.Communication.KEY_THING)!!
 
-        mDrawerLayout!!.postDelayed({
+        postListResult(create@{
             if (!createdDone) {
                 mThingManager!!.create(thingToCreate, true, true)
+            }
+            // 外部新建也可能与另一条详情的返回重合；这时新项已纳入最终展示差异，
+            // 不能再留下 300+300ms 的插入通知和滚动揭示。
+            if (publishingReturn) {
+                afterUpdateMainUiForCreateDone()
+                return@create
             }
             if (typeFilterWasReset) {
                 // The type filter changed back to 全部类型: reload the whole
@@ -1827,9 +2011,13 @@ class ThingsActivity :
                 mAdapter!!.setShouldThingsAnimWhenAppearing(false)
                 mAdapter!!.notifyDataSetChanged()
                 afterUpdateMainUiForCreateDone()
-                return@postDelayed
+                return@create
             }
-            mRecyclerView!!.postDelayed({
+            postListResult(reveal@{
+                if (publishingReturn) {
+                    afterUpdateMainUiForCreateDone()
+                    return@reveal
+                }
                 finishNewItemShiningBorderAnimationIfNeeded()
                 val newId = thingToCreate.id
                 val newListPosition = mThingManager!!.getListPositionForThingId(newId)
@@ -1904,7 +2092,7 @@ class ThingsActivity :
         Log.i(TAG, "updateMainUiForUpdateSameType called, "
             + "typeBefore[" + typeBefore + "], "
             + "justNotifyAll[" + justNotifyAll + "]")
-        mDrawerLayout!!.postDelayed({
+        postListResult({
             finishNewItemShiningBorderAnimationIfNeeded()
             Log.i(TAG, "updateMainUiForUpdateSameType: delayed Runnable started.")
             @Thing.State var thingState: Int = Thing.UNDERWAY
@@ -1919,7 +2107,7 @@ class ThingsActivity :
                 if (thingIndex < 0) {
                     justNotifyAll(false)
                     mRemoteIntent = null
-                    return@postDelayed
+                    return@postListResult
                 }
                 Log.i(TAG, "type and state match current status, "
                     + "thingIndex[" + thingIndex + "], "
@@ -1968,7 +2156,7 @@ class ThingsActivity :
         )
 
         val justNotifyAll = App.justNotifyAll()
-        mDrawerLayout!!.postDelayed({
+        postListResult({
             finishNewItemShiningBorderAnimationIfNeeded()
             val type = thing.type
             val curStatus = mApp!!.getStatus()
@@ -1978,7 +2166,7 @@ class ThingsActivity :
             if (thingIndex < 0) {
                 justNotifyAll(false)
                 mRemoteIntent = null
-                return@postDelayed
+                return@postListResult
             }
 
             if (justNotifyAll || limitMatched) {
@@ -2025,7 +2213,7 @@ class ThingsActivity :
 
         celebrateHabitGoalFinish(thing, thing.state, stateAfter)
 
-        mDrawerLayout!!.postDelayed({
+        postListResult({
             finishNewItemShiningBorderAnimationIfNeeded()
             Log.i(TAG, "updateMainUiForUpdateDifferentState: delayed Runnable started.")
             val type = thing.type
@@ -2034,7 +2222,7 @@ class ThingsActivity :
             if (thingIndex < 0) {
                 justNotifyAll(false)
                 mRemoteIntent = null
-                return@postDelayed
+                return@postListResult
             }
             Log.i(TAG, "type[" + type + "], "
                 + "curStatus[" + curStatus + "], "
@@ -2075,14 +2263,14 @@ class ThingsActivity :
             + "newListPosition[" + newListPosition + "], "
             + "justNotifyAll[" + justNotifyAll + "]")
 
-        mDrawerLayout!!.postDelayed({
+        postListResult({
             finishNewItemShiningBorderAnimationIfNeeded()
             Log.i(TAG, "updateMainUiForStickyOrCancel: delayed Runnable started.")
             if (justNotifyAll) {
                 justNotifyAll()
             } else if (oldListPosition != -1 && newListPosition != -1) {
                 mAdapter!!.notifyItemMoved(oldListPosition, newListPosition)
-                mDrawerLayout!!.postDelayed({
+                postListResult({
                     finishNewItemShiningBorderAnimationIfNeeded()
                     mAdapter!!.notifyItemChanged(newListPosition)
                 }, mRecyclerView!!.itemAnimator!!.moveDuration)
@@ -2103,7 +2291,7 @@ class ThingsActivity :
         Log.i(TAG, "updateMainUiForDoingOrCancel called")
         val thing: Thing = data.getParcelableExtra(Def.Communication.KEY_THING)!!
         val justNotifyAll = App.justNotifyAll()
-        mDrawerLayout!!.postDelayed({
+        postListResult({
             finishNewItemShiningBorderAnimationIfNeeded()
             Log.i(TAG, "updateMainUiForDoingOrCancel: delayed Runnable started.")
             if (justNotifyAll) {
@@ -2124,7 +2312,18 @@ class ThingsActivity :
         }, 560)
     }
 
+    /** 只延后不可见抽屉的展示；数据库读取、当前列表和已打开的抽屉仍按原顺序更新。 */
+    private fun deferHiddenReturnDrawerRefresh(): Boolean {
+        if (returnPresentation == null || mDrawerLayout?.isDrawerVisible(GravityCompat.START) == true) return false
+        returnDrawerRefreshPending = true
+        return true
+    }
+
     private fun justNotifyAll(shouldThingsAnimWhenAppearing: Boolean = true) {
+        if (returnPresentation != null && !publishingReturn) {
+            returnNeedsRefresh = true
+            return
+        }
         clearReceivedContentUpdate()
         finishNewItemShiningBorderAnimationIfNeeded()
         if (App.isSearching) {
@@ -2135,8 +2334,10 @@ class ThingsActivity :
         }
 
         refreshActivitySurfaceAndHeader()
-        mDrawerHeader!!.updateCompletionRate()
-        updateDrawerFolderItems()
+        if (!deferHiddenReturnDrawerRefresh()) {
+            mDrawerHeader!!.updateCompletionRate()
+            updateDrawerFolderItems()
+        }
 
         if (mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
             updateSelectingUi(false)
@@ -2704,6 +2905,7 @@ class ThingsActivity :
         } else {
             applyHomeStatusBarChrome()
         }
+        detailReturnTransition?.onListChromeApplied()
         applyCreateFabBackgroundForCurrentProjection()
         mActivityHeader?.updateText()
         // Home Chrome Retraction 在切换范围 / 换状态 / 开关文件夹等刷新时复位为显示（R=0）。
@@ -7982,7 +8184,7 @@ class ThingsActivity :
         markOperationEmptyStateIfCurrentProjectionEmpty()
 
         mScrollCausedByFinger = false
-        mRecyclerView!!.postDelayed({
+        postListResult({
             mActivityHeader!!.updateAll(findFirstVisibleThingListPosition(), true)
         }, timeDelay)
 
@@ -8107,6 +8309,15 @@ class ThingsActivity :
     }
 
     private fun handleSearchResults() {
+        if (publishingReturn) {
+            val empty = App.isSearching && isSearchResultEmpty()
+            mTvNoResult!!.animate().cancel()
+            mTvNoResult!!.alpha = if (empty) 1f else 0f
+            mTvNoResult!!.visibility = if (empty) View.VISIBLE else View.INVISIBLE
+            mRevealLayout!!.visibility = if (empty) View.VISIBLE else View.INVISIBLE
+            if (App.isSearching) mHomeEmptyState?.visibility = View.GONE else updateHomeEmptyState()
+            return
+        }
         if (!App.isSearching) {
             hideSearchNoResult()
             updateHomeEmptyState()
@@ -8119,9 +8330,9 @@ class ThingsActivity :
             mTvNoResult!!.animate().alpha(1f).setDuration(360)
         } else {
             mTvNoResult!!.animate().alpha(0f).setDuration(160)
-            mRevealLayout!!.postDelayed({
+            postListResult({
                 if (App.isSearching && isSearchResultEmpty()) {
-                    return@postDelayed
+                    return@postListResult
                 }
                 mRevealLayout!!.visibility = View.INVISIBLE
                 mTvNoResult!!.visibility = View.INVISIBLE
@@ -8134,6 +8345,11 @@ class ThingsActivity :
     }
 
     private fun celebrateHabitGoalFinish(thing: Thing, stateBefore: Int, stateAfter: Int) {
+        if (returnPresentation != null) {
+            val snapshot = Thing(thing)
+            returnFeedback += { celebrateHabitGoalFinish(snapshot, stateBefore, stateAfter) }
+            return
+        }
         if (stateBefore != Thing.UNDERWAY || stateAfter != Thing.FINISHED) {
             return
         }
@@ -8232,10 +8448,10 @@ class ThingsActivity :
                     // 访问即信任：本会话已认证过该私密记事则免二次验证，与私密文件夹同口径。
                     // 经 authenticateThing 收口，认证成功即写入会话级已认证记事集。
                     authenticateThing(thing) {
-                        openDetailActivityForUpdate(thing, thingIndex, listPosition, v!!)
+                        openDetailActivityForUpdate(thing, v!!)
                     }
                 } else {
-                    openDetailActivityForUpdate(thing, thingIndex, listPosition, v!!)
+                    openDetailActivityForUpdate(thing, v!!)
                 }
             } else {
                 // 选择模型 A：Doing 记事完全可选中；完成/删除/设为私密的保护在动作执行层处理。
@@ -8251,21 +8467,17 @@ class ThingsActivity :
 
         private fun openDetailActivityForUpdate(
             thing: Thing,
-            thingIndex: Int,
-            listPosition: Int,
             v: View
         ) {
+            // 认证弹窗期间列表可能已重绑，返回定位始终使用此刻的投影与记事身份。
+            val thingIndex = mThingManager!!.getPosition(thing.id)
+            val listPosition = mThingManager!!.getListPositionForThingId(thing.id)
             val listProjectionKey = mThingManager!!.getProjection().key()
             val intent: Intent = DetailActivity.getOpenIntentForUpdate(
                 this@ThingsActivity, TAG, thing.id, thingIndex, listPosition, listProjectionKey
             )
-            val transition: ActivityOptionsCompat = ActivityOptionsCompat.makeScaleUpAnimation(
-                v, 0, 0, v.width, v.height
-            )
-            ActivityCompat.startActivityForResult(
-                this@ThingsActivity, intent, Def.Communication.REQUEST_ACTIVITY_DETAIL,
-                transition.toBundle()
-            )
+            mRecyclerView?.stopScroll()
+            ThingDetailTransition.launch(this@ThingsActivity, intent, v, thing)
         }
 
         override fun onFolderThumbnailClick(v: View?, thing: Thing) {
@@ -8277,18 +8489,16 @@ class ThingsActivity :
             dismissSnackbars()
             KeyboardUtil.hideKeyboard(currentFocus)
 
-            val thingIndex = mThingManager!!.getPosition(thing.id)
-            val listPosition = mThingManager!!.getListPositionForThingId(thing.id)
             if (ThingPrivacyResolver.isEffectivelyPrivate(this@ThingsActivity, thing) &&
                 !mThingManager!!.isFolderPrivacyAuthenticated(thing.folderId) &&
                 !mThingManager!!.isThingPrivacyAuthenticated(thing.id)) {
                 // 收口到 authenticateThing：认证成功即写入会话级已认证记事集并重绑列表（A2），
                 // 与列表点击同口径；已认证（文件夹或该记事）则免二次验证。
                 authenticateThing(thing) {
-                    openDetailActivityForUpdate(thing, thingIndex, listPosition, v)
+                    openDetailActivityForUpdate(thing, v)
                 }
             } else {
-                openDetailActivityForUpdate(thing, thingIndex, listPosition, v)
+                openDetailActivityForUpdate(thing, v)
             }
         }
 

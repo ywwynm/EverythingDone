@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 只预创建空布局，不设置记事内容，也不测量窗口或系统栏。 -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <include layout="@layout/activity_detail"/>
+    <include layout="@layout/detail_content_sections"/>
+    <include layout="@layout/rv_popup_picker"/>
+</FrameLayout>

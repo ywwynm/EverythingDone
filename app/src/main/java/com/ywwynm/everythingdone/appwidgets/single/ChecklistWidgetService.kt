@@ -11,7 +11,7 @@ import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper
 import com.ywwynm.everythingdone.database.ThingDAO
 import com.ywwynm.everythingdone.helpers.CheckListHelper
-import com.ywwynm.everythingdone.managers.ThingManager
+import com.ywwynm.everythingdone.helpers.ThingPrivacyResolver
 import com.ywwynm.everythingdone.model.Thing
 
 /**
@@ -40,18 +40,14 @@ open class ChecklistWidgetService : RemoteViewsService() {
         private fun init() {
             Log.i(TAG, "init()")
             val id: Long = mIntent!!.getLongExtra(Def.Communication.KEY_ID, -1)
-            val thingManager: ThingManager = ThingManager.getInstance(mContext)!!
-            mThing = thingManager.getThingById(id)
-            if (mThing == null) {
-                val thingDAO: ThingDAO = ThingDAO.getInstance(mContext)!!
-                mThing = thingDAO.getThingById(id)
-                if (mThing == null) {
-                    Log.i(TAG, "thing is null!")
-                    return
-                }
+            // 集合由系统在后台重新读取，使用已提交对象，避免遍历首页可变列表。
+            mThing = ThingDAO.getInstance(mContext)!!.getThingById(id)?.let {
+                ThingPrivacyResolver.resolveForPresentation(mContext!!, it)
             }
-
-            Log.i(TAG, "mThing.content[" + mThing!!.content + "]")
+            if (mThing == null || mThing!!.isPrivate()) {
+                mItems = ArrayList()
+                return
+            }
             mItems = CheckListHelper.toCheckListItems(mThing!!.content, false)
             mItems!!.remove("2")
             mItems!!.remove("3")

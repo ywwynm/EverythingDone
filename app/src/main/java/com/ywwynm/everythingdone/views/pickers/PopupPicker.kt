@@ -31,7 +31,7 @@ import com.ywwynm.everythingdone.utils.DisplayUtil
  * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
  * Simple Picker for EverythingDone using a PopupWindow to show contents.
  */
-abstract class PopupPicker(activity: Activity, parent: View, popupAnimStyle: Int) {
+abstract class PopupPicker(activity: Activity, parent: View, popupAnimStyle: Int, preparedContent: View? = null) {
     private var interaction: UiInteractions.Modal? = null
 
     @JvmField protected var mActivity: Activity = activity
@@ -46,7 +46,7 @@ abstract class PopupPicker(activity: Activity, parent: View, popupAnimStyle: Int
      * subclass-private; mAnchor is just the "where".
      */
     @JvmField protected var mAnchor: View? = null
-    @JvmField protected var mContentView: View =
+    @JvmField protected var mContentView: View = preparedContent ?:
         LayoutInflater.from(activity).inflate(R.layout.rv_popup_picker, null)!!
     @JvmField protected var mRecyclerView: RecyclerView = mContentView.findViewById<View>(R.id.rv_popup_picker) as RecyclerView
 

@@ -192,6 +192,7 @@ object AppWidgetHelper {
         val thingWidgetInfos: List<ThingWidgetInfo?> = appWidgetDAO.getThingWidgetInfosByThingId(thingId)!!
         for (thingWidgetInfo in thingWidgetInfos) {
             val appWidgetId: Int = thingWidgetInfo!!.id
+            AppWidgetUpdateWorker.invalidate(appWidgetId)
             val intent = Intent(context, getProviderClassBySize(thingWidgetInfo.size))
             intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE)
             intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,
@@ -202,6 +203,7 @@ object AppWidgetHelper {
 
     @JvmStatic
     fun updateThingsListAppWidget(context: Context?, appWidgetId: Int) {
+        AppWidgetUpdateWorker.invalidate(appWidgetId)
         Log.i(TAG,
             "updateThingsListAppWidget(context, appWidgetId) is called, appWidgetId[$appWidgetId]"
         )
@@ -245,6 +247,7 @@ object AppWidgetHelper {
         val thingWidgetInfos: List<ThingWidgetInfo?> = appWidgetDAO.getAllThingWidgetInfos()!!
         for (thingWidgetInfo in thingWidgetInfos) {
             val appWidgetId: Int = thingWidgetInfo!!.id
+            AppWidgetUpdateWorker.invalidate(appWidgetId)
             val thingId: Long = thingWidgetInfo.thingId
             val intent = if (thingId < 0) { // for things list widgets
                 Intent(context, ThingsListWidget::class.java)

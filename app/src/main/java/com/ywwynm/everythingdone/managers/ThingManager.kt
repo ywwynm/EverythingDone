@@ -25,6 +25,7 @@ import com.ywwynm.everythingdone.model.ThingWidgetInfo
 import com.ywwynm.everythingdone.model.ThingsCounts
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
 import com.ywwynm.everythingdone.utils.ThingsSorter
+import com.ywwynm.everythingdone.utils.SerialWriteQueue
 
 import java.util.ArrayList
 import java.util.Arrays
@@ -79,6 +80,14 @@ open class ThingManager private constructor(context: Context?) {
     private var mHeaderId: Long = 0
 
     private var mExecutor: ExecutorService? = Executors.newSingleThreadExecutor()
+    private val writeQueue = SerialWriteQueue(mExecutor!!) {
+        android.os.Handler(android.os.Looper.getMainLooper()).post(it)
+    }
+
+    /** 主线程实际开始读取前，连同等待期间新增的写入一起确认完成。 */
+    internal fun afterPendingWrites(action: () -> Unit) {
+        writeQueue.afterWrites(action)
+    }
 
     private var mIsHandlingUndo: Boolean = false
     private var mUndoHabits: MutableList<Long?>? = ArrayList()
@@ -563,7 +572,7 @@ open class ThingManager private constructor(context: Context?) {
      */
     open fun update(@Thing.Type typeBefore: Int, updatedThing: Thing?, position: Int,
                     handleNotifyEmpty: Boolean): Int {
-        mExecutor!!.execute {
+        writeQueue.execute {
             mDao!!.update(typeBefore, updatedThing, false, false)
         }
 
@@ -606,7 +615,7 @@ open class ThingManager private constructor(context: Context?) {
         } else {
             location
         }
-        mExecutor!!.execute {
+        writeQueue.execute {
             mDao!!.updateState(thingToUpdate, locationToUpdate, stateBefore, stateAfter,
                     false, false, toUndo, true)
         }
@@ -687,7 +696,7 @@ open class ThingManager private constructor(context: Context?) {
 
         val stateChangeLocations = getLocationsForStateChange(things)
 
-        mExecutor!!.execute {
+        writeQueue.execute {
             mDao!!.updateStates(clonedThings, stateChangeLocations, stateBefore, stateAfter, false)
         }
 
@@ -731,7 +740,7 @@ open class ThingManager private constructor(context: Context?) {
 //            mThingsCounts.handleUpdate(t, stateBefore, t, stateAfter, v);
 //        }
 
-        mExecutor!!.execute {
+        writeQueue.execute {
             for (goal in mUndoGoals!!) {
                 rDao.resetGoal(goal)
             }
@@ -773,7 +782,7 @@ open class ThingManager private constructor(context: Context?) {
             clonedLocations.add(location)
         }
 
-        mExecutor!!.execute {
+        writeQueue.execute {
             mDao!!.updateStates(clonedThings, clonedLocations, stateBefore, stateAfter,
                     true)
         }
@@ -804,7 +813,7 @@ open class ThingManager private constructor(context: Context?) {
 //            mThingsCounts.handleUpdate(t, stateBefore, t, stateAfter, v);
 //        }
 
-        mExecutor!!.execute {
+        writeQueue.execute {
             mIsHandlingUndo = true
             val reminderDAO: ReminderDAO = ReminderDAO.getInstance(mContext)!!
             for (goal in mUndoGoals!!) {
@@ -888,7 +897,7 @@ open class ThingManager private constructor(context: Context?) {
             i++
             j++
         }
-        mExecutor!!.execute {
+        writeQueue.execute {
             mDao!!.updateLocations(ids, locations)
         }
     }
@@ -950,7 +959,7 @@ open class ThingManager private constructor(context: Context?) {
         }
         rebuildThingsFromListEntries()
 
-        mExecutor!!.execute {
+        writeQueue.execute {
             if (thingIds.isNotEmpty()) {
                 mDao!!.updateLocations(thingIds.toTypedArray(), thingLocations.toTypedArray())
             }
@@ -973,7 +982,7 @@ open class ThingManager private constructor(context: Context?) {
 
     open fun updateThingCardAppearance(thing: Thing?) {
         if (thing == null) return
-        mExecutor!!.execute {
+        writeQueue.execute {
             mDao!!.updateThingCardAppearance(thing)
         }
     }
@@ -1876,7 +1885,7 @@ open class ThingManager private constructor(context: Context?) {
         for (i in 0 until size) {
             mThings!![i]!!.location = locationsList[i]!!
         }
-        mExecutor!!.execute {
+        writeQueue.execute {
             val locationsArray: Array<Long?> = locationsList.toTypedArray()
             mDao!!.updateLocations(ids, locationsArray)
         }

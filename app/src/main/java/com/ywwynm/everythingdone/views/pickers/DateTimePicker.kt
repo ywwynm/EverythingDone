@@ -42,8 +42,8 @@ import java.util.Calendar
  * and picking time type in DateTimeDialogFragment
  */
 open class DateTimePicker(
-        activity: Activity, parent: View, type: Int, accentColor: Int
-) : PopupPicker(activity, parent, 0) {
+        activity: Activity, parent: View, type: Int, accentColor: Int, preparedContent: View? = null
+) : PopupPicker(activity, parent, 0, preparedContent) {
 
     private val mType: Int = type
     private var mAccentColor: Int = accentColor

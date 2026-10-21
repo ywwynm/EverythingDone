@@ -19,9 +19,9 @@ import com.ywwynm.everythingdone.adapters.ImageAttachmentAdapter
 import kotlin.math.roundToInt
 
 /** 详情各区域共用一个有界列表；固定编辑区保留 View，重复内容由各 Adapter 正常回收。 */
-class DetailContentLayout(val recyclerView: RecyclerView) {
-    private val template = LayoutInflater.from(recyclerView.context)
-        .inflate(R.layout.detail_content_sections, null, false) as LinearLayout
+class DetailContentLayout(val recyclerView: RecyclerView, preparedSections: LinearLayout? = null) {
+    private val template = preparedSections ?: (LayoutInflater.from(recyclerView.context)
+        .inflate(R.layout.detail_content_sections, null, false) as LinearLayout)
     private val views = mutableMapOf<Int, View>()
     private val fixed = mutableMapOf<Int, FixedViewAdapter>()
     private var focusedFixedView: View? = null

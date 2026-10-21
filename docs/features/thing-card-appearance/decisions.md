@@ -1,5 +1,9 @@
 # Thing Card Appearance Decisions
 
+## 2026-10-21 - 复用不可变 JSON 解析结果
+
+`ThingCardAppearance.fromJson` 按完整 JSON 使用有界内存缓存，解析得到的 `sources` 和每个来源的 `presentations` 使用不可修改集合。编辑、裁剪和导入路径重写仍返回新对象，不共享可变记事，不依赖更新时间失效。损坏、旧格式及较大输入的原解析回退保留。三机验证包括同 ID／同更新时间的外观变更与独立记事隔离，详见 [详情转场解析优化](../thing-detail-transition/appearance-parsing-2026-10-21.md)。
+
 ## 2026-10-15 - 封面附件数量的遮罩跟随前景明暗
 
 `tv_thing_image_attachment_count` 原先在正常绑定和前景刷新时更新文字颜色，但背景一直使用 XML 的 `black_26p`，浅色记事因此出现深色文字叠在黑色遮罩上的问题。OPPO 现有首页卡片已复现。

@@ -184,18 +184,13 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     }
 
     internal fun snapshotContentUpdateEntries(): List<ThingListEntry> {
-        fun snapshot(entry: ThingListEntry): ThingListEntry = when (entry) {
-            is ThingListEntry.ThingEntry -> ThingListEntry.ThingEntry(Thing(entry.thing))
-            is ThingListEntry.FolderEntry -> entry.copy(
-                thumbnailEntries = entry.thumbnailEntries.map(::snapshot),
-                thumbnailThings = entry.thumbnailThings.map(::Thing)
-            )
-        }
-        return getEntries().orEmpty().map(::snapshot)
+        return ThingListPresentation.snapshot(getEntries().orEmpty())
     }
 
     protected open fun getEntries(): List<ThingListEntry>? =
         removalEntries ?: contentUpdateEntries ?: mThingManager!!.getThingListEntries()
+
+    internal fun presentedEntryAt(position: Int): ThingListEntry? = getEntries()?.getOrNull(position)
 
     override fun getStickyThingParentFolderBackground(thing: Thing): ThingBackground? {
         val folderId = thing.folderId ?: return null
@@ -419,6 +414,8 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         holder.cv?.maxCardElevation = mApp!!.resources.getDimension(R.dimen.thing_card_dragging_elevation)
         applyDefaultCardOutline(holder.cv)
         val thing = getThingAt(position)!!
+        holder.cv!!.setTag(R.id.tag_thing_card_bound_media_source,
+            ThingCardMediaHelper.resolveEffectiveMediaSource(thing)?.typePathName)
         distinguishHeaderAndOthers(thing, holder.cv)
         super.onBindViewHolder(holder, position)
 
@@ -1462,6 +1459,10 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         val previewHolder = BaseThingViewHolder(view)
         val previewAdapter = FolderThingPreviewAdapter(thing, style)
         previewAdapter.onBindViewHolder(previewHolder, 0)
+        // 嵌套预览不是 RecyclerView 的独立 ViewHolder，也必须提供真实记事身份。
+        view.setTag(R.id.tag_thing_card_bound_stable_id, thing.id)
+        previewHolder.cv!!.setTag(R.id.tag_thing_card_bound_media_source,
+            ThingCardMediaHelper.resolveEffectiveMediaSource(thing)?.typePathName)
         configureFolderThumbnailPreviewTouch(previewHolder.cv!!) {
             mOnItemTouchedListener?.onFolderThumbnailClick(it, thing)
         }

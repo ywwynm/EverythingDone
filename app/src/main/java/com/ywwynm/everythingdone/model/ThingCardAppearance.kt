@@ -2,6 +2,7 @@ package com.ywwynm.everythingdone.model
 
 import org.json.JSONException
 import org.json.JSONObject
+import java.util.Collections
 import kotlin.math.max
 import kotlin.math.min
 
@@ -340,7 +341,7 @@ data class ThingCardAppearance(
                     sideMediaDisplayAspectRatioHint = positiveOrNull(
                         nullableDouble(o, K_SIDE_MEDIA_DISPLAY_ASPECT_RATIO_HINT)
                     ),
-                    presentations = presentations
+                    presentations = Collections.unmodifiableMap(presentations)
                 )
             }
         }
@@ -551,8 +552,11 @@ data class ThingCardAppearance(
         }
 
         @JvmStatic
-        fun fromJson(json: String?): ThingCardAppearance? {
-            if (json.isNullOrEmpty()) return null
+        fun fromJson(json: String?): ThingCardAppearance? = parsedJson.parse(json)
+
+        private val parsedJson = ParsedAppearanceCache(decode = ::parseJson)
+
+        private fun parseJson(json: String): ThingCardAppearance? {
             try {
                 val o = JSONObject(json)
                 val sources = LinkedHashMap<String, SourceAppearance>()
@@ -604,7 +608,7 @@ data class ThingCardAppearance(
                     checklistMaxItemsFull = normalizeLimit(
                         nullableInt(o, K_CHECKLIST_MAX_ITEMS_FULL)
                     ),
-                    sources = sources
+                    sources = Collections.unmodifiableMap(sources)
                 )
             } catch (_: JSONException) {
                 return null

@@ -92,6 +92,15 @@ class DetailAttachmentPlaybackController(
     }
 
     private var disposed = false
+    private var transitionPaused = false
+
+    /** 页内转场只暂缓播放；不改变用户档位、可见区间或已播放一次的语义。 */
+    fun setTransitionPaused(paused: Boolean) {
+        if (transitionPaused == paused || disposed) return
+        transitionPaused = paused
+        adapter?.refreshAttachedPlayback()
+        if (!paused) scheduleEvaluation()
+    }
     private val evaluateLater = Runnable { if (!disposed) evaluate() }
     private fun scheduleEvaluation() {
         recyclerView.removeCallbacks(evaluateLater)
@@ -155,7 +164,7 @@ class DetailAttachmentPlaybackController(
 
     // —— 供 ImageAttachmentAdapter 查询 ——
 
-    fun shouldPlay(position: Int): Boolean = playing.contains(position)
+    fun shouldPlay(position: Int): Boolean = !transitionPaused && playing.contains(position)
 
     /** 循环档离屏只暂停解码，资源仍用 GIF；「一次」结束和关闭档才回静态代表帧。 */
     fun usesAnimatedResource(position: Int): Boolean =
@@ -208,6 +217,7 @@ class DetailAttachmentPlaybackController(
     }
 
     private fun evaluate() {
+        if (transitionPaused || disposed) return
         if (adapter == null) return
         if (recyclerView.visibility != View.VISIBLE) return
         val nowVisible = linkedSetOf<Int>()

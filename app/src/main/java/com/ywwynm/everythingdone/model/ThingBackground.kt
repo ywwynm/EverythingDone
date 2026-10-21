@@ -143,8 +143,11 @@ class ThingBackground private constructor(
          * legacy palette behaviour (eg. `ThingBackground.pure(thing.getColor())`).
          */
         @JvmStatic
-        fun fromJson(json: String?): ThingBackground? {
-            if (json.isNullOrEmpty()) return null
+        fun fromJson(json: String?): ThingBackground? = parsedJson.parse(json)
+
+        private val parsedJson = ParsedAppearanceCache(decode = ::parseJson)
+
+        private fun parseJson(json: String): ThingBackground? {
             try {
                 val o = JSONObject(json)
                 val modeStr = o.optString(K_MODE, Mode.PURE.name)

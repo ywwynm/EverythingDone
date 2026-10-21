@@ -2,6 +2,7 @@ package com.ywwynm.everythingdone.model
 
 import org.json.JSONException
 import org.json.JSONObject
+import java.util.Collections
 import kotlin.math.max
 import kotlin.math.min
 
@@ -167,7 +168,7 @@ data class DetailAttachmentMediaAppearance(
                     lastModified = nullableLong(o, K_LAST_MODIFIED),
                     fullSpanEnabled = o.optBoolean(K_FULL_SPAN_ENABLED, false),
                     videoFrameMs = nullableLong(o, K_VIDEO_FRAME_MS)?.let { max(0L, it) },
-                    presentations = presentations
+                    presentations = Collections.unmodifiableMap(presentations)
                 )
             }
         }
@@ -289,8 +290,11 @@ data class DetailAttachmentMediaAppearance(
         }
 
         @JvmStatic
-        fun fromJson(json: String?): DetailAttachmentMediaAppearance? {
-            if (json.isNullOrEmpty()) return null
+        fun fromJson(json: String?): DetailAttachmentMediaAppearance? = parsedJson.parse(json)
+
+        private val parsedJson = ParsedAppearanceCache(decode = ::parseJson)
+
+        private fun parseJson(json: String): DetailAttachmentMediaAppearance? {
             try {
                 val o = JSONObject(json)
                 val sources = LinkedHashMap<String, SourceAppearance>()
@@ -303,7 +307,7 @@ data class DetailAttachmentMediaAppearance(
                         if (value != null) sources[key] = value
                     }
                 }
-                return DetailAttachmentMediaAppearance(sources = sources)
+                return DetailAttachmentMediaAppearance(sources = Collections.unmodifiableMap(sources))
             } catch (_: JSONException) {
                 return null
             } catch (_: IllegalArgumentException) {
