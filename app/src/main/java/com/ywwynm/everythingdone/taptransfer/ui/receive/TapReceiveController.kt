@@ -29,6 +29,7 @@ import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.Thing
+import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.model.ThingFolder
 import com.ywwynm.everythingdone.taptransfer.TapPrerequisite
 import com.ywwynm.everythingdone.taptransfer.TapTransfer
@@ -100,6 +101,8 @@ class TapReceiveController(
 
         fun currentFolderId(): Long?
 
+        fun currentFolderBackground(): ThingBackground?
+
         /** 进入 / 退出接收状态：锁住抽屉、藏起新建按钮、保持屏幕常亮。 */
         fun onReceivingChanged(receiving: Boolean)
 
@@ -131,7 +134,7 @@ class TapReceiveController(
 
     private val pull = TapReceivePull(
         host.container, host.recyclerView, host.header, host.actionbar,
-        host::isReceiveEligible
+        host::isReceiveEligible, receiveBackground = host::currentFolderBackground
     ) { onButtonClicked() }
 
     private val navigator = TapSetupNavigator(activity) { granted -> onPermissionResult(granted) }
@@ -273,6 +276,10 @@ class TapReceiveController(
     /** 进入选择模式等情况下收起按钮。 */
     fun closeSlot(anim: Boolean) {
         pull.closeSlot(anim)
+    }
+
+    fun refreshAppearance() {
+        pull.refreshAppearance()
     }
 
     // ---------------------------------------------------------------- 进入

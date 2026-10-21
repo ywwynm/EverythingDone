@@ -2907,6 +2907,7 @@ class ThingsActivity :
         }
         detailReturnTransition?.onListChromeApplied()
         applyCreateFabBackgroundForCurrentProjection()
+        mTapReceive?.refreshAppearance()
         mActivityHeader?.updateText()
         // Home Chrome Retraction 在切换范围 / 换状态 / 开关文件夹等刷新时复位为显示（R=0）。
         // 但原地改单项（updateUIAfterStateUpdated，保留滚动位置）传 resetRetraction=false 以保留
@@ -12750,6 +12751,8 @@ class ThingsActivity :
             override fun isReceiveEligible(): Boolean = isTapReceiveEligible()
 
             override fun currentFolderId(): Long? = mThingManager!!.getProjection().currentFolderId
+
+            override fun currentFolderBackground(): ThingBackground? = getCurrentFolderBackgroundForChrome()
 
             override fun onReceivingChanged(receiving: Boolean) = onTapReceivingChanged(receiving)
 

@@ -31,6 +31,7 @@ import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.taptransfer.ui.flight.TapSessionRecorder
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.views.ActivityHeader
 import kotlin.math.abs
 import kotlin.math.min
@@ -54,6 +55,8 @@ class TapReceivePull(
     @StringRes private val receiveButtonText: Int = R.string.tap_receive_button,
     /** 详情页退出接收后恢复原位置，首页在列表顶部时保留入口。 */
     private val closeOnReceiveExit: Boolean = false,
+    /** 首页当前文件夹的背景；根目录及未定制的入口返回 null。 */
+    private val receiveBackground: () -> ThingBackground? = { null },
     private val onOffsetChanged: (Float) -> Unit = {},
     private val onClick: () -> Unit
 ) : RecyclerView.OnItemTouchListener {
@@ -242,6 +245,11 @@ class TapReceivePull(
     fun setHintTextColor(color: Int) {
         hint.setTextColor(color)
         button.findViewById<TextView>(R.id.tap_diagnostic_open).setTextColor(color)
+    }
+
+    /** 目录切换或文件夹改色时同步入口，不改变下拉位移与接收状态。 */
+    fun refreshAppearance() {
+        applyStyle()
     }
 
     /** 调试（会话记录）：列表当前的下移量与空位高度。 */
@@ -454,15 +462,17 @@ class TapReceivePull(
             pill.setTextColor(ContextCompat.getColor(context, R.color.app_chrome_on_surface_primary))
             icon.setTint(ContextCompat.getColor(context, R.color.app_chrome_on_surface_secondary))
         } else {
-            val accent: ThingBackground = App.defaultAccentBackground
-            val bg = GradientDrawable(
-                GradientDrawable.Orientation.BL_TR,
-                intArrayOf(accent.color, if (accent.mode == ThingBackground.Mode.GRADIENT) accent.endColor else accent.color)
-            )
+            val folderBackground = receiveBackground()
+            val background = folderBackground ?: App.defaultAccentBackground
+            val bg = BackgroundUtil.fillDrawable(background) as GradientDrawable
             bg.cornerRadius = radius
-            pill.background = RippleDrawable(ColorStateList.valueOf(0x40FFFFFF), bg, null)
-            pill.setTextColor(0xFFFFFFFF.toInt())
-            icon.setTint(0xFFFFFFFF.toInt())
+            val foreground = if (folderBackground == null) 0xFFFFFFFF.toInt()
+                else BackgroundUtil.onColor(folderBackground, BackgroundUtil.ON_ALPHA_PRIMARY)
+            val ripple = if (folderBackground == null) 0x40FFFFFF
+                else BackgroundUtil.adaptiveRippleColor(folderBackground)
+            pill.background = RippleDrawable(ColorStateList.valueOf(ripple), bg, null)
+            pill.setTextColor(foreground)
+            icon.setTint(foreground)
         }
         pill.elevation = if (receiving) 0f else 2f * density
         pill.setCompoundDrawablesRelative(icon, null, null, null)

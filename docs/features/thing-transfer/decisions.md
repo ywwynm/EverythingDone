@@ -1,5 +1,11 @@
 # 记事传输 决策记录
 
+## 2026-10-21 — 接收入口显示当前目标文件夹背景
+
+核对 `TapReceiveController.enter()`、普通接收及退出后的完整文件导入路径：开始接收时保存 `Host.currentFolderId()`，两条路径均将其传给 `ThingFileImporter`，顶层记事和文件夹归入该目标，来件内部层级保持。根目录目标为 `null`；本轮不改动接收归属规则。
+
+首页接收入口从 `ThingsActivity` 获取与文件夹顶栏相同的完整 `ThingBackground`，保留渐变方向；切换目录、刷新文件夹背景及退出接收时重新应用。文件夹文字及图标使用既有 `BackgroundUtil.onColor`，波纹使用 `adaptiveRippleColor`。根目录保留原强调渐变、白色文字／图标及白色波纹；“退出接收”的中性描边样式保持原设计。
+
 ## 2026-10-20 — 详情展开后准备接收入口
 
 列表打开详情时，碰一碰控制器与 NFC 能力查询不参与展开画面，延至应用内转场结束再初始化，并补齐溢出菜单状态；普通外部详情入口仍立即初始化。传输协议、认证、接收数据和硬件判断条件不变。性能及兼容验证见 `../thing-detail-transition/latency-optimization-2026-10-20.md`。
