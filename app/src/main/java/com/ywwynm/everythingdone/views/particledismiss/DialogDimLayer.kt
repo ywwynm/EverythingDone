@@ -66,6 +66,13 @@ internal class DialogDimLayer private constructor(
     }
 
     /** 幂等：重复调用（各 dismiss 路径的兜底）只有第一次生效。 */
+    fun removeImmediately() {
+        detachStarted = true
+        view.animate().cancel()
+        synchronized(attached) { attached.remove(view) }
+        ParticleOverlayHost.detach(decor, view)
+    }
+
     fun fadeOutAndDetach(durationMs: Long, interpolator: TimeInterpolator? = null) {
         if (detachStarted) return
         detachStarted = true

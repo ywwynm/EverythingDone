@@ -262,6 +262,10 @@ class ThingDetailTransitionProbe : Instrumentation() {
         main { start.supportFragmentManager.fragments.filterIsInstance<ChooserDialogFragment>().first()
             .dialog!!.findViewById<View>(R.id.tv_confirm_as_bt_fragment_chooser).performClick() }
         await("正在做页面") { resumed is DoingActivity && resumed!!.hasWindowFocus() && App.getDoingThingId() == note.id }
+        checkResult("nav-doing-chooser-removed-before-back", main {
+            (start.isFinishing || start.isDestroyed) &&
+                com.ywwynm.everythingdone.views.particledismiss.ParticleDismissOverlay.activeIn(start).isEmpty()
+        })
         await("原详情已退出") { beforeDoing.isDestroyed }
         detail = null
         val doing = resumed as DoingActivity

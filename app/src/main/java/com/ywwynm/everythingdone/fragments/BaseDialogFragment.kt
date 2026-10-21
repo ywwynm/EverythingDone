@@ -341,6 +341,11 @@ abstract class BaseDialogFragment : DialogFragment() {
         dismissViaDialog()
     }
 
+    /** 已确认跳转时不把消散留给即将退到后台的窗口；普通取消仍使用 dismiss。 */
+    fun dismissForNavigation() {
+        (dialog as? GestureAnchoredDialog)?.dismissForNavigation() ?: dismissViaDialog()
+    }
+
     /**
      * 按钮路径闪烁根因（2026-08-26，用户按钮关闭 100% 复现）：fragment 的
      * dismissInternal 先调 Dialog.dismiss()（被粒子流程拦截、真实 dismiss
@@ -467,6 +472,13 @@ private class GestureAnchoredDialog(
     private var animationFinished = true
     private var reallyDismissed = false
 
+    private var leavingForNavigation = false
+
+    fun dismissForNavigation() {
+        leavingForNavigation = true
+        dismiss()
+    }
+
     fun onRealDismissed() {
         reallyDismissed = true
         releaseInteractionIfFinished()
@@ -477,7 +489,12 @@ private class GestureAnchoredDialog(
     }
 
     override fun dismiss() {
-        if (systemDim?.hostIsClosing() == true) {
+        if (leavingForNavigation || systemDim?.hostIsClosing() == true) {
+            if (leavingForNavigation) {
+                interaction.closing()
+                dimLayer?.removeImmediately()
+                window?.setWindowAnimations(0)
+            }
             systemDim?.removeImmediately()
             condenseOverlay?.release()
             condenseOverlay = null

@@ -15,6 +15,7 @@ import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.database.HabitDAO
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment
 import com.ywwynm.everythingdone.fragments.ChooserDialogFragment
+import com.ywwynm.everythingdone.fragments.BaseDialogFragment
 import com.ywwynm.everythingdone.helpers.ThingDoingHelper
 import com.ywwynm.everythingdone.model.DoingRecord
 import com.ywwynm.everythingdone.model.Habit
@@ -39,6 +40,7 @@ open class StartDoingActivity : ParticleDialogHostActivity() {
     private var mStartType: Int = 0
     /** Phase 8: accent decoded from the intent. */
     private var mAccentBackground: ThingBackground? = null
+    private var startingDoing = false
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(LocaleUtil.attachBaseContext(newBase))
@@ -72,6 +74,7 @@ open class StartDoingActivity : ParticleDialogHostActivity() {
         cdf.setShouldDismissAfterConfirm(false)
         cdf.setConfirmText(getString(R.string.start_doing_confirm))
         cdf.setConfirmListener {
+            if (startingDoing) return@setConfirmListener
             val doingId = App.getDoingThingId()
             if (doingId == -1L) {
                 tryToStartDoingAlarmUser(cdf)
@@ -84,7 +87,7 @@ open class StartDoingActivity : ParticleDialogHostActivity() {
         }
         cdf.setOnDismissListener(object : ChooserDialogFragment.OnDismissListener {
             override fun onDismiss() {
-                finish()
+                if (!startingDoing) finish()
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                     overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, 0, 0)
                 } else {
@@ -112,6 +115,7 @@ open class StartDoingActivity : ParticleDialogHostActivity() {
     }
 
     private fun tryToStartDoingAlarmUser(cdf: ChooserDialogFragment) {
+        if (startingDoing) return
         val index = cdf.getPickedIndex()
         var canStartDoing = true
         var timeInMillis: Long
@@ -152,7 +156,10 @@ open class StartDoingActivity : ParticleDialogHostActivity() {
             )
         }
         if (canStartDoing) {
-            cdf.dismiss()
+            startingDoing = true
+            // 先关闭模态窗口，释放页面跳转的交互资格；宿主在启动 Doing 后结束。
+            supportFragmentManager.fragments.filterIsInstance<BaseDialogFragment>()
+                .asReversed().forEach { it.dismissForNavigation() }
             val doingId = App.getDoingThingId()
             if (doingId != -1L && doingId != mThing!!.id) {
                 DoingService.sResetDoingIdInOnDestroy = false
@@ -166,6 +173,7 @@ open class StartDoingActivity : ParticleDialogHostActivity() {
             } else {
                 helper.startDoingUser(timeInMillis, hrTime)
             }
+            finish()
         }
     }
 
