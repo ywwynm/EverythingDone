@@ -567,6 +567,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                     dataSource: DataSource, isFirstResource: Boolean
                 ): Boolean {
                     MediaPreviewTransition.mark("$loadStage-ready:${resource.width}x${resource.height}:$dataSource")
+                    if (!smallPreview) mPqController?.retainPreviewBeforeImageReplacement(iv)
                     iv.setImageBitmap(resource)
                     if (smallPreview) mFullResolutionImages.remove(iv) else mFullResolutionImages.add(iv)
                     val hdr = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
@@ -986,6 +987,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         // 保留 PhotoView 触摸／矩阵及已准备的 PQ 层，结束时直接恢复，避免重新解码或建层。
         (texture.parent as? View)?.findViewById<View>(R.id.v_motion_backdrop)?.visibility = View.VISIBLE
         texture.alpha = 1f
+        applyHdrStateForCurrentPage()
     }
 
     private fun stopMotionPlayback() {
@@ -2162,7 +2164,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         mPqController?.update(if (still) photo else null, if (still) source?.substring(1) else null,
             mViewerResumed && mPagerIdle && !mSpatialMode && !mPreviewTransitionBlocked && fullResolutionReady, !forcedSdr,
             prepareWhileInactive = !mViewerHasResumed && !mPreviewTransitionBlocked && fullResolutionReady,
-            playingVideo = mMotionPlayer != null)
+            playingVideo = mMotionTexture?.alpha == 1f)
         if (mSpatialMode) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 window.colorMode = ActivityInfo.COLOR_MODE_DEFAULT

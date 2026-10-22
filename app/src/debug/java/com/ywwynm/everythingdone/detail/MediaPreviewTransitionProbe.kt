@@ -75,6 +75,10 @@ class MediaPreviewTransitionProbe : Instrumentation() {
     private val motionSnapshots = JSONArray()
     private val motionEdges = JSONArray()
     private val videoStartups = JSONArray()
+    private val pqHandoffFrames = JSONArray()
+    private val pqHandoffs = JSONArray()
+    private var pqPhase = "opening"
+    private val pqObservers = mutableMapOf<Activity, android.view.Choreographer.FrameCallback>()
     private var requirePlayingReturn = false
     private var continuityKey: String? = null
     private val continuityDraw = android.view.ViewTreeObserver.OnPreDrawListener {
@@ -108,6 +112,7 @@ class MediaPreviewTransitionProbe : Instrumentation() {
     private val callbacks = object : Application.ActivityLifecycleCallbacks {
         override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
             if (activity is ImageViewerActivity) viewer = activity
+            if (activity is ImageViewerActivity && args.getString("case") == "real-pq-handoff") observePqHandoff(activity)
             if (activity is DetailActivity) set(activity, "dontSaveAfterOnPause", true)
             metricsThread?.let { thread ->
                 if (activity is ImageViewerActivity || activity is DetailActivity) {
@@ -129,11 +134,22 @@ class MediaPreviewTransitionProbe : Instrumentation() {
         override fun onActivityStopped(activity: Activity) = Unit
         override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
         override fun onActivityDestroyed(activity: Activity) {
+            pqObservers.remove(activity)?.let(android.view.Choreographer.getInstance()::removeFrameCallback)
             measuredWindows.remove(activity.window)?.let(activity.window::removeOnFrameMetricsAvailableListener)
         }
     }
 
     override fun onCreate(arguments: Bundle?) { super.onCreate(arguments); args = arguments ?: Bundle(); start() }
+
+    override fun callActivityOnCreate(activity: Activity, state: Bundle?) {
+        super.callActivityOnCreate(activity, state)
+        if (activity is ImageViewerActivity && args.getString("case") == "real-pq-handoff") {
+            val delay = args.getString("pqPrepareDelay", "0").toLong()
+            if (delay > 0) field<Any?>(activity, "mPqController")?.let { controller ->
+                field<java.util.concurrent.ScheduledThreadPoolExecutor>(controller, "io").submit { SystemClock.sleep(delay) }
+            }
+        }
+    }
 
     override fun onStart() {
         val real = args.getString("case")?.startsWith("real") == true
@@ -285,6 +301,8 @@ class MediaPreviewTransitionProbe : Instrumentation() {
                 MediaPreviewTransition.diagnosticGeometry = null
                 MediaPreviewTransition.diagnosticImageGeometry = null
                 HdrViewerDiagnostics.forceCompatibility = false
+                pqObservers.values.forEach(android.view.Choreographer.getInstance()::removeFrameCallback)
+                pqObservers.clear()
                 viewer?.let { set(it, "mPreviewTransition", null); it.finish() }
                 detail?.let { set(it, "dontSaveAfterOnPause", true); it.finish() }
                 measuredWindows.forEach { (window, listener) -> window.removeOnFrameMetricsAvailableListener(listener) }
@@ -306,6 +324,7 @@ class MediaPreviewTransitionProbe : Instrumentation() {
                 .put("motionSnapshots", motionSnapshots)
                 .put("motionEdges", motionEdges)
                 .put("videoStartups", videoStartups)
+                .put("pqHandoffs", pqHandoffs).put("pqHandoffFrames", pqHandoffFrames)
                 .put("events", JSONArray(events)).put("device", android.os.Build.MODEL)
                 .put("windowFrameColumns", JSONArray(listOf("window", "intendedVsyncNs", "totalNs", "deadlineNs", "firstDraw", "droppedCallbacks")))
                 .put("windowFrames", JSONArray(windowFrames.toList()))
@@ -559,7 +578,15 @@ class MediaPreviewTransitionProbe : Instrumentation() {
                 } == true }
                 repeat(args.getString("repeat", "2").toInt()) { iteration ->
                     val run = "real-$name-$iteration"
+                    pqPhase = "opening"
                     openPreview(sample.index, run)
+                    if (args.getString("case") == "real-pq-handoff") {
+                        require(sample.info.getBoolean("hdr"))
+                        verifyPqHandoff(run, sample.key, sample.info.getBoolean("motion"))
+                        closePreview(run, expectedKey = sample.key)
+                        check("$run 真实记事不变", baselineRow(sample.id) == rows()[sample.id])
+                        return@repeat
+                    }
                     if (args.getString("case") == "real-video-startup") {
                         require(sample.info.getBoolean("video"))
                         repeat(args.getString("startupRepeats", "1").toInt()) { playback -> verifyVideoStartup("$run-play$playback") }
@@ -913,6 +940,119 @@ class MediaPreviewTransitionProbe : Instrumentation() {
             differentFrames("滚回后 WebP", main { image() })
             closeDetail()
         } finally { mode(oldMode) }
+    }
+
+    /** 使用当前真实查看器的逐刷新状态，包含详情展开和完整图升级过程。 */
+    private fun observePqHandoff(activity: ImageViewerActivity) {
+        val run = label.removeSuffix("-enter")
+        val observer = object : android.view.Choreographer.FrameCallback {
+            private var frozePreview = false
+            override fun doFrame(frameTimeNanos: Long) {
+                if (activity.isDestroyed || pqObservers[activity] !== this) return
+                val pager = activity.findViewById<ViewPager>(R.id.vp_image_viewer)
+                val image = field<List<View>?>(activity, "mTabs")?.getOrNull(pager?.currentItem ?: -1)
+                    ?.findViewById<PhotoView>(R.id.iv_image_attachment)
+                if (image != null) {
+                    val controller = field<Any?>(activity, "mPqController")
+                    val surface = controller?.let { field<HdrProbeSurface?>(it, "surface") }
+                    val retainedPreview = controller?.javaClass?.declaredFields?.firstOrNull { it.name == "preview" }
+                        ?.apply { isAccessible = true }?.get(controller) != null
+                    if (args.getString("pqAction") == "resume" && !frozePreview && retainedPreview &&
+                        controller != null && field<Boolean>(controller, "previewRevealing")) {
+                        frozePreview = true
+                        controller.javaClass.getMethod("freezeWindow").invoke(controller)
+                        Handler(android.os.Looper.getMainLooper()).postDelayed({
+                            if (!activity.isDestroyed && !activity.isFinishing) {
+                                controller.javaClass.getMethod("resumeWindow").invoke(controller)
+                                activity.javaClass.getDeclaredMethod("applyHdrStateForCurrentPage").apply { isAccessible = true }.invoke(activity)
+                            }
+                        }, 40)
+                    }
+                    val texture = (image.parent as ViewGroup).findViewById<android.view.TextureView>(R.id.tv_motion_surface)
+                    pqHandoffFrames.put(JSONObject().put("name", run).put("phase", pqPhase)
+                        .put("uptimeMs", SystemClock.uptimeMillis()).put("elapsedMs", SystemClock.elapsedRealtime()).put("vsyncNs", frameTimeNanos)
+                        .put("photoAlpha", image.alpha).put("drawable", image.drawable?.let(System::identityHashCode))
+                        .put("width", image.drawable?.intrinsicWidth).put("height", image.drawable?.intrinsicHeight)
+                        .put("full", image in field<Set<PhotoView>>(activity, "mFullResolutionImages"))
+                        .put("blocked", field<Boolean>(activity, "mPreviewTransitionBlocked"))
+                        .put("surface", surface?.let(System::identityHashCode)).put("ready", surface?.isFrameReady == true)
+                        .put("retainedPreview", retainedPreview)
+                        .put("previewFrozenForTest", frozePreview)
+                        .put("strength", surface?.lastSubmittedStrength?.takeIf { it.isFinite() } ?: -1f)
+                        .put("player", field<Any?>(activity, "mMotionPlayer") != null).put("videoAlpha", texture.alpha)
+                        .put("backdrop", (image.parent as ViewGroup).findViewById<View>(R.id.v_motion_backdrop).visibility == View.VISIBLE))
+                }
+                android.view.Choreographer.getInstance().postFrameCallback(this)
+            }
+        }
+        pqObservers[activity] = observer
+        android.view.Choreographer.getInstance().postFrameCallback(observer)
+    }
+
+    private fun verifyPqHandoff(name: String, key: String, motion: Boolean) {
+        val current = viewer!!
+        fun invoke(method: String) = main { current.javaClass.getDeclaredMethod(method).apply { isAccessible = true }.invoke(current) }
+        fun surface(): HdrProbeSurface? = field<Any?>(current, "mPqController")?.let { field(it, "surface") }
+        fun frames(phase: String) = main { (0 until pqHandoffFrames.length()).map { pqHandoffFrames.getJSONObject(it) }
+            .filter { it.getString("name") == name && it.getString("phase") == phase } }
+        val action = args.getString("pqAction")
+        if (action in listOf("sdr", "timeout", "close")) {
+            await("$name 首帧准备中保留预览") { surface()?.isFrameReady != true && photo().alpha == 0f &&
+                field<Any?>(field<Any>(current, "mPqController"), "preview") != null }
+            if (action == "close") return
+            if (action == "sdr") main { current.findViewById<View>(R.id.tv_hdr_badge).performClick() }
+            await("$name 首帧回退恢复完整原图") { surface() == null && photo().alpha == 1f &&
+                field<Any?>(field<Any>(current, "mPqController"), "preview") == null }
+            // 超时或关闭 HDR 后，迟到解码不得再次盖住已经恢复的静图。
+            SystemClock.sleep(args.getString("pqPrepareDelay", "0").toLong())
+            check("$name 迟到准备不覆盖回退静图", main { surface() == null && photo().alpha == 1f &&
+                field<Any?>(field<Any>(current, "mPqController"), "preview") == null })
+            verifyResolution("$name-fallback", key, expectPhotoFallback = true)
+            return
+        }
+        verifyHdrReady(name, key)
+        await("$name PQ 交接完成并释放预览") {
+            val controller = field<Any?>(current, "mPqController")
+            controller?.javaClass?.declaredFields?.firstOrNull { it.name == "preview" }
+                ?.apply { isAccessible = true }?.get(controller) == null
+        }
+        val opening = frames("opening")
+        val early = opening.filter { it.getBoolean("full") && !it.getBoolean("blocked") &&
+            !it.getBoolean("ready") && it.getDouble("photoAlpha") > 0 && !it.getBoolean("backdrop") }
+        val record = JSONObject().put("name", name).put("motion", motion)
+            .put("earlyFullPhotoFrames", early.size).put("earlyFullPhotoUptimes", JSONArray(early.map { it.getLong("uptimeMs") }))
+        pqHandoffs.put(record)
+        check("$name PQ 就绪前不暴露完整原图", early.isEmpty())
+        check("$name PQ 准备期间保留可见预览", opening.filter { it.getBoolean("full") && !it.getBoolean("blocked") &&
+            !it.getBoolean("ready") && !it.getBoolean("backdrop") }.all { it.getBoolean("retainedPreview") })
+        if (action == "resume") check("$name 冻结后重新完成预览交接", opening.any { it.getBoolean("previewFrozenForTest") })
+        for (enabled in listOf(false, true)) {
+            main { pqPhase = "toggle-$enabled"; current.findViewById<View>(R.id.tv_hdr_badge).performClick() }
+            await("$name 手动 HDR 开关完成") { surface()?.lastSubmittedStrength == if (enabled) 1f else 0f }
+            val values = frames("toggle-$enabled").map { it.getDouble("strength") }
+            check("$name 手动 HDR 切换保持渐变", values.any { it > 0 && it < 1 } &&
+                values.zipWithNext().all { (a, b) -> if (enabled) b >= a else b <= a })
+        }
+        if (motion) for (mode in listOf("auto", "hold")) {
+            main { pqPhase = mode }
+            invoke(if (mode == "auto") "maybeAutoplayCurrentMotionPage" else "startMotionPlaybackForCurrentPage")
+            await("$name-$mode 正常播放") { motionIsPlaying() }
+            val original = main { surface() }
+            SystemClock.sleep(250)
+            if (mode == "hold") invoke("stopMotionPlayback")
+            else await("$name-$mode 自动自然结束") { field<Any?>(current, "mMotionPlayer") == null }
+            verifyHdrReady("$name-after-$mode", key)
+            SystemClock.sleep(80)
+            val visible = frames(mode).filter { !it.getBoolean("player") && !it.getBoolean("backdrop") }
+            val waiting = frames(mode).filter { it.getBoolean("player") && !it.getBoolean("backdrop") }
+            record.put("${mode}FirstStillStrength", visible.firstOrNull()?.optDouble("strength"))
+                .put("${mode}LowGainStillFrames", visible.count { it.getDouble("strength") < .999 })
+            check("$name-$mode 同一 PQ 层恢复静图", main { surface() === original })
+            check("$name-$mode 视频实际揭示前不提前降低静图增益", waiting.all { it.getDouble("strength") >= .999 })
+            val recovery = visible.dropWhile { it.getDouble("strength") >= .999 }.map { it.getDouble("strength") }
+            check("$name-$mode 恢复 HDR 增益不反向跳变", recovery.zipWithNext().all { (a, b) -> b >= a })
+        }
+        main { pqPhase = "complete" }
     }
 
     private fun verifyHdrReady(name: String, key: String) {
@@ -1320,7 +1460,7 @@ class MediaPreviewTransitionProbe : Instrumentation() {
     }
 
     /** 检查实际显示的 PQ 纹理，不能仅以 PhotoView 已收到大图作为清晰度验收。 */
-    private fun verifyResolution(name: String, key: String) {
+    private fun verifyResolution(name: String, key: String, expectPhotoFallback: Boolean = false) {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeFile(key.substring(1), bounds)
         val hdr = HdrImageDetector.detect(key.substring(1))
@@ -1343,10 +1483,11 @@ class MediaPreviewTransitionProbe : Instrumentation() {
                 val pqRequired = minOf(edge.toFloat(), displayed / image.scale.coerceAtLeast(1f))
                 val full = image in field<Set<PhotoView>>(viewer!!, "mFullResolutionImages")
                 decoded = full && required > 0 && edge >= required * .95f
-                presented = if (controller != null && hdr) surface?.isFrameReady == true && gpu != null &&
+                presented = if (controller != null && hdr && !expectPhotoFallback) surface?.isFrameReady == true && gpu != null &&
                     pqRequired > 0 && maxOf(gpu.width, gpu.height) >= pqRequired * .95f
                 else image.alpha == 1f && surface == null
                 state = JSONObject().put("name", name).put("hdr", hdr).put("compatibility", controller != null)
+                    .put("expectedPhotoFallback", expectPhotoFallback)
                     .put("sourceWidth", bounds.outWidth).put("sourceHeight", bounds.outHeight)
                     .put("bitmapWidth", bitmap?.width).put("bitmapHeight", bitmap?.height)
                     .put("fullRequestReady", full).put("bitmapColorSpace", bitmap?.colorSpace?.name)

@@ -1,0 +1,3125 @@
+{
+  "baseline": [
+    {
+      "device": "oneplus",
+      "phase": "before",
+      "originalTests": 47,
+      "clarification": "零增益到 HDR 的单调渐变不属于故障，首轮过强断言已更正。",
+      "handoffs": [
+        {
+          "name": "real-largest-hdr-0",
+          "motion": false,
+          "earlyFullPhotoFrames": 4
+        },
+        {
+          "name": "real-hdr-motion-0",
+          "motion": true,
+          "earlyFullPhotoFrames": 0,
+          "autoFirstStillStrength": 0,
+          "autoLowGainStillFrames": 13,
+          "holdFirstStillStrength": 0,
+          "holdLowGainStillFrames": 12
+        }
+      ]
+    },
+    {
+      "device": "oneplus",
+      "phase": "before-slow",
+      "originalTests": 47,
+      "clarification": "零增益到 HDR 的单调渐变不属于故障，首轮过强断言已更正。",
+      "handoffs": [
+        {
+          "name": "real-largest-hdr-0",
+          "motion": false,
+          "earlyFullPhotoFrames": 176
+        },
+        {
+          "name": "real-hdr-motion-0",
+          "motion": true,
+          "earlyFullPhotoFrames": 35,
+          "autoFirstStillStrength": 0,
+          "autoLowGainStillFrames": 12,
+          "holdFirstStillStrength": 0,
+          "holdLowGainStillFrames": 12
+        }
+      ]
+    },
+    {
+      "device": "samsung",
+      "phase": "before-slow",
+      "originalTests": 47,
+      "clarification": "零增益到 HDR 的单调渐变不属于故障，首轮过强断言已更正。",
+      "handoffs": [
+        {
+          "name": "real-largest-hdr-0",
+          "motion": false,
+          "earlyFullPhotoFrames": 345
+        },
+        {
+          "name": "real-hdr-motion-0",
+          "motion": true,
+          "earlyFullPhotoFrames": 64,
+          "autoFirstStillStrength": 0,
+          "autoLowGainStillFrames": 22,
+          "holdFirstStillStrength": 0,
+          "holdLowGainStillFrames": 24
+        }
+      ]
+    },
+    {
+      "device": "meizu",
+      "phase": "before-natural",
+      "originalTests": 111,
+      "clarification": "零增益到 HDR 的单调渐变不属于故障，首轮过强断言已更正。",
+      "handoffs": [
+        {
+          "name": "real-largest-motion-0",
+          "motion": true,
+          "earlyFullPhotoFrames": 0,
+          "autoFirstStillStrength": 0,
+          "autoLowGainStillFrames": 12,
+          "holdFirstStillStrength": 0,
+          "holdLowGainStillFrames": 12
+        },
+        {
+          "name": "real-largest-motion-1",
+          "motion": true,
+          "earlyFullPhotoFrames": 0,
+          "autoFirstStillStrength": 0,
+          "autoLowGainStillFrames": 11,
+          "holdFirstStillStrength": 0,
+          "holdLowGainStillFrames": 12
+        },
+        {
+          "name": "real-target-photo-0-0",
+          "motion": true,
+          "earlyFullPhotoFrames": 0,
+          "autoFirstStillStrength": 0,
+          "autoLowGainStillFrames": 11,
+          "holdFirstStillStrength": 0,
+          "holdLowGainStillFrames": 12
+        },
+        {
+          "name": "real-target-photo-0-1",
+          "motion": true,
+          "earlyFullPhotoFrames": 0,
+          "autoFirstStillStrength": 0,
+          "autoLowGainStillFrames": 12,
+          "holdFirstStillStrength": 0,
+          "holdLowGainStillFrames": 12
+        }
+      ]
+    }
+  ],
+  "devices": [
+    {
+      "device": "samsung",
+      "checks": 771,
+      "originalRows": 375,
+      "originalRowsUnchanged": true,
+      "fullBitmapAndHdrParametersEqual": true,
+      "phases": [
+        {
+          "phase": "natural",
+          "checks": 55,
+          "failures": 0,
+          "pqHandoffs": [
+            {
+              "name": "real-largest-hdr-0",
+              "motion": false,
+              "earlyFullPhotoFrames": 0,
+              "earlyFullPhotoUptimes": []
+            },
+            {
+              "name": "real-hdr-motion-0",
+              "motion": true,
+              "earlyFullPhotoFrames": 0,
+              "earlyFullPhotoUptimes": [],
+              "autoFirstStillStrength": 0,
+              "autoLowGainStillFrames": 22,
+              "holdFirstStillStrength": 0,
+              "holdLowGainStillFrames": 22
+            }
+          ],
+          "fullBitmapAndHdrParametersEqual": true,
+          "quality": [
+            {
+              "attachment": [
+                1258,
+                1
+              ],
+              "bitmapSha256": "5d62f65146676a91727d5a976dace0d5bfcb672526def45280573ff16d38c21c",
+              "bitmapWidth": 2319,
+              "bitmapHeight": 3088,
+              "bitmapColorSpace": "Display P3",
+              "bitmapGainmap": true,
+              "pqRatioMin": [
+                1,
+                1,
+                1
+              ],
+              "pqRatioMax": [
+                4.926114,
+                4.926114,
+                4.926114
+              ],
+              "pqGamma": [
+                1,
+                1,
+                1
+              ],
+              "pqMinimum": 1,
+              "pqFull": 4.926114
+            },
+            {
+              "attachment": [
+                4864,
+                1
+              ],
+              "bitmapSha256": "8fdcd145d7367c103048565244a6fe13195a179d9f1ff48435b8fd6465da666a",
+              "bitmapWidth": 4112,
+              "bitmapHeight": 3088,
+              "bitmapColorSpace": "Display P3",
+              "bitmapGainmap": true,
+              "pqRatioMin": [
+                1,
+                1,
+                1
+              ],
+              "pqRatioMax": [
+                4.9261084,
+                4.9261084,
+                4.9261084
+              ],
+              "pqGamma": [
+                1,
+                1,
+                1
+              ],
+              "pqMinimum": 1,
+              "pqFull": 4.9261084
+            }
+          ],
+          "pqDimensions": [
+            {
+              "name": "real-largest-hdr-0-hdr-restored",
+              "pqWidth": 2319,
+              "pqHeight": 3088,
+              "pqGainWidth": 580,
+              "pqGainHeight": 772,
+              "requiredPqEdge": 1917.5161
+            },
+            {
+              "name": "real-hdr-motion-0-hdr-restored",
+              "pqWidth": 2944,
+              "pqHeight": 2211,
+              "pqGainWidth": 1472,
+              "pqGainHeight": 1105,
+              "requiredPqEdge": 1440
+            },
+            {
+              "name": "real-hdr-motion-0-after-auto-hdr-restored",
+              "pqWidth": 2944,
+              "pqHeight": 2211,
+              "pqGainWidth": 1472,
+              "pqGainHeight": 1105,
+              "requiredPqEdge": 1440
+            },
+            {
+              "name": "real-hdr-motion-0-after-hold-hdr-restored",
+              "pqWidth": 2944,
+              "pqHeight": 2211,
+              "pqGainWidth": 1472,
+              "pqGainHeight": 1105,
+              "requiredPqEdge": 1440
+            }
+          ]
+        },
+        {
+          "phase": "slow",
+          "checks": 55,
+          "failures": 0,
+          "pqHandoffs": [
+            {
+              "name": "real-largest-hdr-0",
+              "motion": false,
+              "earlyFullPhotoFrames": 0,
+              "earlyFullPhotoUptimes": []
+            },
+            {
+              "name": "real-hdr-motion-0",
+              "motion": true,
+              "earlyFullPhotoFrames": 0,
+              "earlyFullPhotoUptimes": [],
+              "autoFirstStillStrength": 0,
+              "autoLowGainStillFrames": 22,
+              "holdFirstStillStrength": 0,
+              "holdLowGainStillFrames": 22
+            }
+          ],
+          "fullBitmapAndHdrParametersEqual": true,
+          "quality": [
+            {
+              "attachment": [
+                1258,
+                1
+              ],
+              "bitmapSha256": "5d62f65146676a91727d5a976dace0d5bfcb672526def45280573ff16d38c21c",
+              "bitmapWidth": 2319,
+              "bitmapHeight": 3088,
+              "bitmapColorSpace": "Display P3",
+              "bitmapGainmap": true,
+              "pqRatioMin": [
+                1,
+                1,
+                1
+              ],
+              "pqRatioMax": [
+                4.926114,
+                4.926114,
+                4.926114
+              ],
+              "pqGamma": [
+                1,
+                1,
+                1
+              ],
+              "pqMinimum": 1,
+              "pqFull": 4.926114
+            },
+            {
+              "attachment": [
+                4864,
+                1
+              ],
+              "bitmapSha256": "8fdcd145d7367c103048565244a6fe13195a179d9f1ff48435b8fd6465da666a",
+              "bitmapWidth": 4112,
+              "bitmapHeight": 3088,
+              "bitmapColorSpace": "Display P3",
+              "bitmapGainmap": true,
+              "pqRatioMin": [
+                1,
+                1,
+                1
+              ],
+              "pqRatioMax": [
+                4.9261084,
+                4.9261084,
+                4.9261084
+              ],
+              "pqGamma": [
+                1,
+                1,
+                1
+              ],
+              "pqMinimum": 1,
+              "pqFull": 4.9261084
+            }
+          ],
+          "pqDimensions": [
+            {
+              "name": "real-largest-hdr-0-hdr-restored",
+              "pqWidth": 2319,
+              "pqHeight": 3088,
+              "pqGainWidth": 580,
+              "pqGainHeight": 772,
+              "requiredPqEdge": 1917.5161
+            },
+            {
+              "name": "real-hdr-motion-0-hdr-restored",
+              "pqWidth": 2960,
+              "pqHeight": 2223,
+              "pqGainWidth": 1480,
+              "pqGainHeight": 1111,
+              "requiredPqEdge": 1440
+            },
+            {
+              "name": "real-hdr-motion-0-after-auto-hdr-restored",
+              "pqWidth": 2960,
+              "pqHeight": 2223,
+              "pqGainWidth": 1480,
+              "pqGainHeight": 1111,
+              "requiredPqEdge": 1440
+            },
+            {
+              "name": "real-hdr-motion-0-after-hold-hdr-restored",
+              "pqWidth": 2960,
+              "pqHeight": 2223,
+              "pqGainWidth": 1480,
+              "pqGainHeight": 1111,
+              "requiredPqEdge": 1440
+            }
+          ]
+        },
+        {
+          "phase": "motion-edge",
+          "checks": 199,
+          "failures": 0,
+          "motionEdges": [
+            {
+              "name": "real-largest-motion-0-auto",
+              "photoRect": "[0.0,1003.29956][1440.0,2084.7002]",
+              "videoRect": "[0.0,1003.2996][1440.0,2083.2996]",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "underlayChangedPixels": 0,
+              "interiorChangedPixels": 0,
+              "maxDifference": 0,
+              "changedRows": [],
+              "compatibility": true
+            },
+            {
+              "name": "real-largest-motion-0-hold",
+              "photoRect": "[0.0,1003.2996][1440.0,2084.7004]",
+              "videoRect": "[0.0,1003.2997][1440.0,2083.2998]",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "underlayChangedPixels": 0,
+              "interiorChangedPixels": 0,
+              "maxDifference": 0,
+              "changedRows": [],
+              "compatibility": true
+            },
+            {
+              "name": "real-largest-motion-1-auto",
+              "photoRect": "[-1152.0,462.59912][1728.0,2625.4006]",
+              "videoRect": "[-1152.0,462.59924][1728.0,2622.599]",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "underlayChangedPixels": 0,
+              "interiorChangedPixels": 0,
+              "maxDifference": 0,
+              "changedRows": [],
+              "compatibility": true
+            },
+            {
+              "name": "real-largest-motion-1-hold",
+              "photoRect": "[-1152.0,462.59924][1728.0,2625.401]",
+              "videoRect": "[-1152.0,462.59912][1728.0,2622.599]",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "underlayChangedPixels": 0,
+              "interiorChangedPixels": 0,
+              "maxDifference": 0,
+              "changedRows": [],
+              "compatibility": true
+            },
+            {
+              "name": "real-target-photo-0-0-auto",
+              "photoRect": "[0.0,1003.29956][1440.0,2084.7002]",
+              "videoRect": "[0.0,1003.2996][1440.0,2083.2996]",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "underlayChangedPixels": 0,
+              "interiorChangedPixels": 0,
+              "maxDifference": 0,
+              "changedRows": [],
+              "compatibility": true
+            },
+            {
+              "name": "real-target-photo-0-0-hold",
+              "photoRect": "[0.0,1003.2996][1440.0,2084.7004]",
+              "videoRect": "[0.0,1003.2997][1440.0,2083.2998]",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "underlayChangedPixels": 0,
+              "interiorChangedPixels": 0,
+              "maxDifference": 0,
+              "changedRows": [],
+              "compatibility": true
+            },
+            {
+              "name": "real-target-photo-0-1-auto",
+              "photoRect": "[-1152.0,462.59912][1728.0,2625.4006]",
+              "videoRect": "[-1152.0,462.59924][1728.0,2622.599]",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "underlayChangedPixels": 0,
+              "interiorChangedPixels": 0,
+              "maxDifference": 0,
+              "changedRows": [],
+              "compatibility": true
+            },
+            {
+              "name": "real-target-photo-0-1-hold",
+              "photoRect": "[-1152.0,462.59924][1728.0,2625.401]",
+              "videoRect": "[-1152.0,462.59912][1728.0,2622.599]",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "underlayChangedPixels": 0,
+              "interiorChangedPixels": 0,
+              "maxDifference": 0,
+              "changedRows": [],
+              "compatibility": true
+            }
+          ],
+          "motionSnapshots": [
+            {
+              "name": "real-largest-motion-0-hold",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "textureWidth": 1440,
+              "textureHeight": 3088,
+              "textureTransform": [
+                1,
+                0,
+                0,
+                0,
+                0.34974092,
+                1004,
+                0,
+                0,
+                1
+              ],
+              "viewScaleX": 1,
+              "viewScaleY": 1,
+              "compatibility": true,
+              "meanChannelError": 0,
+              "mismatchFraction": 0,
+              "spatialCorrelation": 1
+            },
+            {
+              "name": "real-largest-motion-1-hold",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "textureWidth": 1440,
+              "textureHeight": 3088,
+              "textureTransform": [
+                1,
+                0,
+                0,
+                0,
+                0.34974092,
+                1004,
+                0,
+                0,
+                1
+              ],
+              "viewScaleX": 2,
+              "viewScaleY": 2,
+              "compatibility": true,
+              "meanChannelError": 0,
+              "mismatchFraction": 0,
+              "spatialCorrelation": 1
+            },
+            {
+              "name": "real-target-photo-0-0-hold",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "textureWidth": 1440,
+              "textureHeight": 3088,
+              "textureTransform": [
+                1,
+                0,
+                0,
+                0,
+                0.34974092,
+                1004,
+                0,
+                0,
+                1
+              ],
+              "viewScaleX": 1,
+              "viewScaleY": 1,
+              "compatibility": true,
+              "meanChannelError": 0,
+              "mismatchFraction": 0,
+              "spatialCorrelation": 1
+            },
+            {
+              "name": "real-target-photo-0-1-hold",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "textureWidth": 1440,
+              "textureHeight": 3088,
+              "textureTransform": [
+                1,
+                0,
+                0,
+                0,
+                0.34974092,
+                1004,
+                0,
+                0,
+                1
+              ],
+              "viewScaleX": 2,
+              "viewScaleY": 2,
+              "compatibility": true,
+              "meanChannelError": 0,
+              "mismatchFraction": 0,
+              "spatialCorrelation": 1
+            }
+          ],
+          "fullBitmapAndHdrParametersEqual": true,
+          "quality": [
+            {
+              "attachment": [
+                4864,
+                1
+              ],
+              "bitmapSha256": "8fdcd145d7367c103048565244a6fe13195a179d9f1ff48435b8fd6465da666a",
+              "bitmapWidth": 4112,
+              "bitmapHeight": 3088,
+              "bitmapColorSpace": "Display P3",
+              "bitmapGainmap": true,
+              "pqRatioMin": [
+                1,
+                1,
+                1
+              ],
+              "pqRatioMax": [
+                4.9261084,
+                4.9261084,
+                4.9261084
+              ],
+              "pqGamma": [
+                1,
+                1,
+                1
+              ],
+              "pqMinimum": 1,
+              "pqFull": 4.9261084
+            },
+            {
+              "attachment": [
+                4864,
+                0
+              ],
+              "bitmapSha256": "c2f14567b4e3ac5b9fd806b8ab78469a845481dd2fa810a6421fdd80c63c3f92",
+              "bitmapWidth": 4112,
+              "bitmapHeight": 3088,
+              "bitmapColorSpace": "Display P3",
+              "bitmapGainmap": true,
+              "pqRatioMin": [
+                1,
+                1,
+                1
+              ],
+              "pqRatioMax": [
+                4.9261084,
+                4.9261084,
+                4.9261084
+              ],
+              "pqGamma": [
+                1,
+                1,
+                1
+              ],
+              "pqMinimum": 1,
+              "pqFull": 4.9261084
+            }
+          ],
+          "pqDimensions": [
+            {
+              "name": "real-largest-motion-0",
+              "pqWidth": 3031,
+              "pqHeight": 2276,
+              "pqGainWidth": 1515,
+              "pqGainHeight": 1138,
+              "requiredPqEdge": 1440
+            },
+            {
+              "name": "real-largest-motion-0-hdr-restored",
+              "pqWidth": 3031,
+              "pqHeight": 2276,
+              "pqGainWidth": 1515,
+              "pqGainHeight": 1138,
+              "requiredPqEdge": 1440
+            },
+            {
+              "name": "real-largest-motion-0-after-auto-hdr-restored",
+              "pqWidth": 3031,
+              "pqHeight": 2276,
+              "pqGainWidth": 1515,
+              "pqGainHeight": 1138,
+              "requiredPqEdge": 1440
+            },
+            {
+              "name": "real-largest-motion-0-after-hold-hdr-restored",
+              "pqWidth": 3031,
+              "pqHeight": 2276,
+              "pqGainWidth": 1515,
+              "pqGainHeight": 1138,
+              "requiredPqEdge": 1440
+            },
+            {
+              "name": "real-largest-motion-1",
+              "pqWidth": 3027,
+              "pqHeight": 2273,
+              "pqGainWidth": 1513,
+              "pqGainHeight": 1136,
+              "requiredPqEdge": 1440
+            },
+            {
+              "name": "real-largest-motion-1-hdr-restored",
+              "pqWidth": 3027,
+              "pqHeight": 2273,
+              "pqGainWidth": 1513,
+              "pqGainHeight": 1136,
+              "requiredPqEdge": 1440
+            },
+            {
+              "name": "real-largest-motion-1-after-auto-hdr-restored",
+              "pqWidth": 3027,
+              "pqHeight": 2273,
+              "pqGainWidth": 1513,
+              "pqGainHeight": 1136,
+              "requiredPqEdge": 1440
+            },
+            {
+              "name": "real-largest-motion-1-after-hold-hdr-restored",
+              "pqWidth": 3027,
+              "pqHeight": 2273,
+              "pqGainWidth": 1513,
+              "pqGainHeight": 1136,
+              "requiredPqEdge": 1440
+            },
+            {
+              "name": "real-target-photo-0-0",
+              "pqWidth": 3021,
+              "pqHeight": 2269,
+              "pqGainWidth": 1510,
+              "pqGainHeight": 1134,
+              "requiredPqEdge": 1440
+            },
+            {
+              "name": "real-target-photo-0-0-hdr-restored",
+              "pqWidth": 3021,
+              "pqHeight": 2269,
+              "pqGainWidth": 1510,
+              "pqGainHeight": 1134,
+              "requiredPqEdge": 1440
+            },
+            {
+              "name": "real-target-photo-0-0-after-auto-hdr-restored",
+              "pqWidth": 3021,
+              "pqHeight": 2269,
+              "pqGainWidth": 1510,
+              "pqGainHeight": 1134,
+              "requiredPqEdge": 1440
+            },
+            {
+              "name": "real-target-photo-0-0-after-hold-hdr-restored",
+              "pqWidth": 3021,
+              "pqHeight": 2269,
+              "pqGainWidth": 1510,
+              "pqGainHeight": 1134,
+              "requiredPqEdge": 1440
+            },
+            {
+              "name": "real-target-photo-0-1",
+              "pqWidth": 3023,
+              "pqHeight": 2271,
+              "pqGainWidth": 1511,
+              "pqGainHeight": 1135,
+              "requiredPqEdge": 1440
+            },
+            {
+              "name": "real-target-photo-0-1-hdr-restored",
+              "pqWidth": 3023,
+              "pqHeight": 2271,
+              "pqGainWidth": 1511,
+              "pqGainHeight": 1135,
+              "requiredPqEdge": 1440
+            },
+            {
+              "name": "real-target-photo-0-1-after-auto-hdr-restored",
+              "pqWidth": 3023,
+              "pqHeight": 2271,
+              "pqGainWidth": 1511,
+              "pqGainHeight": 1135,
+              "requiredPqEdge": 1440
+            },
+            {
+              "name": "real-target-photo-0-1-after-hold-hdr-restored",
+              "pqWidth": 3023,
+              "pqHeight": 2271,
+              "pqGainWidth": 1511,
+              "pqGainHeight": 1135,
+              "requiredPqEdge": 1440
+            }
+          ]
+        },
+        {
+          "phase": "native",
+          "checks": 130,
+          "failures": 0
+        },
+        {
+          "phase": "edge",
+          "checks": 88,
+          "failures": 0
+        },
+        {
+          "phase": "webp",
+          "checks": 187,
+          "failures": 0
+        },
+        {
+          "phase": "video-startup",
+          "checks": 22,
+          "failures": 0,
+          "videoStartups": [
+            {
+              "name": "real-largest-video-0-play0",
+              "frameDelayMs": 900,
+              "suppressInfo": true,
+              "autoplay": true,
+              "cancelWaiting": false,
+              "coverLightFraction": 0.8231018518518518,
+              "preparedMs": 103,
+              "infoMs": 1166,
+              "waitingLightFraction": 0.8194907407407407,
+              "deliveredMs": 1005,
+              "alphaAtFirstUpdate": 0,
+              "playingLightFraction": 0.8201851851851852,
+              "firstFrameMs": 1266,
+              "shownMs": 1275
+            }
+          ]
+        },
+        {
+          "phase": "timeout",
+          "checks": 19,
+          "failures": 0
+        },
+        {
+          "phase": "close",
+          "checks": 16,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "device": "oneplus",
+      "checks": 767,
+      "originalRows": 115,
+      "originalRowsUnchanged": true,
+      "fullBitmapAndHdrParametersEqual": true,
+      "phases": [
+        {
+          "phase": "natural",
+          "checks": 55,
+          "failures": 0,
+          "pqHandoffs": [
+            {
+              "name": "real-largest-hdr-0",
+              "motion": false,
+              "earlyFullPhotoFrames": 0,
+              "earlyFullPhotoUptimes": []
+            },
+            {
+              "name": "real-hdr-motion-0",
+              "motion": true,
+              "earlyFullPhotoFrames": 0,
+              "earlyFullPhotoUptimes": [],
+              "autoFirstStillStrength": 0,
+              "autoLowGainStillFrames": 13,
+              "holdFirstStillStrength": 0,
+              "holdLowGainStillFrames": 13
+            }
+          ],
+          "fullBitmapAndHdrParametersEqual": true,
+          "quality": [
+            {
+              "attachment": [
+                1264,
+                1
+              ],
+              "bitmapSha256": "09aed988623248430734ccae2d2c213fccfa25e02a77548fda935471486a9032",
+              "bitmapWidth": 1983,
+              "bitmapHeight": 2640,
+              "bitmapColorSpace": "Display P3",
+              "bitmapGainmap": true,
+              "pqRatioMin": [
+                1,
+                1,
+                1
+              ],
+              "pqRatioMax": [
+                4.926114,
+                4.926114,
+                4.926114
+              ],
+              "pqGamma": [
+                1,
+                1,
+                1
+              ],
+              "pqMinimum": 1,
+              "pqFull": 4.926114
+            },
+            {
+              "attachment": [
+                3226,
+                1
+              ],
+              "bitmapSha256": "e50869b2dac5303ceadc6a763f1781ce2506f6cf291a1793a64fa8ebf707ed60",
+              "bitmapWidth": 3515,
+              "bitmapHeight": 2640,
+              "bitmapColorSpace": "Display P3",
+              "bitmapGainmap": true,
+              "pqRatioMin": [
+                1,
+                1,
+                1
+              ],
+              "pqRatioMax": [
+                4.9261084,
+                4.9261084,
+                4.9261084
+              ],
+              "pqGamma": [
+                1,
+                1,
+                1
+              ],
+              "pqMinimum": 1,
+              "pqFull": 4.9261084
+            }
+          ],
+          "pqDimensions": [
+            {
+              "name": "real-largest-hdr-0-hdr-restored",
+              "pqWidth": 1983,
+              "pqHeight": 2640,
+              "pqGainWidth": 496,
+              "pqGainHeight": 660,
+              "requiredPqEdge": 1618.8804
+            },
+            {
+              "name": "real-hdr-motion-0-hdr-restored",
+              "pqWidth": 2993,
+              "pqHeight": 2248,
+              "pqGainWidth": 1496,
+              "pqGainHeight": 1124,
+              "requiredPqEdge": 1216
+            },
+            {
+              "name": "real-hdr-motion-0-after-auto-hdr-restored",
+              "pqWidth": 2993,
+              "pqHeight": 2248,
+              "pqGainWidth": 1496,
+              "pqGainHeight": 1124,
+              "requiredPqEdge": 1216
+            },
+            {
+              "name": "real-hdr-motion-0-after-hold-hdr-restored",
+              "pqWidth": 2993,
+              "pqHeight": 2248,
+              "pqGainWidth": 1496,
+              "pqGainHeight": 1124,
+              "requiredPqEdge": 1216
+            }
+          ]
+        },
+        {
+          "phase": "slow",
+          "checks": 55,
+          "failures": 0,
+          "pqHandoffs": [
+            {
+              "name": "real-largest-hdr-0",
+              "motion": false,
+              "earlyFullPhotoFrames": 0,
+              "earlyFullPhotoUptimes": []
+            },
+            {
+              "name": "real-hdr-motion-0",
+              "motion": true,
+              "earlyFullPhotoFrames": 0,
+              "earlyFullPhotoUptimes": [],
+              "autoFirstStillStrength": 0,
+              "autoLowGainStillFrames": 12,
+              "holdFirstStillStrength": 0,
+              "holdLowGainStillFrames": 12
+            }
+          ],
+          "fullBitmapAndHdrParametersEqual": true,
+          "quality": [
+            {
+              "attachment": [
+                1264,
+                1
+              ],
+              "bitmapSha256": "09aed988623248430734ccae2d2c213fccfa25e02a77548fda935471486a9032",
+              "bitmapWidth": 1983,
+              "bitmapHeight": 2640,
+              "bitmapColorSpace": "Display P3",
+              "bitmapGainmap": true,
+              "pqRatioMin": [
+                1,
+                1,
+                1
+              ],
+              "pqRatioMax": [
+                4.926114,
+                4.926114,
+                4.926114
+              ],
+              "pqGamma": [
+                1,
+                1,
+                1
+              ],
+              "pqMinimum": 1,
+              "pqFull": 4.926114
+            },
+            {
+              "attachment": [
+                3226,
+                1
+              ],
+              "bitmapSha256": "e50869b2dac5303ceadc6a763f1781ce2506f6cf291a1793a64fa8ebf707ed60",
+              "bitmapWidth": 3515,
+              "bitmapHeight": 2640,
+              "bitmapColorSpace": "Display P3",
+              "bitmapGainmap": true,
+              "pqRatioMin": [
+                1,
+                1,
+                1
+              ],
+              "pqRatioMax": [
+                4.9261084,
+                4.9261084,
+                4.9261084
+              ],
+              "pqGamma": [
+                1,
+                1,
+                1
+              ],
+              "pqMinimum": 1,
+              "pqFull": 4.9261084
+            }
+          ],
+          "pqDimensions": [
+            {
+              "name": "real-largest-hdr-0-hdr-restored",
+              "pqWidth": 1983,
+              "pqHeight": 2640,
+              "pqGainWidth": 496,
+              "pqGainHeight": 660,
+              "requiredPqEdge": 1618.8804
+            },
+            {
+              "name": "real-hdr-motion-0-hdr-restored",
+              "pqWidth": 2993,
+              "pqHeight": 2248,
+              "pqGainWidth": 1496,
+              "pqGainHeight": 1124,
+              "requiredPqEdge": 1216
+            },
+            {
+              "name": "real-hdr-motion-0-after-auto-hdr-restored",
+              "pqWidth": 2993,
+              "pqHeight": 2248,
+              "pqGainWidth": 1496,
+              "pqGainHeight": 1124,
+              "requiredPqEdge": 1216
+            },
+            {
+              "name": "real-hdr-motion-0-after-hold-hdr-restored",
+              "pqWidth": 2993,
+              "pqHeight": 2248,
+              "pqGainWidth": 1496,
+              "pqGainHeight": 1124,
+              "requiredPqEdge": 1216
+            }
+          ]
+        },
+        {
+          "phase": "motion-edge",
+          "checks": 197,
+          "failures": 0,
+          "motionEdges": [
+            {
+              "name": "real-largest-motion-0-auto",
+              "photoRect": "[0.0,863.3513][1216.0,1776.6487]",
+              "videoRect": "[0.0,863.3513][1216.0,1775.7789]",
+              "videoWidth": 1422,
+              "videoHeight": 1067,
+              "underlayChangedPixels": 0,
+              "interiorChangedPixels": 0,
+              "maxDifference": 0,
+              "changedRows": [],
+              "compatibility": true
+            },
+            {
+              "name": "real-largest-motion-0-hold",
+              "photoRect": "[0.0,863.3513][1216.0,1776.6487]",
+              "videoRect": "[0.0,863.3513][1216.0,1775.7789]",
+              "videoWidth": 1422,
+              "videoHeight": 1067,
+              "underlayChangedPixels": 0,
+              "interiorChangedPixels": 0,
+              "maxDifference": 0,
+              "changedRows": [],
+              "compatibility": true
+            },
+            {
+              "name": "real-largest-motion-1-auto",
+              "photoRect": "[-972.8,406.70264][1459.2,2233.2974]",
+              "videoRect": "[-972.8,406.70264][1459.2,2231.5579]",
+              "videoWidth": 1422,
+              "videoHeight": 1067,
+              "underlayChangedPixels": 0,
+              "interiorChangedPixels": 0,
+              "maxDifference": 0,
+              "changedRows": [],
+              "compatibility": true
+            },
+            {
+              "name": "real-largest-motion-1-hold",
+              "photoRect": "[-972.8,406.70264][1459.2,2233.2974]",
+              "videoRect": "[-972.8,406.70264][1459.2,2231.5579]",
+              "videoWidth": 1422,
+              "videoHeight": 1067,
+              "underlayChangedPixels": 0,
+              "interiorChangedPixels": 0,
+              "maxDifference": 0,
+              "changedRows": [],
+              "compatibility": true
+            },
+            {
+              "name": "real-target-photo-0-0-auto",
+              "photoRect": "[0.0,863.3513][1216.0,1776.6487]",
+              "videoRect": "[0.0,863.3513][1216.0,1775.7789]",
+              "videoWidth": 1422,
+              "videoHeight": 1067,
+              "underlayChangedPixels": 0,
+              "interiorChangedPixels": 0,
+              "maxDifference": 0,
+              "changedRows": [],
+              "compatibility": true
+            },
+            {
+              "name": "real-target-photo-0-0-hold",
+              "photoRect": "[0.0,863.3513][1216.0,1776.6487]",
+              "videoRect": "[0.0,863.3513][1216.0,1775.7789]",
+              "videoWidth": 1422,
+              "videoHeight": 1067,
+              "underlayChangedPixels": 0,
+              "interiorChangedPixels": 0,
+              "maxDifference": 0,
+              "changedRows": [],
+              "compatibility": true
+            },
+            {
+              "name": "real-target-photo-0-1-auto",
+              "photoRect": "[-972.8,406.70264][1459.2,2233.2974]",
+              "videoRect": "[-972.8,406.70264][1459.2,2231.5579]",
+              "videoWidth": 1422,
+              "videoHeight": 1067,
+              "underlayChangedPixels": 0,
+              "interiorChangedPixels": 0,
+              "maxDifference": 0,
+              "changedRows": [],
+              "compatibility": true
+            },
+            {
+              "name": "real-target-photo-0-1-hold",
+              "photoRect": "[-972.8,406.70264][1459.2,2233.2974]",
+              "videoRect": "[-972.8,406.70264][1459.2,2231.5579]",
+              "videoWidth": 1422,
+              "videoHeight": 1067,
+              "underlayChangedPixels": 0,
+              "interiorChangedPixels": 0,
+              "maxDifference": 0,
+              "changedRows": [],
+              "compatibility": true
+            }
+          ],
+          "motionSnapshots": [
+            {
+              "name": "real-largest-motion-0-hold",
+              "videoWidth": 1422,
+              "videoHeight": 1067,
+              "textureWidth": 1216,
+              "textureHeight": 2640,
+              "textureTransform": [
+                1,
+                0,
+                0,
+                0,
+                0.3456165,
+                863.78625,
+                0,
+                0,
+                1
+              ],
+              "viewScaleX": 1,
+              "viewScaleY": 1,
+              "compatibility": true,
+              "meanChannelError": 0,
+              "mismatchFraction": 0,
+              "spatialCorrelation": 1
+            },
+            {
+              "name": "real-largest-motion-1-hold",
+              "videoWidth": 1422,
+              "videoHeight": 1067,
+              "textureWidth": 1216,
+              "textureHeight": 2640,
+              "textureTransform": [
+                1,
+                0,
+                0,
+                0,
+                0.3456165,
+                863.78625,
+                0,
+                0,
+                1
+              ],
+              "viewScaleX": 2,
+              "viewScaleY": 2,
+              "compatibility": true,
+              "meanChannelError": 0,
+              "mismatchFraction": 0,
+              "spatialCorrelation": 1
+            },
+            {
+              "name": "real-target-photo-0-0-hold",
+              "videoWidth": 1422,
+              "videoHeight": 1067,
+              "textureWidth": 1216,
+              "textureHeight": 2640,
+              "textureTransform": [
+                1,
+                0,
+                0,
+                0,
+                0.3456165,
+                863.78625,
+                0,
+                0,
+                1
+              ],
+              "viewScaleX": 1,
+              "viewScaleY": 1,
+              "compatibility": true,
+              "meanChannelError": 0,
+              "mismatchFraction": 0,
+              "spatialCorrelation": 1
+            },
+            {
+              "name": "real-target-photo-0-1-hold",
+              "videoWidth": 1422,
+              "videoHeight": 1067,
+              "textureWidth": 1216,
+              "textureHeight": 2640,
+              "textureTransform": [
+                1,
+                0,
+                0,
+                0,
+                0.3456165,
+                863.78625,
+                0,
+                0,
+                1
+              ],
+              "viewScaleX": 2,
+              "viewScaleY": 2,
+              "compatibility": true,
+              "meanChannelError": 0,
+              "mismatchFraction": 0,
+              "spatialCorrelation": 1
+            }
+          ],
+          "fullBitmapAndHdrParametersEqual": true,
+          "quality": [
+            {
+              "attachment": [
+                3226,
+                1
+              ],
+              "bitmapSha256": "e50869b2dac5303ceadc6a763f1781ce2506f6cf291a1793a64fa8ebf707ed60",
+              "bitmapWidth": 3515,
+              "bitmapHeight": 2640,
+              "bitmapColorSpace": "Display P3",
+              "bitmapGainmap": true,
+              "pqRatioMin": [
+                1,
+                1,
+                1
+              ],
+              "pqRatioMax": [
+                4.9261084,
+                4.9261084,
+                4.9261084
+              ],
+              "pqGamma": [
+                1,
+                1,
+                1
+              ],
+              "pqMinimum": 1,
+              "pqFull": 4.9261084
+            },
+            {
+              "attachment": [
+                3226,
+                0
+              ],
+              "bitmapSha256": "e12dbbd2d658b4871bf7c91620b98ad95253d34786639fb029aaafbfe7378eee",
+              "bitmapWidth": 3515,
+              "bitmapHeight": 2640,
+              "bitmapColorSpace": "Display P3",
+              "bitmapGainmap": true,
+              "pqRatioMin": [
+                1,
+                1,
+                1
+              ],
+              "pqRatioMax": [
+                4.9261084,
+                4.9261084,
+                4.9261084
+              ],
+              "pqGamma": [
+                1,
+                1,
+                1
+              ],
+              "pqMinimum": 1,
+              "pqFull": 4.9261084
+            }
+          ],
+          "pqDimensions": [
+            {
+              "name": "real-largest-motion-0",
+              "pqWidth": 2893,
+              "pqHeight": 2173,
+              "pqGainWidth": 1446,
+              "pqGainHeight": 1086,
+              "requiredPqEdge": 1216
+            },
+            {
+              "name": "real-largest-motion-0-hdr-restored",
+              "pqWidth": 2893,
+              "pqHeight": 2173,
+              "pqGainWidth": 1446,
+              "pqGainHeight": 1086,
+              "requiredPqEdge": 1216
+            },
+            {
+              "name": "real-largest-motion-0-after-auto-hdr-restored",
+              "pqWidth": 2893,
+              "pqHeight": 2173,
+              "pqGainWidth": 1446,
+              "pqGainHeight": 1086,
+              "requiredPqEdge": 1216
+            },
+            {
+              "name": "real-largest-motion-0-after-hold-hdr-restored",
+              "pqWidth": 2893,
+              "pqHeight": 2173,
+              "pqGainWidth": 1446,
+              "pqGainHeight": 1086,
+              "requiredPqEdge": 1216
+            },
+            {
+              "name": "real-largest-motion-1",
+              "pqWidth": 2498,
+              "pqHeight": 1876,
+              "pqGainWidth": 1249,
+              "pqGainHeight": 938,
+              "requiredPqEdge": 1216
+            },
+            {
+              "name": "real-largest-motion-1-hdr-restored",
+              "pqWidth": 2498,
+              "pqHeight": 1876,
+              "pqGainWidth": 1249,
+              "pqGainHeight": 938,
+              "requiredPqEdge": 1216
+            },
+            {
+              "name": "real-largest-motion-1-after-auto-hdr-restored",
+              "pqWidth": 2498,
+              "pqHeight": 1876,
+              "pqGainWidth": 1249,
+              "pqGainHeight": 938,
+              "requiredPqEdge": 1216
+            },
+            {
+              "name": "real-largest-motion-1-after-hold-hdr-restored",
+              "pqWidth": 2498,
+              "pqHeight": 1876,
+              "pqGainWidth": 1249,
+              "pqGainHeight": 938,
+              "requiredPqEdge": 1216
+            },
+            {
+              "name": "real-target-photo-0-0",
+              "pqWidth": 3017,
+              "pqHeight": 2266,
+              "pqGainWidth": 1508,
+              "pqGainHeight": 1133,
+              "requiredPqEdge": 1216
+            },
+            {
+              "name": "real-target-photo-0-0-hdr-restored",
+              "pqWidth": 3017,
+              "pqHeight": 2266,
+              "pqGainWidth": 1508,
+              "pqGainHeight": 1133,
+              "requiredPqEdge": 1216
+            },
+            {
+              "name": "real-target-photo-0-0-after-auto-hdr-restored",
+              "pqWidth": 3017,
+              "pqHeight": 2266,
+              "pqGainWidth": 1508,
+              "pqGainHeight": 1133,
+              "requiredPqEdge": 1216
+            },
+            {
+              "name": "real-target-photo-0-0-after-hold-hdr-restored",
+              "pqWidth": 3017,
+              "pqHeight": 2266,
+              "pqGainWidth": 1508,
+              "pqGainHeight": 1133,
+              "requiredPqEdge": 1216
+            },
+            {
+              "name": "real-target-photo-0-1",
+              "pqWidth": 3019,
+              "pqHeight": 2267,
+              "pqGainWidth": 1509,
+              "pqGainHeight": 1133,
+              "requiredPqEdge": 1216
+            },
+            {
+              "name": "real-target-photo-0-1-hdr-restored",
+              "pqWidth": 3019,
+              "pqHeight": 2267,
+              "pqGainWidth": 1509,
+              "pqGainHeight": 1133,
+              "requiredPqEdge": 1216
+            },
+            {
+              "name": "real-target-photo-0-1-after-auto-hdr-restored",
+              "pqWidth": 3019,
+              "pqHeight": 2267,
+              "pqGainWidth": 1509,
+              "pqGainHeight": 1133,
+              "requiredPqEdge": 1216
+            },
+            {
+              "name": "real-target-photo-0-1-after-hold-hdr-restored",
+              "pqWidth": 3019,
+              "pqHeight": 2267,
+              "pqGainWidth": 1509,
+              "pqGainHeight": 1133,
+              "requiredPqEdge": 1216
+            }
+          ]
+        },
+        {
+          "phase": "native",
+          "checks": 128,
+          "failures": 0
+        },
+        {
+          "phase": "edge",
+          "checks": 88,
+          "failures": 0
+        },
+        {
+          "phase": "webp",
+          "checks": 187,
+          "failures": 0
+        },
+        {
+          "phase": "video-startup",
+          "checks": 22,
+          "failures": 0,
+          "videoStartups": [
+            {
+              "name": "real-largest-video-0-play0",
+              "frameDelayMs": 900,
+              "suppressInfo": true,
+              "autoplay": true,
+              "cancelWaiting": false,
+              "coverLightFraction": 0.9997815109730045,
+              "preparedMs": 73,
+              "infoMs": 359,
+              "waitingLightFraction": 1,
+              "deliveredMs": 975,
+              "alphaAtFirstUpdate": 0,
+              "playingLightFraction": 0.9957030491357545,
+              "firstFrameMs": 1018,
+              "shownMs": 1034
+            }
+          ]
+        },
+        {
+          "phase": "sdr",
+          "checks": 19,
+          "failures": 0
+        },
+        {
+          "phase": "close",
+          "checks": 16,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "device": "meizu",
+      "checks": 779,
+      "originalRows": 182,
+      "originalRowsUnchanged": true,
+      "fullBitmapAndHdrParametersEqual": true,
+      "phases": [
+        {
+          "phase": "natural",
+          "checks": 55,
+          "failures": 0,
+          "pqHandoffs": [
+            {
+              "name": "real-largest-hdr-0",
+              "motion": false,
+              "earlyFullPhotoFrames": 0,
+              "earlyFullPhotoUptimes": []
+            },
+            {
+              "name": "real-hdr-motion-0",
+              "motion": true,
+              "earlyFullPhotoFrames": 0,
+              "earlyFullPhotoUptimes": [],
+              "autoFirstStillStrength": 0,
+              "autoLowGainStillFrames": 12,
+              "holdFirstStillStrength": 0,
+              "holdLowGainStillFrames": 12
+            }
+          ],
+          "fullBitmapAndHdrParametersEqual": true,
+          "quality": [
+            {
+              "attachment": [
+                779,
+                1
+              ],
+              "bitmapSha256": "0a8475a8159a801f38efadf08a2dbc8a9d4c473ef131a44460ee902cf4bb4356",
+              "bitmapWidth": 2397,
+              "bitmapHeight": 3192,
+              "bitmapColorSpace": "Display P3",
+              "bitmapGainmap": true,
+              "pqRatioMin": [
+                1,
+                1,
+                1
+              ],
+              "pqRatioMax": [
+                4.926114,
+                4.926114,
+                4.926114
+              ],
+              "pqGamma": [
+                1,
+                1,
+                1
+              ],
+              "pqMinimum": 1,
+              "pqFull": 4.926114
+            },
+            {
+              "attachment": [
+                2874,
+                1
+              ],
+              "bitmapSha256": "5be6714f50a7a51f43045815544f076071d129ca300f467956710d7381681137",
+              "bitmapWidth": 4250,
+              "bitmapHeight": 3192,
+              "bitmapColorSpace": "Display P3",
+              "bitmapGainmap": true,
+              "pqRatioMin": [
+                1,
+                1,
+                1
+              ],
+              "pqRatioMax": [
+                4.9261084,
+                4.9261084,
+                4.9261084
+              ],
+              "pqGamma": [
+                1,
+                1,
+                1
+              ],
+              "pqMinimum": 1,
+              "pqFull": 4.9261084
+            }
+          ],
+          "pqDimensions": [
+            {
+              "name": "real-largest-hdr-0-hdr-restored",
+              "pqWidth": 2397,
+              "pqHeight": 3192,
+              "pqGainWidth": 599,
+              "pqGainHeight": 798,
+              "requiredPqEdge": 1821.7173
+            },
+            {
+              "name": "real-hdr-motion-0-hdr-restored",
+              "pqWidth": 2979,
+              "pqHeight": 2237,
+              "pqGainWidth": 1489,
+              "pqGainHeight": 1118,
+              "requiredPqEdge": 1368
+            },
+            {
+              "name": "real-hdr-motion-0-after-auto-hdr-restored",
+              "pqWidth": 2979,
+              "pqHeight": 2237,
+              "pqGainWidth": 1489,
+              "pqGainHeight": 1118,
+              "requiredPqEdge": 1368
+            },
+            {
+              "name": "real-hdr-motion-0-after-hold-hdr-restored",
+              "pqWidth": 2979,
+              "pqHeight": 2237,
+              "pqGainWidth": 1489,
+              "pqGainHeight": 1118,
+              "requiredPqEdge": 1368
+            }
+          ]
+        },
+        {
+          "phase": "slow",
+          "checks": 55,
+          "failures": 0,
+          "pqHandoffs": [
+            {
+              "name": "real-largest-hdr-0",
+              "motion": false,
+              "earlyFullPhotoFrames": 0,
+              "earlyFullPhotoUptimes": []
+            },
+            {
+              "name": "real-hdr-motion-0",
+              "motion": true,
+              "earlyFullPhotoFrames": 0,
+              "earlyFullPhotoUptimes": [],
+              "autoFirstStillStrength": 0,
+              "autoLowGainStillFrames": 12,
+              "holdFirstStillStrength": 0,
+              "holdLowGainStillFrames": 13
+            }
+          ],
+          "fullBitmapAndHdrParametersEqual": true,
+          "quality": [
+            {
+              "attachment": [
+                779,
+                1
+              ],
+              "bitmapSha256": "0a8475a8159a801f38efadf08a2dbc8a9d4c473ef131a44460ee902cf4bb4356",
+              "bitmapWidth": 2397,
+              "bitmapHeight": 3192,
+              "bitmapColorSpace": "Display P3",
+              "bitmapGainmap": true,
+              "pqRatioMin": [
+                1,
+                1,
+                1
+              ],
+              "pqRatioMax": [
+                4.926114,
+                4.926114,
+                4.926114
+              ],
+              "pqGamma": [
+                1,
+                1,
+                1
+              ],
+              "pqMinimum": 1,
+              "pqFull": 4.926114
+            },
+            {
+              "attachment": [
+                2874,
+                1
+              ],
+              "bitmapSha256": "5be6714f50a7a51f43045815544f076071d129ca300f467956710d7381681137",
+              "bitmapWidth": 4250,
+              "bitmapHeight": 3192,
+              "bitmapColorSpace": "Display P3",
+              "bitmapGainmap": true,
+              "pqRatioMin": [
+                1,
+                1,
+                1
+              ],
+              "pqRatioMax": [
+                4.9261084,
+                4.9261084,
+                4.9261084
+              ],
+              "pqGamma": [
+                1,
+                1,
+                1
+              ],
+              "pqMinimum": 1,
+              "pqFull": 4.9261084
+            }
+          ],
+          "pqDimensions": [
+            {
+              "name": "real-largest-hdr-0-hdr-restored",
+              "pqWidth": 2397,
+              "pqHeight": 3192,
+              "pqGainWidth": 599,
+              "pqGainHeight": 798,
+              "requiredPqEdge": 1821.7173
+            },
+            {
+              "name": "real-hdr-motion-0-hdr-restored",
+              "pqWidth": 2977,
+              "pqHeight": 2235,
+              "pqGainWidth": 1488,
+              "pqGainHeight": 1117,
+              "requiredPqEdge": 1368
+            },
+            {
+              "name": "real-hdr-motion-0-after-auto-hdr-restored",
+              "pqWidth": 2977,
+              "pqHeight": 2235,
+              "pqGainWidth": 1488,
+              "pqGainHeight": 1117,
+              "requiredPqEdge": 1368
+            },
+            {
+              "name": "real-hdr-motion-0-after-hold-hdr-restored",
+              "pqWidth": 2977,
+              "pqHeight": 2235,
+              "pqGainWidth": 1488,
+              "pqGainHeight": 1117,
+              "requiredPqEdge": 1368
+            }
+          ]
+        },
+        {
+          "phase": "motion-edge",
+          "checks": 199,
+          "failures": 0,
+          "motionEdges": [
+            {
+              "name": "real-largest-motion-0-auto",
+              "photoRect": "[0.0,1082.2759][1368.0,2109.7244]",
+              "videoRect": "[0.0,1082.2758][1368.0,2108.276]",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "underlayChangedPixels": 0,
+              "interiorChangedPixels": 0,
+              "maxDifference": 0,
+              "changedRows": [],
+              "compatibility": true
+            },
+            {
+              "name": "real-largest-motion-0-hold",
+              "photoRect": "[0.0,1082.2758][1368.0,2109.724]",
+              "videoRect": "[0.0,1082.2759][1368.0,2108.276]",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "underlayChangedPixels": 0,
+              "interiorChangedPixels": 0,
+              "maxDifference": 0,
+              "changedRows": [],
+              "compatibility": true
+            },
+            {
+              "name": "real-largest-motion-1-auto",
+              "photoRect": "[-1094.4,568.5515][1641.6,2623.4485]",
+              "videoRect": "[-1094.4,568.5515][1641.6,2620.5515]",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "underlayChangedPixels": 0,
+              "interiorChangedPixels": 0,
+              "maxDifference": 0,
+              "changedRows": [],
+              "compatibility": true
+            },
+            {
+              "name": "real-largest-motion-1-hold",
+              "photoRect": "[-1094.4,568.5515][1641.6,2623.4485]",
+              "videoRect": "[-1094.4,568.5515][1641.6,2620.5515]",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "underlayChangedPixels": 0,
+              "interiorChangedPixels": 0,
+              "maxDifference": 0,
+              "changedRows": [],
+              "compatibility": true
+            },
+            {
+              "name": "real-target-photo-0-0-auto",
+              "photoRect": "[0.0,1082.2758][1368.0,2109.724]",
+              "videoRect": "[0.0,1082.2759][1368.0,2108.276]",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "underlayChangedPixels": 0,
+              "interiorChangedPixels": 0,
+              "maxDifference": 0,
+              "changedRows": [],
+              "compatibility": true
+            },
+            {
+              "name": "real-target-photo-0-0-hold",
+              "photoRect": "[0.0,1082.2759][1368.0,2109.7244]",
+              "videoRect": "[0.0,1082.2758][1368.0,2108.276]",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "underlayChangedPixels": 0,
+              "interiorChangedPixels": 0,
+              "maxDifference": 0,
+              "changedRows": [],
+              "compatibility": true
+            },
+            {
+              "name": "real-target-photo-0-1-auto",
+              "photoRect": "[-1094.4,568.5515][1641.6,2623.4485]",
+              "videoRect": "[-1094.4,568.5515][1641.6,2620.5515]",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "underlayChangedPixels": 0,
+              "interiorChangedPixels": 0,
+              "maxDifference": 0,
+              "changedRows": [],
+              "compatibility": true
+            },
+            {
+              "name": "real-target-photo-0-1-hold",
+              "photoRect": "[-1094.4,568.5515][1641.6,2623.4485]",
+              "videoRect": "[-1094.4,568.5515][1641.6,2620.5515]",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "underlayChangedPixels": 0,
+              "interiorChangedPixels": 0,
+              "maxDifference": 0,
+              "changedRows": [],
+              "compatibility": true
+            }
+          ],
+          "motionSnapshots": [
+            {
+              "name": "real-largest-motion-0-hold",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "textureWidth": 1368,
+              "textureHeight": 3192,
+              "textureTransform": [
+                1,
+                0,
+                0,
+                0,
+                0.32142857,
+                1083,
+                0,
+                0,
+                1
+              ],
+              "viewScaleX": 1,
+              "viewScaleY": 1,
+              "compatibility": true,
+              "meanChannelError": 0,
+              "mismatchFraction": 0,
+              "spatialCorrelation": 1
+            },
+            {
+              "name": "real-largest-motion-1-hold",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "textureWidth": 1368,
+              "textureHeight": 3192,
+              "textureTransform": [
+                1,
+                0,
+                0,
+                0,
+                0.32142857,
+                1083,
+                0,
+                0,
+                1
+              ],
+              "viewScaleX": 2,
+              "viewScaleY": 2,
+              "compatibility": true,
+              "meanChannelError": 0,
+              "mismatchFraction": 0,
+              "spatialCorrelation": 1
+            },
+            {
+              "name": "real-target-photo-0-0-hold",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "textureWidth": 1368,
+              "textureHeight": 3192,
+              "textureTransform": [
+                1,
+                0,
+                0,
+                0,
+                0.32142857,
+                1083,
+                0,
+                0,
+                1
+              ],
+              "viewScaleX": 1,
+              "viewScaleY": 1,
+              "compatibility": true,
+              "meanChannelError": 0,
+              "mismatchFraction": 0,
+              "spatialCorrelation": 1
+            },
+            {
+              "name": "real-target-photo-0-1-hold",
+              "videoWidth": 1728,
+              "videoHeight": 1296,
+              "textureWidth": 1368,
+              "textureHeight": 3192,
+              "textureTransform": [
+                1,
+                0,
+                0,
+                0,
+                0.32142857,
+                1083,
+                0,
+                0,
+                1
+              ],
+              "viewScaleX": 2,
+              "viewScaleY": 2,
+              "compatibility": true,
+              "meanChannelError": 0,
+              "mismatchFraction": 0,
+              "spatialCorrelation": 1
+            }
+          ],
+          "fullBitmapAndHdrParametersEqual": true,
+          "quality": [
+            {
+              "attachment": [
+                2874,
+                1
+              ],
+              "bitmapSha256": "5be6714f50a7a51f43045815544f076071d129ca300f467956710d7381681137",
+              "bitmapWidth": 4250,
+              "bitmapHeight": 3192,
+              "bitmapColorSpace": "Display P3",
+              "bitmapGainmap": true,
+              "pqRatioMin": [
+                1,
+                1,
+                1
+              ],
+              "pqRatioMax": [
+                4.9261084,
+                4.9261084,
+                4.9261084
+              ],
+              "pqGamma": [
+                1,
+                1,
+                1
+              ],
+              "pqMinimum": 1,
+              "pqFull": 4.9261084
+            },
+            {
+              "attachment": [
+                2874,
+                0
+              ],
+              "bitmapSha256": "a562589518ea125d34292b943649af3176d81505afc74f60850eeddc3d64fcbd",
+              "bitmapWidth": 4250,
+              "bitmapHeight": 3192,
+              "bitmapColorSpace": "Display P3",
+              "bitmapGainmap": true,
+              "pqRatioMin": [
+                1,
+                1,
+                1
+              ],
+              "pqRatioMax": [
+                4.9261084,
+                4.9261084,
+                4.9261084
+              ],
+              "pqGamma": [
+                1,
+                1,
+                1
+              ],
+              "pqMinimum": 1,
+              "pqFull": 4.9261084
+            }
+          ],
+          "pqDimensions": [
+            {
+              "name": "real-largest-motion-0",
+              "pqWidth": 3035,
+              "pqHeight": 2279,
+              "pqGainWidth": 1517,
+              "pqGainHeight": 1139,
+              "requiredPqEdge": 1368
+            },
+            {
+              "name": "real-largest-motion-0-hdr-restored",
+              "pqWidth": 3035,
+              "pqHeight": 2279,
+              "pqGainWidth": 1517,
+              "pqGainHeight": 1139,
+              "requiredPqEdge": 1368
+            },
+            {
+              "name": "real-largest-motion-0-after-auto-hdr-restored",
+              "pqWidth": 3035,
+              "pqHeight": 2279,
+              "pqGainWidth": 1517,
+              "pqGainHeight": 1139,
+              "requiredPqEdge": 1368
+            },
+            {
+              "name": "real-largest-motion-0-after-hold-hdr-restored",
+              "pqWidth": 3035,
+              "pqHeight": 2279,
+              "pqGainWidth": 1517,
+              "pqGainHeight": 1139,
+              "requiredPqEdge": 1368
+            },
+            {
+              "name": "real-largest-motion-1",
+              "pqWidth": 3030,
+              "pqHeight": 2276,
+              "pqGainWidth": 1515,
+              "pqGainHeight": 1138,
+              "requiredPqEdge": 1368
+            },
+            {
+              "name": "real-largest-motion-1-hdr-restored",
+              "pqWidth": 3030,
+              "pqHeight": 2276,
+              "pqGainWidth": 1515,
+              "pqGainHeight": 1138,
+              "requiredPqEdge": 1368
+            },
+            {
+              "name": "real-largest-motion-1-after-auto-hdr-restored",
+              "pqWidth": 3030,
+              "pqHeight": 2276,
+              "pqGainWidth": 1515,
+              "pqGainHeight": 1138,
+              "requiredPqEdge": 1368
+            },
+            {
+              "name": "real-largest-motion-1-after-hold-hdr-restored",
+              "pqWidth": 3030,
+              "pqHeight": 2276,
+              "pqGainWidth": 1515,
+              "pqGainHeight": 1138,
+              "requiredPqEdge": 1368
+            },
+            {
+              "name": "real-target-photo-0-0",
+              "pqWidth": 3028,
+              "pqHeight": 2274,
+              "pqGainWidth": 1514,
+              "pqGainHeight": 1137,
+              "requiredPqEdge": 1368
+            },
+            {
+              "name": "real-target-photo-0-0-hdr-restored",
+              "pqWidth": 3028,
+              "pqHeight": 2274,
+              "pqGainWidth": 1514,
+              "pqGainHeight": 1137,
+              "requiredPqEdge": 1368
+            },
+            {
+              "name": "real-target-photo-0-0-after-auto-hdr-restored",
+              "pqWidth": 3028,
+              "pqHeight": 2274,
+              "pqGainWidth": 1514,
+              "pqGainHeight": 1137,
+              "requiredPqEdge": 1368
+            },
+            {
+              "name": "real-target-photo-0-0-after-hold-hdr-restored",
+              "pqWidth": 3028,
+              "pqHeight": 2274,
+              "pqGainWidth": 1514,
+              "pqGainHeight": 1137,
+              "requiredPqEdge": 1368
+            },
+            {
+              "name": "real-target-photo-0-1",
+              "pqWidth": 3028,
+              "pqHeight": 2274,
+              "pqGainWidth": 1514,
+              "pqGainHeight": 1137,
+              "requiredPqEdge": 1368
+            },
+            {
+              "name": "real-target-photo-0-1-hdr-restored",
+              "pqWidth": 3028,
+              "pqHeight": 2274,
+              "pqGainWidth": 1514,
+              "pqGainHeight": 1137,
+              "requiredPqEdge": 1368
+            },
+            {
+              "name": "real-target-photo-0-1-after-auto-hdr-restored",
+              "pqWidth": 3028,
+              "pqHeight": 2274,
+              "pqGainWidth": 1514,
+              "pqGainHeight": 1137,
+              "requiredPqEdge": 1368
+            },
+            {
+              "name": "real-target-photo-0-1-after-hold-hdr-restored",
+              "pqWidth": 3028,
+              "pqHeight": 2274,
+              "pqGainWidth": 1514,
+              "pqGainHeight": 1137,
+              "requiredPqEdge": 1368
+            }
+          ]
+        },
+        {
+          "phase": "native",
+          "checks": 130,
+          "failures": 0
+        },
+        {
+          "phase": "edge",
+          "checks": 88,
+          "failures": 0
+        },
+        {
+          "phase": "webp",
+          "checks": 187,
+          "failures": 0
+        },
+        {
+          "phase": "video-startup",
+          "checks": 22,
+          "failures": 0,
+          "videoStartups": [
+            {
+              "name": "real-largest-video-0-play0",
+              "frameDelayMs": 900,
+              "suppressInfo": true,
+              "autoplay": true,
+              "cancelWaiting": false,
+              "coverLightFraction": 0.95764081255771,
+              "preparedMs": 156,
+              "infoMs": 368,
+              "waitingLightFraction": 0.9583333333333334,
+              "deliveredMs": 1059,
+              "alphaAtFirstUpdate": 0,
+              "playingLightFraction": 0.9912473068636504,
+              "firstFrameMs": 1151,
+              "shownMs": 1167
+            }
+          ]
+        },
+        {
+          "phase": "resume",
+          "checks": 24,
+          "failures": 0,
+          "pqHandoffs": [
+            {
+              "name": "real-largest-hdr-0",
+              "motion": false,
+              "earlyFullPhotoFrames": 0,
+              "earlyFullPhotoUptimes": []
+            }
+          ]
+        },
+        {
+          "phase": "sdr",
+          "checks": 19,
+          "failures": 0
+        }
+      ]
+    }
+  ],
+  "screenComparison": {
+    "before-slow": {
+      "codedMeans": [
+        [
+          14.503,
+          123.519
+        ],
+        [
+          15.035,
+          123.566
+        ],
+        [
+          15.067,
+          123.555
+        ],
+        [
+          15.085,
+          53.887
+        ],
+        [
+          15.1,
+          54.101
+        ],
+        [
+          15.117,
+          54.473
+        ],
+        [
+          15.134,
+          55.565
+        ],
+        [
+          15.15,
+          57.267
+        ],
+        [
+          15.166,
+          59.485
+        ],
+        [
+          15.183,
+          61.941
+        ],
+        [
+          15.199,
+          64.335
+        ],
+        [
+          15.216,
+          66.894
+        ],
+        [
+          15.233,
+          68.874
+        ],
+        [
+          15.249,
+          70.199
+        ],
+        [
+          15.266,
+          71.009
+        ],
+        [
+          15.283,
+          71.061
+        ]
+      ],
+      "minimum": 53.887,
+      "final": 71.061,
+      "belowFinal": true
+    },
+    "candidate-slow": {
+      "codedMeans": [
+        [
+          13.657,
+          123.705
+        ],
+        [
+          14.207,
+          123.665
+        ],
+        [
+          14.239,
+          123.639
+        ],
+        [
+          14.254,
+          123.635
+        ],
+        [
+          14.271,
+          122.639
+        ],
+        [
+          14.337,
+          100.564
+        ],
+        [
+          14.354,
+          85.866
+        ],
+        [
+          14.371,
+          79.836
+        ],
+        [
+          14.387,
+          74.859
+        ],
+        [
+          14.403,
+          71.856
+        ],
+        [
+          14.42,
+          71.199
+        ],
+        [
+          14.453,
+          71.179
+        ]
+      ],
+      "minimum": 71.179,
+      "final": 71.179,
+      "belowFinal": false
+    },
+    "published": {
+      "intervalSeconds": [
+        14.4,
+        15.26
+      ],
+      "codedMeans": [
+        [
+          14.41,
+          123.7
+        ],
+        [
+          14.96,
+          123.69
+        ],
+        [
+          15.009,
+          123.66
+        ],
+        [
+          15.025,
+          123.66
+        ],
+        [
+          15.106,
+          107.75
+        ],
+        [
+          15.122,
+          100.66
+        ],
+        [
+          15.139,
+          92.96
+        ],
+        [
+          15.156,
+          85.9
+        ],
+        [
+          15.173,
+          79.45
+        ],
+        [
+          15.189,
+          74.86
+        ],
+        [
+          15.206,
+          71.84
+        ],
+        [
+          15.222,
+          71.19
+        ],
+        [
+          15.257,
+          71.17
+        ]
+      ],
+      "belowFinal": false,
+      "note": "SDR 录屏，仅检验画面交接；后续主动 HDR 开关不计入初次交接。"
+    }
+  },
+  "pqDimensionComparison": "PQ 解码继续使用未修改的可用堆内存预算；旧版重复打开的纹理尺寸也会变化，不能以跨运行尺寸相等作为判据。完整位图与 HDR 参数严格相等，实际 PQ 尺寸另列并检查原有显示清晰度要求。",
+  "checks": 2317,
+  "originalRows": 672,
+  "motionEdges": 24,
+  "motionSnapshots": 12,
+  "jvm": {
+    "tests": 1732,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3
+  },
+  "publication": {
+    "debugUpdateCode": 202610220431,
+    "publishedAt": "2026-10-22T04:31:24.332265200Z",
+    "sha256": "7c4a9a22e1251f7ccc56da554c6133e883481d5eebb7fc4b35c1c40848c994c1",
+    "sizeBytes": 36917327,
+    "apkUrl": "http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202610220431.apk",
+    "checks": 759,
+    "devices": [
+      {
+        "device": "samsung",
+        "version": 202610220431,
+        "installedSha256": "7c4a9a22e1251f7ccc56da554c6133e883481d5eebb7fc4b35c1c40848c994c1",
+        "checks": 254,
+        "originalRows": 375,
+        "originalRowsUnchanged": true,
+        "failures": 0,
+        "fullBitmapAndHdrParametersEqual": true,
+        "phases": [
+          {
+            "phase": "published",
+            "checks": 55,
+            "pqHandoffs": [
+              {
+                "name": "real-largest-hdr-0",
+                "motion": false,
+                "earlyFullPhotoFrames": 0,
+                "earlyFullPhotoUptimes": []
+              },
+              {
+                "name": "real-hdr-motion-0",
+                "motion": true,
+                "earlyFullPhotoFrames": 0,
+                "earlyFullPhotoUptimes": [],
+                "autoFirstStillStrength": 0,
+                "autoLowGainStillFrames": 22,
+                "holdFirstStillStrength": 0,
+                "holdLowGainStillFrames": 22
+              }
+            ],
+            "motionEdges": [],
+            "motionSnapshots": []
+          },
+          {
+            "phase": "pq-handoff-published",
+            "checks": 199,
+            "pqHandoffs": [],
+            "motionEdges": [
+              {
+                "name": "real-largest-motion-0-auto",
+                "photoRect": "[0.0,1003.2997][1440.0,2084.7004]",
+                "videoRect": "[0.0,1003.29956][1440.0,2083.2996]",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "underlayChangedPixels": 0,
+                "interiorChangedPixels": 0,
+                "maxDifference": 0,
+                "changedRows": [],
+                "compatibility": true
+              },
+              {
+                "name": "real-largest-motion-0-hold",
+                "photoRect": "[0.0,1003.29956][1440.0,2084.7002]",
+                "videoRect": "[0.0,1003.2996][1440.0,2083.2996]",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "underlayChangedPixels": 0,
+                "interiorChangedPixels": 0,
+                "maxDifference": 0,
+                "changedRows": [],
+                "compatibility": true
+              },
+              {
+                "name": "real-largest-motion-1-auto",
+                "photoRect": "[-1152.0,462.59912][1728.0,2625.4006]",
+                "videoRect": "[-1152.0,462.59924][1728.0,2622.599]",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "underlayChangedPixels": 0,
+                "interiorChangedPixels": 0,
+                "maxDifference": 0,
+                "changedRows": [],
+                "compatibility": true
+              },
+              {
+                "name": "real-largest-motion-1-hold",
+                "photoRect": "[-1152.0,462.59924][1728.0,2625.401]",
+                "videoRect": "[-1152.0,462.59912][1728.0,2622.599]",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "underlayChangedPixels": 0,
+                "interiorChangedPixels": 0,
+                "maxDifference": 0,
+                "changedRows": [],
+                "compatibility": true
+              },
+              {
+                "name": "real-target-photo-0-0-auto",
+                "photoRect": "[0.0,1003.29956][1440.0,2084.7002]",
+                "videoRect": "[0.0,1003.2996][1440.0,2083.2996]",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "underlayChangedPixels": 0,
+                "interiorChangedPixels": 0,
+                "maxDifference": 0,
+                "changedRows": [],
+                "compatibility": true
+              },
+              {
+                "name": "real-target-photo-0-0-hold",
+                "photoRect": "[0.0,1003.2996][1440.0,2084.7004]",
+                "videoRect": "[0.0,1003.2997][1440.0,2083.2998]",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "underlayChangedPixels": 0,
+                "interiorChangedPixels": 0,
+                "maxDifference": 0,
+                "changedRows": [],
+                "compatibility": true
+              },
+              {
+                "name": "real-target-photo-0-1-auto",
+                "photoRect": "[-1152.0,462.59912][1728.0,2625.4006]",
+                "videoRect": "[-1152.0,462.59924][1728.0,2622.599]",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "underlayChangedPixels": 0,
+                "interiorChangedPixels": 0,
+                "maxDifference": 0,
+                "changedRows": [],
+                "compatibility": true
+              },
+              {
+                "name": "real-target-photo-0-1-hold",
+                "photoRect": "[-1152.0,462.59924][1728.0,2625.401]",
+                "videoRect": "[-1152.0,462.59912][1728.0,2622.599]",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "underlayChangedPixels": 0,
+                "interiorChangedPixels": 0,
+                "maxDifference": 0,
+                "changedRows": [],
+                "compatibility": true
+              }
+            ],
+            "motionSnapshots": [
+              {
+                "name": "real-largest-motion-0-hold",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "textureWidth": 1440,
+                "textureHeight": 3088,
+                "textureTransform": [
+                  1,
+                  0,
+                  0,
+                  0,
+                  0.34974092,
+                  1004,
+                  0,
+                  0,
+                  1
+                ],
+                "viewScaleX": 1,
+                "viewScaleY": 1,
+                "compatibility": true,
+                "meanChannelError": 0,
+                "mismatchFraction": 0,
+                "spatialCorrelation": 1
+              },
+              {
+                "name": "real-largest-motion-1-hold",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "textureWidth": 1440,
+                "textureHeight": 3088,
+                "textureTransform": [
+                  1,
+                  0,
+                  0,
+                  0,
+                  0.34974092,
+                  1004,
+                  0,
+                  0,
+                  1
+                ],
+                "viewScaleX": 2,
+                "viewScaleY": 2,
+                "compatibility": true,
+                "meanChannelError": 0,
+                "mismatchFraction": 0,
+                "spatialCorrelation": 1
+              },
+              {
+                "name": "real-target-photo-0-0-hold",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "textureWidth": 1440,
+                "textureHeight": 3088,
+                "textureTransform": [
+                  1,
+                  0,
+                  0,
+                  0,
+                  0.34974092,
+                  1004,
+                  0,
+                  0,
+                  1
+                ],
+                "viewScaleX": 1,
+                "viewScaleY": 1,
+                "compatibility": true,
+                "meanChannelError": 0,
+                "mismatchFraction": 0,
+                "spatialCorrelation": 1
+              },
+              {
+                "name": "real-target-photo-0-1-hold",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "textureWidth": 1440,
+                "textureHeight": 3088,
+                "textureTransform": [
+                  1,
+                  0,
+                  0,
+                  0,
+                  0.34974092,
+                  1004,
+                  0,
+                  0,
+                  1
+                ],
+                "viewScaleX": 2,
+                "viewScaleY": 2,
+                "compatibility": true,
+                "meanChannelError": 0,
+                "mismatchFraction": 0,
+                "spatialCorrelation": 1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "device": "oneplus",
+        "version": 202610220431,
+        "installedSha256": "7c4a9a22e1251f7ccc56da554c6133e883481d5eebb7fc4b35c1c40848c994c1",
+        "checks": 252,
+        "originalRows": 115,
+        "originalRowsUnchanged": true,
+        "failures": 0,
+        "fullBitmapAndHdrParametersEqual": true,
+        "phases": [
+          {
+            "phase": "published",
+            "checks": 55,
+            "pqHandoffs": [
+              {
+                "name": "real-largest-hdr-0",
+                "motion": false,
+                "earlyFullPhotoFrames": 0,
+                "earlyFullPhotoUptimes": []
+              },
+              {
+                "name": "real-hdr-motion-0",
+                "motion": true,
+                "earlyFullPhotoFrames": 0,
+                "earlyFullPhotoUptimes": [],
+                "autoFirstStillStrength": 0,
+                "autoLowGainStillFrames": 13,
+                "holdFirstStillStrength": 0,
+                "holdLowGainStillFrames": 12
+              }
+            ],
+            "motionEdges": [],
+            "motionSnapshots": []
+          },
+          {
+            "phase": "pq-handoff-published",
+            "checks": 197,
+            "pqHandoffs": [],
+            "motionEdges": [
+              {
+                "name": "real-largest-motion-0-auto",
+                "photoRect": "[0.0,863.3513][1216.0,1776.6487]",
+                "videoRect": "[0.0,863.3513][1216.0,1775.7789]",
+                "videoWidth": 1422,
+                "videoHeight": 1067,
+                "underlayChangedPixels": 0,
+                "interiorChangedPixels": 0,
+                "maxDifference": 0,
+                "changedRows": [],
+                "compatibility": true
+              },
+              {
+                "name": "real-largest-motion-0-hold",
+                "photoRect": "[0.0,863.3513][1216.0,1776.6487]",
+                "videoRect": "[0.0,863.3513][1216.0,1775.7789]",
+                "videoWidth": 1422,
+                "videoHeight": 1067,
+                "underlayChangedPixels": 0,
+                "interiorChangedPixels": 0,
+                "maxDifference": 0,
+                "changedRows": [],
+                "compatibility": true
+              },
+              {
+                "name": "real-largest-motion-1-auto",
+                "photoRect": "[-972.8,406.70264][1459.2,2233.2974]",
+                "videoRect": "[-972.8,406.70264][1459.2,2231.5579]",
+                "videoWidth": 1422,
+                "videoHeight": 1067,
+                "underlayChangedPixels": 0,
+                "interiorChangedPixels": 0,
+                "maxDifference": 0,
+                "changedRows": [],
+                "compatibility": true
+              },
+              {
+                "name": "real-largest-motion-1-hold",
+                "photoRect": "[-972.8,406.70264][1459.2,2233.2974]",
+                "videoRect": "[-972.8,406.70264][1459.2,2231.5579]",
+                "videoWidth": 1422,
+                "videoHeight": 1067,
+                "underlayChangedPixels": 0,
+                "interiorChangedPixels": 0,
+                "maxDifference": 0,
+                "changedRows": [],
+                "compatibility": true
+              },
+              {
+                "name": "real-target-photo-0-0-auto",
+                "photoRect": "[0.0,863.3513][1216.0,1776.6487]",
+                "videoRect": "[0.0,863.3513][1216.0,1775.7789]",
+                "videoWidth": 1422,
+                "videoHeight": 1067,
+                "underlayChangedPixels": 0,
+                "interiorChangedPixels": 0,
+                "maxDifference": 0,
+                "changedRows": [],
+                "compatibility": true
+              },
+              {
+                "name": "real-target-photo-0-0-hold",
+                "photoRect": "[0.0,863.3513][1216.0,1776.6487]",
+                "videoRect": "[0.0,863.3513][1216.0,1775.7789]",
+                "videoWidth": 1422,
+                "videoHeight": 1067,
+                "underlayChangedPixels": 0,
+                "interiorChangedPixels": 0,
+                "maxDifference": 0,
+                "changedRows": [],
+                "compatibility": true
+              },
+              {
+                "name": "real-target-photo-0-1-auto",
+                "photoRect": "[-972.8,406.70264][1459.2,2233.2974]",
+                "videoRect": "[-972.8,406.70264][1459.2,2231.5579]",
+                "videoWidth": 1422,
+                "videoHeight": 1067,
+                "underlayChangedPixels": 0,
+                "interiorChangedPixels": 0,
+                "maxDifference": 0,
+                "changedRows": [],
+                "compatibility": true
+              },
+              {
+                "name": "real-target-photo-0-1-hold",
+                "photoRect": "[-972.8,406.70264][1459.2,2233.2974]",
+                "videoRect": "[-972.8,406.70264][1459.2,2231.5579]",
+                "videoWidth": 1422,
+                "videoHeight": 1067,
+                "underlayChangedPixels": 0,
+                "interiorChangedPixels": 0,
+                "maxDifference": 0,
+                "changedRows": [],
+                "compatibility": true
+              }
+            ],
+            "motionSnapshots": [
+              {
+                "name": "real-largest-motion-0-hold",
+                "videoWidth": 1422,
+                "videoHeight": 1067,
+                "textureWidth": 1216,
+                "textureHeight": 2640,
+                "textureTransform": [
+                  1,
+                  0,
+                  0,
+                  0,
+                  0.3456165,
+                  863.78625,
+                  0,
+                  0,
+                  1
+                ],
+                "viewScaleX": 1,
+                "viewScaleY": 1,
+                "compatibility": true,
+                "meanChannelError": 0,
+                "mismatchFraction": 0,
+                "spatialCorrelation": 1
+              },
+              {
+                "name": "real-largest-motion-1-hold",
+                "videoWidth": 1422,
+                "videoHeight": 1067,
+                "textureWidth": 1216,
+                "textureHeight": 2640,
+                "textureTransform": [
+                  1,
+                  0,
+                  0,
+                  0,
+                  0.3456165,
+                  863.78625,
+                  0,
+                  0,
+                  1
+                ],
+                "viewScaleX": 2,
+                "viewScaleY": 2,
+                "compatibility": true,
+                "meanChannelError": 0,
+                "mismatchFraction": 0,
+                "spatialCorrelation": 1
+              },
+              {
+                "name": "real-target-photo-0-0-hold",
+                "videoWidth": 1422,
+                "videoHeight": 1067,
+                "textureWidth": 1216,
+                "textureHeight": 2640,
+                "textureTransform": [
+                  1,
+                  0,
+                  0,
+                  0,
+                  0.3456165,
+                  863.78625,
+                  0,
+                  0,
+                  1
+                ],
+                "viewScaleX": 1,
+                "viewScaleY": 1,
+                "compatibility": true,
+                "meanChannelError": 0,
+                "mismatchFraction": 0,
+                "spatialCorrelation": 1
+              },
+              {
+                "name": "real-target-photo-0-1-hold",
+                "videoWidth": 1422,
+                "videoHeight": 1067,
+                "textureWidth": 1216,
+                "textureHeight": 2640,
+                "textureTransform": [
+                  1,
+                  0,
+                  0,
+                  0,
+                  0.3456165,
+                  863.78625,
+                  0,
+                  0,
+                  1
+                ],
+                "viewScaleX": 2,
+                "viewScaleY": 2,
+                "compatibility": true,
+                "meanChannelError": 0,
+                "mismatchFraction": 0,
+                "spatialCorrelation": 1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "device": "meizu",
+        "version": 202610220431,
+        "installedSha256": "7c4a9a22e1251f7ccc56da554c6133e883481d5eebb7fc4b35c1c40848c994c1",
+        "checks": 253,
+        "originalRows": 182,
+        "originalRowsUnchanged": true,
+        "failures": 0,
+        "fullBitmapAndHdrParametersEqual": true,
+        "phases": [
+          {
+            "phase": "published",
+            "checks": 55,
+            "pqHandoffs": [
+              {
+                "name": "real-largest-hdr-0",
+                "motion": false,
+                "earlyFullPhotoFrames": 0,
+                "earlyFullPhotoUptimes": []
+              },
+              {
+                "name": "real-hdr-motion-0",
+                "motion": true,
+                "earlyFullPhotoFrames": 0,
+                "earlyFullPhotoUptimes": [],
+                "autoFirstStillStrength": 0,
+                "autoLowGainStillFrames": 12,
+                "holdFirstStillStrength": 0,
+                "holdLowGainStillFrames": 13
+              }
+            ],
+            "motionEdges": [],
+            "motionSnapshots": []
+          },
+          {
+            "phase": "pq-handoff-published",
+            "checks": 198,
+            "pqHandoffs": [],
+            "motionEdges": [
+              {
+                "name": "real-largest-motion-0-auto",
+                "photoRect": "[0.0,1082.2758][1368.0,2109.724]",
+                "videoRect": "[0.0,1082.2759][1368.0,2108.276]",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "underlayChangedPixels": 0,
+                "interiorChangedPixels": 0,
+                "maxDifference": 0,
+                "changedRows": [],
+                "compatibility": true
+              },
+              {
+                "name": "real-largest-motion-0-hold",
+                "photoRect": "[0.0,1082.2759][1368.0,2109.7244]",
+                "videoRect": "[0.0,1082.2758][1368.0,2108.276]",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "underlayChangedPixels": 0,
+                "interiorChangedPixels": 0,
+                "maxDifference": 0,
+                "changedRows": [],
+                "compatibility": true
+              },
+              {
+                "name": "real-largest-motion-1-auto",
+                "photoRect": "[-1094.4,568.5515][1641.6,2623.4485]",
+                "videoRect": "[-1094.4,568.5515][1641.6,2620.5515]",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "underlayChangedPixels": 0,
+                "interiorChangedPixels": 0,
+                "maxDifference": 0,
+                "changedRows": [],
+                "compatibility": true
+              },
+              {
+                "name": "real-largest-motion-1-hold",
+                "photoRect": "[-1094.4,568.5515][1641.6,2623.4485]",
+                "videoRect": "[-1094.4,568.5515][1641.6,2620.5515]",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "underlayChangedPixels": 0,
+                "interiorChangedPixels": 0,
+                "maxDifference": 0,
+                "changedRows": [],
+                "compatibility": true
+              },
+              {
+                "name": "real-target-photo-0-0-auto",
+                "photoRect": "[0.0,1082.2758][1368.0,2109.724]",
+                "videoRect": "[0.0,1082.2759][1368.0,2108.276]",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "underlayChangedPixels": 0,
+                "interiorChangedPixels": 0,
+                "maxDifference": 0,
+                "changedRows": [],
+                "compatibility": true
+              },
+              {
+                "name": "real-target-photo-0-0-hold",
+                "photoRect": "[0.0,1082.2759][1368.0,2109.7244]",
+                "videoRect": "[0.0,1082.2758][1368.0,2108.276]",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "underlayChangedPixels": 0,
+                "interiorChangedPixels": 0,
+                "maxDifference": 0,
+                "changedRows": [],
+                "compatibility": true
+              },
+              {
+                "name": "real-target-photo-0-1-auto",
+                "photoRect": "[-1094.4,568.5515][1641.6,2623.4485]",
+                "videoRect": "[-1094.4,568.5515][1641.6,2620.5515]",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "underlayChangedPixels": 0,
+                "interiorChangedPixels": 0,
+                "maxDifference": 0,
+                "changedRows": [],
+                "compatibility": true
+              },
+              {
+                "name": "real-target-photo-0-1-hold",
+                "photoRect": "[-1094.4,568.5515][1641.6,2623.4485]",
+                "videoRect": "[-1094.4,568.5515][1641.6,2620.5515]",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "underlayChangedPixels": 0,
+                "interiorChangedPixels": 0,
+                "maxDifference": 0,
+                "changedRows": [],
+                "compatibility": true
+              }
+            ],
+            "motionSnapshots": [
+              {
+                "name": "real-largest-motion-0-hold",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "textureWidth": 1368,
+                "textureHeight": 3192,
+                "textureTransform": [
+                  1,
+                  0,
+                  0,
+                  0,
+                  0.32142857,
+                  1083,
+                  0,
+                  0,
+                  1
+                ],
+                "viewScaleX": 1,
+                "viewScaleY": 1,
+                "compatibility": true,
+                "meanChannelError": 0,
+                "mismatchFraction": 0,
+                "spatialCorrelation": 1
+              },
+              {
+                "name": "real-largest-motion-1-hold",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "textureWidth": 1368,
+                "textureHeight": 3192,
+                "textureTransform": [
+                  1,
+                  0,
+                  0,
+                  0,
+                  0.32142857,
+                  1083,
+                  0,
+                  0,
+                  1
+                ],
+                "viewScaleX": 2,
+                "viewScaleY": 2,
+                "compatibility": true,
+                "meanChannelError": 0,
+                "mismatchFraction": 0,
+                "spatialCorrelation": 1
+              },
+              {
+                "name": "real-target-photo-0-0-hold",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "textureWidth": 1368,
+                "textureHeight": 3192,
+                "textureTransform": [
+                  1,
+                  0,
+                  0,
+                  0,
+                  0.32142857,
+                  1083,
+                  0,
+                  0,
+                  1
+                ],
+                "viewScaleX": 1,
+                "viewScaleY": 1,
+                "compatibility": true,
+                "meanChannelError": 0,
+                "mismatchFraction": 0,
+                "spatialCorrelation": 1
+              },
+              {
+                "name": "real-target-photo-0-1-hold",
+                "videoWidth": 1728,
+                "videoHeight": 1296,
+                "textureWidth": 1368,
+                "textureHeight": 3192,
+                "textureTransform": [
+                  1,
+                  0,
+                  0,
+                  0,
+                  0.32142857,
+                  1083,
+                  0,
+                  0,
+                  1
+                ],
+                "viewScaleX": 2,
+                "viewScaleY": 2,
+                "compatibility": true,
+                "meanChannelError": 0,
+                "mismatchFraction": 0,
+                "spatialCorrelation": 1
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "cleanup": [
+    {
+      "device": "samsung",
+      "home": true,
+      "rotationLockedPortrait": true,
+      "diagnosticsRemoved": true,
+      "fixtureCleanup": {
+        "device": "samsung",
+        "fixtureJobs": 20,
+        "activeFixtureJobs": [],
+        "cleaned": true,
+        "removedDerivedPreviews": 20
+      }
+    },
+    {
+      "device": "oneplus",
+      "home": true,
+      "rotationLockedPortrait": true,
+      "diagnosticsRemoved": true,
+      "fixtureCleanup": {
+        "device": "oneplus",
+        "fixtureJobs": 18,
+        "activeFixtureJobs": [],
+        "cleaned": true,
+        "removedDerivedPreviews": 18
+      }
+    },
+    {
+      "device": "meizu",
+      "home": true,
+      "rotationLockedPortrait": true,
+      "diagnosticsRemoved": true,
+      "fixtureCleanup": {
+        "device": "meizu",
+        "fixtureJobs": 18,
+        "activeFixtureJobs": [],
+        "cleaned": true,
+        "removedDerivedPreviews": 18
+      }
+    }
+  ],
+  "unchangedPreparationSha256": "8113c035358882313717f2c278a34c99787790a41e136cd3aa5de525ebf5b351"
+}

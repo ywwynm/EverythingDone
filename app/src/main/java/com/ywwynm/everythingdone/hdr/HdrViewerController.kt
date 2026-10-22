@@ -2,6 +2,7 @@ package com.ywwynm.everythingdone.hdr
 
 import android.app.Activity
 import android.graphics.Bitmap
+import android.graphics.Matrix
 import android.graphics.drawable.BitmapDrawable
 import android.os.Build
 import android.os.Handler
@@ -10,6 +11,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.ProgressBar
 import androidx.annotation.RequiresApi
 import com.github.chrisbanes.photoview.PhotoView
@@ -49,6 +51,10 @@ internal class HdrViewerController(
     private var awaitingProgress: ProgressBar? = null
     private var revealStarted = 0L
     private var revealTimeout: Runnable? = null
+    private var preview: ImageView? = null
+    private var previewBitmap: Bitmap? = null
+    private var previewRevealing = false
+    private var transformObserved = false
     private val values = FloatArray(9)
     private val preDraw = ViewTreeObserver.OnPreDrawListener {
         syncTransform()
@@ -82,6 +88,7 @@ internal class HdrViewerController(
             HdrViewerDiagnostics.event(activity, "VIEWER_VIDEO_HANDOFF", "playing=$playingVideo; " +
                 "surfaceRetained=${surface != null}; ready=${surface?.isFrameReady == true}")
         }
+        if (videoPlaying && surface?.isFrameReady == true) revealPhoto("pq_ready")
         if (!active) {
             removeSurface("suspended")
             if (!prepareWhileInactive) { revealPhoto("suspended"); return }
@@ -89,17 +96,56 @@ internal class HdrViewerController(
         if (data != null) {
             attachSurface()
             animateBoost()
+            if (surface?.isFrameReady == true && preview != null &&
+                (!boost || videoPlaying || surface!!.lastSubmittedStrength >= 1f)) revealPhoto("pq_ready")
         }
         else if (!loaded && pending == null && view?.drawable is BitmapDrawable) prepare(view, source!!)
     }
 
     fun isAwaitingFirstFrame(view: PhotoView): Boolean = awaitingPhoto === view
 
+    /** 正常尺寸位图替换小预览前保留独立副本，跨过 Glide 回收和 PQ 数据准备。 */
+    fun retainPreviewBeforeImageReplacement(view: PhotoView) {
+        if (closed || windowFrozen || !boost || photo !== view || loaded || preview != null) return
+        val bitmap = (view.drawable as? BitmapDrawable)?.bitmap ?: return
+        val parent = view.parent as? FrameLayout ?: return
+        val copy = bitmap.copy(Bitmap.Config.ARGB_8888, false) ?: return
+        copy.setGainmap(null)
+        previewBitmap = copy
+        preview = ImageView(activity).apply {
+            scaleType = ImageView.ScaleType.MATRIX
+            setImageBitmap(copy)
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            parent.addView(this, parent.indexOfChild(view) + 1, FrameLayout.LayoutParams(-1, -1))
+        }
+        observeTransform()
+        syncTransform()
+    }
+
+    private fun clearPreview() {
+        preview?.let { it.animate().cancel(); (it.parent as? ViewGroup)?.removeView(it); it.setImageDrawable(null) }
+        preview = null
+        previewRevealing = false
+        previewBitmap?.recycle(); previewBitmap = null
+        if (surface == null) stopObservingTransform()
+    }
+
+    private fun observeTransform() {
+        if (transformObserved) return
+        photo?.viewTreeObserver?.addOnPreDrawListener(preDraw)
+        transformObserved = true
+    }
+
+    private fun stopObservingTransform() {
+        photo?.viewTreeObserver?.takeIf { it.isAlive }?.removeOnPreDrawListener(preDraw)
+        transformObserved = false
+    }
+
     /** 保留原加载态，直到选定的输出路径有首帧，避免原生图先亮、PQ 的 SDR 初帧又变暗。 */
     private fun awaitFirstFrame(view: PhotoView) {
         if (!boost || awaitingPhoto != null) return
         val progress = (view.parent as? ViewGroup)?.findViewById<ProgressBar>(R.id.pb_image_attachment) ?: return
-        if (progress.visibility != View.VISIBLE) return // 已显示的页面及 HDR 开关沿用原有连续过渡。
+        // 分阶段加载的小预览可能已关闭进度条；它不代表完整 PQ 图已就绪。
         awaitingPhoto = view; awaitingProgress = progress
         revealStarted = android.os.SystemClock.uptimeMillis()
         view.alpha = 0f // Drawable 和 PhotoView 矩阵仍保留；不改写 Glide 的共享位图。
@@ -113,6 +159,16 @@ internal class HdrViewerController(
     }
 
     private fun revealPhoto(reason: String) {
+        val cover = preview
+        if (reason == "pq_ready" && cover != null && !videoPlaying && boost) {
+            if (!previewRevealing) {
+                previewRevealing = true
+                // 只混合已就绪的最终 PQ 图，避免跨输出路径先变暗、再恢复增益。
+                cover.animate().alpha(0f).setDuration(GAIN_TRANSITION_MS).withEndAction {
+                    if (preview === cover) clearPreview()
+                }.start()
+            }
+        } else clearPreview()
         val view = awaitingPhoto ?: return
         revealTimeout?.let(main::removeCallbacks); revealTimeout = null
         awaitingPhoto = null
@@ -233,8 +289,10 @@ internal class HdrViewerController(
                     val current = surface
                     if (current == null || current.tag !== layerToken) return@post
                     when (name) {
-                        "EGL_REDRAW_READY" -> {
+                        "EGL_REDRAW_READY", "EGL_FULL_GAIN_FRAME" -> {
+                            if (!current.isFrameReady || windowFrozen) return@post
                             readyTimeout?.let(main::removeCallbacks); readyTimeout = null
+                            if (preview != null && boost && !videoPlaying && current.lastSubmittedStrength < 1f) return@post
                             photo?.alpha = 0f // PQ 显示期间保留触摸和矩阵，避免原生 Gainmap 同时参与窗口绘制。
                             revealPhoto("pq_ready")
                             if (active) animateBoost()
@@ -249,8 +307,8 @@ internal class HdrViewerController(
                 }
             }
             layer.tag = layerToken
-            // 初次揭示直接来自 PQ 的 SDR 基图，不先显示另一条路径的原生图。
-            layer.setHdrStrength(0f)
+            // 已有预览时与完整 PQ 图平滑交接；视频下方和无预览的首次显示沿用增益渐变。
+            layer.setHdrStrength(if (preview != null && !videoPlaying) 1f else 0f)
             layer.isClickable = false
             layer.isFocusable = false
             layer.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
@@ -258,7 +316,7 @@ internal class HdrViewerController(
             animateBoost() // 先登记目标，Callback2 完成后由 EGL 线程直接开始过渡。
             // SurfaceView 默认在窗口下方；在 PhotoView 后绘制透明区域，徽标与视频仍位于其上方。
             parent.addView(layer, parent.indexOfChild(view) + 1, FrameLayout.LayoutParams(-1, -1))
-            view.viewTreeObserver.addOnPreDrawListener(preDraw)
+            observeTransform()
             syncTransform()
             readyTimeout = Runnable {
                 if (surface === layer && !layer.isFrameReady) {
@@ -284,14 +342,20 @@ internal class HdrViewerController(
         targetStrength = target
         HdrViewerDiagnostics.event(activity, "VIEWER_GAIN_TRANSITION", "from=${layer.currentHdrStrength}; to=$target; " +
             "durationMs=180; reuseSurface=true; scheduler=egl_worker")
-        layer.animateHdrStrength(target, 180L)
+        layer.animateHdrStrength(target, GAIN_TRANSITION_MS)
     }
 
     private fun syncTransform() {
         val view = photo ?: return
-        val layer = surface ?: return
         val drawable = view.drawable ?: return
         if (view.width <= 0 || view.height <= 0 || drawable.intrinsicWidth <= 0 || drawable.intrinsicHeight <= 0) return
+        preview?.let { cover ->
+            val held = cover.drawable ?: return@let
+            cover.imageMatrix = Matrix(view.imageMatrix).apply {
+                preScale(drawable.intrinsicWidth.toFloat() / held.intrinsicWidth, drawable.intrinsicHeight.toFloat() / held.intrinsicHeight)
+            }
+        }
+        val layer = surface ?: return
         view.imageMatrix.getValues(values)
         layer.setImageTransform(HdrViewerGeometry.transform(values, drawable.intrinsicWidth, drawable.intrinsicHeight,
             view.width, view.height))
@@ -304,7 +368,7 @@ internal class HdrViewerController(
         val layer = surface ?: return
         surface = null // 在 removeView 触发生命周期回调前使迟到消息失效。
         if (reason != "freeze_before_first_frame") photo?.alpha = 1f
-        photo?.viewTreeObserver?.takeIf { it.isAlive }?.removeOnPreDrawListener(preDraw)
+        if (preview == null) stopObservingTransform()
         (layer.parent as? ViewGroup)?.removeView(layer)
         HdrViewerDiagnostics.event(activity, "VIEWER_PQ_REMOVED", "reason=$reason; fallback=PhotoView")
     }
@@ -313,6 +377,8 @@ internal class HdrViewerController(
     fun freezeWindow() {
         if (closed || windowFrozen) return
         windowFrozen = true; active = false
+        preview?.animate()?.cancel()
+        previewRevealing = false
         surface?.freezeHdrStrength(); targetStrength = Float.NaN
         if (surface?.isFrameReady != true) removeSurface("freeze_before_first_frame")
         HdrViewerDiagnostics.event(activity, "VIEWER_WINDOW_FROZEN", "ready=${surface?.isFrameReady == true}; " +
@@ -334,6 +400,7 @@ internal class HdrViewerController(
     }
 
     companion object {
+        private const val GAIN_TRANSITION_MS = 180L
         fun supportedEnvironment(): Boolean = Build.VERSION.SDK_INT >= 34 &&
             (HdrViewerDiagnostics.forceCompatibility || TapGroupRolePolicy.isKnownCompatibilityEnvironment(Build.MANUFACTURER, Build.DISPLAY))
     }
