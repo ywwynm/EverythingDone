@@ -1,0 +1,5046 @@
+{
+  "date": "2026-10-22",
+  "unitTests": 1756,
+  "unitFailures": 0,
+  "unitSkipped": 3,
+  "deviceChecks": 1125,
+  "devices": [
+    {
+      "device": "SM-S9180",
+      "mode": "fixtures",
+      "checks": 197,
+      "failures": 0,
+      "originalRows": 375,
+      "assertions": [
+        {
+          "name": "动态照片夹具包含有效内嵌视频",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 放大后先平移",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 到边缘才接管",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 回弹保留放大倍率及边缘位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 横向手势不接管",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 空间模式关闭返回手势",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 拖动时动图继续播放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 回弹后动图继续播放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 拖动时继续播放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 回弹不重建播放器或重置进度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 原本停止的媒体保持停止",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video-return 捕获发起时仍在播放动态",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 返回使用实际视频比例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 拖动时继续播放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 回弹不重建播放器或重置进度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 原本停止的媒体保持停止",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion-return 捕获发起时仍在播放动态",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 返回使用实际视频比例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 拖动时动图继续播放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 回弹后动图继续播放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "原有记事逐行摘要不变",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "device": "SM-S9180",
+      "mode": "native",
+      "checks": 115,
+      "failures": 0,
+      "originalRows": 375,
+      "assertions": [
+        {
+          "name": "真实附件样本非空",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 真实记事不变",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 拖动时继续播放",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 回弹不重建播放器或重置进度",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 原本停止的媒体保持停止",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0-return 捕获发起时仍在播放动态",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回使用实际视频比例",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 真实记事不变",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 拖动时动图继续播放",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 回弹后动图继续播放",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 真实记事不变",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 拖动时继续播放",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 回弹不重建播放器或重置进度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 原本停止的媒体保持停止",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0-return 捕获发起时仍在播放动态",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回使用实际视频比例",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 真实记事不变",
+          "passed": true
+        },
+        {
+          "name": "真实附件文件 SHA-256 不变",
+          "passed": true
+        },
+        {
+          "name": "原有记事逐行摘要不变",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "device": "SM-S9180",
+      "mode": "pq",
+      "checks": 63,
+      "failures": 0,
+      "originalRows": 375,
+      "assertions": [
+        {
+          "name": "真实附件样本非空",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 拖动时继续播放",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 回弹不重建播放器或重置进度",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 原本停止的媒体保持停止",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0-return 捕获发起时仍在播放动态",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回使用实际视频比例",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 真实记事不变",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 拖动时继续播放",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 回弹不重建播放器或重置进度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 原本停止的媒体保持停止",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0-return 捕获发起时仍在播放动态",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回使用实际视频比例",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 真实记事不变",
+          "passed": true
+        },
+        {
+          "name": "真实附件文件 SHA-256 不变",
+          "passed": true
+        },
+        {
+          "name": "原有记事逐行摘要不变",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "device": "PLZ110",
+      "mode": "fixtures",
+      "checks": 197,
+      "failures": 0,
+      "originalRows": 115,
+      "assertions": [
+        {
+          "name": "动态照片夹具包含有效内嵌视频",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 放大后先平移",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 到边缘才接管",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 回弹保留放大倍率及边缘位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 横向手势不接管",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 空间模式关闭返回手势",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 拖动时动图继续播放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 回弹后动图继续播放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 拖动时继续播放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 回弹不重建播放器或重置进度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 原本停止的媒体保持停止",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video-return 捕获发起时仍在播放动态",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 返回使用实际视频比例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 拖动时继续播放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 回弹不重建播放器或重置进度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 原本停止的媒体保持停止",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion-return 捕获发起时仍在播放动态",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 返回使用实际视频比例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 拖动时动图继续播放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 回弹后动图继续播放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "原有记事逐行摘要不变",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "device": "PLZ110",
+      "mode": "native",
+      "checks": 115,
+      "failures": 0,
+      "originalRows": 115,
+      "assertions": [
+        {
+          "name": "真实附件样本非空",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 真实记事不变",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 拖动时继续播放",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 回弹不重建播放器或重置进度",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 原本停止的媒体保持停止",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0-return 捕获发起时仍在播放动态",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回使用实际视频比例",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 真实记事不变",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 拖动时动图继续播放",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 回弹后动图继续播放",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 真实记事不变",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 拖动时继续播放",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 回弹不重建播放器或重置进度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 原本停止的媒体保持停止",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0-return 捕获发起时仍在播放动态",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回使用实际视频比例",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 真实记事不变",
+          "passed": true
+        },
+        {
+          "name": "真实附件文件 SHA-256 不变",
+          "passed": true
+        },
+        {
+          "name": "原有记事逐行摘要不变",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "device": "PLZ110",
+      "mode": "pq",
+      "checks": 63,
+      "failures": 0,
+      "originalRows": 115,
+      "assertions": [
+        {
+          "name": "真实附件样本非空",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 拖动时继续播放",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 回弹不重建播放器或重置进度",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 原本停止的媒体保持停止",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0-return 捕获发起时仍在播放动态",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回使用实际视频比例",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 真实记事不变",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 拖动时继续播放",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 回弹不重建播放器或重置进度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 原本停止的媒体保持停止",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0-return 捕获发起时仍在播放动态",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回使用实际视频比例",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 真实记事不变",
+          "passed": true
+        },
+        {
+          "name": "真实附件文件 SHA-256 不变",
+          "passed": true
+        },
+        {
+          "name": "原有记事逐行摘要不变",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "device": "MEIZU 20 Inf",
+      "mode": "fixtures",
+      "checks": 197,
+      "failures": 0,
+      "originalRows": 182,
+      "assertions": [
+        {
+          "name": "动态照片夹具包含有效内嵌视频",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 放大后先平移",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 到边缘才接管",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 回弹保留放大倍率及边缘位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 横向手势不接管",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 空间模式关闭返回手势",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "dismiss-image 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-fast-down 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 拖动时动图继续播放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 回弹后动图继续播放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "dismiss-gif 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 拖动时继续播放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 回弹不重建播放器或重置进度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 原本停止的媒体保持停止",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video-return 捕获发起时仍在播放动态",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 返回使用实际视频比例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "dismiss-video 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 拖动时继续播放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 回弹不重建播放器或重置进度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 原本停止的媒体保持停止",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion-return 捕获发起时仍在播放动态",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 返回使用实际视频比例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "dismiss-motion 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "dismiss-hdr 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 拖动时动图继续播放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 回弹后动图继续播放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "dismiss-webp 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "dismiss-pq 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "原有记事逐行摘要不变",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "device": "MEIZU 20 Inf",
+      "mode": "native",
+      "checks": 115,
+      "failures": 0,
+      "originalRows": 182,
+      "assertions": [
+        {
+          "name": "真实附件样本非空",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "real-largest-pixels-0 真实记事不变",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 拖动时继续播放",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 回弹不重建播放器或重置进度",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 原本停止的媒体保持停止",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0-return 捕获发起时仍在播放动态",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回使用实际视频比例",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 真实记事不变",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 拖动时动图继续播放",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 回弹后动图继续播放",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "real-largest-gif-0 真实记事不变",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 拖动时继续播放",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 回弹不重建播放器或重置进度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 原本停止的媒体保持停止",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0-return 捕获发起时仍在播放动态",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回使用实际视频比例",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 真实记事不变",
+          "passed": true
+        },
+        {
+          "name": "真实附件文件 SHA-256 不变",
+          "passed": true
+        },
+        {
+          "name": "原有记事逐行摘要不变",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "device": "MEIZU 20 Inf",
+      "mode": "pq",
+      "checks": 63,
+      "failures": 0,
+      "originalRows": 182,
+      "assertions": [
+        {
+          "name": "真实附件样本非空",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 拖动时继续播放",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 回弹不重建播放器或重置进度",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 原本停止的媒体保持停止",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0-return 捕获发起时仍在播放动态",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回使用实际视频比例",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "real-largest-video-0 真实记事不变",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0-enter 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 使用自定义展开",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 展开具有目标图片几何",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 展开进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 动画期间不提前播放或提亮",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 查看器输入恢复",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 展开后可见图片",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 最终位图恢复正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 实际显示层使用正常清晰度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 截图前视图已提交",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 系统画面可捕获",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 单指接管并等比缩小",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 保持媒体实例",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 拖动时继续播放",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 外拖进一步缩小",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 回拖恢复尺寸",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 取消不退出且不替换媒体",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 回弹不重建播放器或重置进度",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 原本停止的媒体保持停止",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 上滑达到返回距离",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0-return 捕获发起时仍在播放动态",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0-return 完整图像两端等比",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回类型正确",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回完成并释放",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回进度单调",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回使用实际视频比例",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回当前附件位置",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 从拖动位置接续返回",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 返回后释放播放器",
+          "passed": true
+        },
+        {
+          "name": "real-hdr-motion-0 真实记事不变",
+          "passed": true
+        },
+        {
+          "name": "真实附件文件 SHA-256 不变",
+          "passed": true
+        },
+        {
+          "name": "原有记事逐行摘要不变",
+          "passed": true
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "空间模式仅验证实际 Activity 的门控；未重新生成空间资源或完整复测空间渲染。",
+    "卓易通宿主未直接连接；Android 强制 PQ 和系统截图不代表宿主的物理 HDR 观感。"
+  ],
+  "published": {
+    "code": 202610220826,
+    "sha256": "c163c738aa8cf6cff86ef4af16b118fc9f381a385dd3546585f446da9885771b",
+    "localRemoteInstalledHashesMatch": true,
+    "checks": 99,
+    "devices": [
+      {
+        "device": "SM-S9180",
+        "checks": 33,
+        "failures": 0,
+        "originalRows": 375,
+        "assertions": [
+          {
+            "name": "真实附件样本非空",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0-enter 完整图像两端等比",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 使用自定义展开",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 展开具有目标图片几何",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 展开进度单调",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 动画期间不提前播放或提亮",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 查看器输入恢复",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 展开后可见图片",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 最终位图恢复正常清晰度",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 实际显示层使用正常清晰度",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 最终位图恢复正常清晰度",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 实际显示层使用正常清晰度",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 单指接管并等比缩小",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 保持媒体实例",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 拖动时继续播放",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 外拖进一步缩小",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 回拖恢复尺寸",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 取消不退出且不替换媒体",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 回弹不重建播放器或重置进度",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 原本停止的媒体保持停止",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 上滑达到返回距离",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0-return 捕获发起时仍在播放动态",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0-return 完整图像两端等比",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 返回类型正确",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 返回完成并释放",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 返回进度单调",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 返回使用实际视频比例",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 返回当前附件位置",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 从拖动位置接续返回",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 返回后释放播放器",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 真实记事不变",
+            "passed": true
+          },
+          {
+            "name": "真实附件文件 SHA-256 不变",
+            "passed": true
+          },
+          {
+            "name": "原有记事逐行摘要不变",
+            "passed": true
+          }
+        ],
+        "installedSha256": "c163c738aa8cf6cff86ef4af16b118fc9f381a385dd3546585f446da9885771b",
+        "cleanup": {
+          "device": "samsung",
+          "fixtureJobs": 22,
+          "activeFixtureJobs": [],
+          "cleaned": true,
+          "removedDerivedPreviews": 22
+        }
+      },
+      {
+        "device": "PLZ110",
+        "checks": 33,
+        "failures": 0,
+        "originalRows": 115,
+        "assertions": [
+          {
+            "name": "真实附件样本非空",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0-enter 完整图像两端等比",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 使用自定义展开",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 展开具有目标图片几何",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 展开进度单调",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 动画期间不提前播放或提亮",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 查看器输入恢复",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 展开后可见图片",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 最终位图恢复正常清晰度",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 实际显示层使用正常清晰度",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 最终位图恢复正常清晰度",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 实际显示层使用正常清晰度",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 单指接管并等比缩小",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 保持媒体实例",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 拖动时继续播放",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 外拖进一步缩小",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 回拖恢复尺寸",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 取消不退出且不替换媒体",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 回弹不重建播放器或重置进度",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 原本停止的媒体保持停止",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 上滑达到返回距离",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0-return 捕获发起时仍在播放动态",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0-return 完整图像两端等比",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 返回类型正确",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 返回完成并释放",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 返回进度单调",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 返回使用实际视频比例",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 返回当前附件位置",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 从拖动位置接续返回",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 返回后释放播放器",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 真实记事不变",
+            "passed": true
+          },
+          {
+            "name": "真实附件文件 SHA-256 不变",
+            "passed": true
+          },
+          {
+            "name": "原有记事逐行摘要不变",
+            "passed": true
+          }
+        ],
+        "installedSha256": "c163c738aa8cf6cff86ef4af16b118fc9f381a385dd3546585f446da9885771b",
+        "cleanup": {
+          "device": "oneplus",
+          "fixtureJobs": 20,
+          "activeFixtureJobs": [],
+          "cleaned": true,
+          "removedDerivedPreviews": 20
+        }
+      },
+      {
+        "device": "MEIZU 20 Inf",
+        "checks": 33,
+        "failures": 0,
+        "originalRows": 182,
+        "assertions": [
+          {
+            "name": "真实附件样本非空",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0-enter 完整图像两端等比",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 使用自定义展开",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 展开具有目标图片几何",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 展开进度单调",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 动画期间不提前播放或提亮",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 查看器输入恢复",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 展开后可见图片",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 最终位图恢复正常清晰度",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 实际显示层使用正常清晰度",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 最终位图恢复正常清晰度",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 实际显示层使用正常清晰度",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 单指接管并等比缩小",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 保持媒体实例",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 拖动时继续播放",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 外拖进一步缩小",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 回拖恢复尺寸",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 取消不退出且不替换媒体",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 回弹不重建播放器或重置进度",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 原本停止的媒体保持停止",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 上滑达到返回距离",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0-return 捕获发起时仍在播放动态",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0-return 完整图像两端等比",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 返回类型正确",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 返回完成并释放",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 返回进度单调",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 返回使用实际视频比例",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 返回当前附件位置",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 从拖动位置接续返回",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 返回后释放播放器",
+            "passed": true
+          },
+          {
+            "name": "real-hdr-motion-0 真实记事不变",
+            "passed": true
+          },
+          {
+            "name": "真实附件文件 SHA-256 不变",
+            "passed": true
+          },
+          {
+            "name": "原有记事逐行摘要不变",
+            "passed": true
+          }
+        ],
+        "installedSha256": "c163c738aa8cf6cff86ef4af16b118fc9f381a385dd3546585f446da9885771b",
+        "cleanup": {
+          "device": "meizu",
+          "fixtureJobs": 20,
+          "activeFixtureJobs": [],
+          "cleaned": true,
+          "removedDerivedPreviews": 20
+        }
+      }
+    ]
+  }
+}

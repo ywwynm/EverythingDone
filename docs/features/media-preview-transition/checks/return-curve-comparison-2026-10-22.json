@@ -1,0 +1,142 @@
+{
+  "date": "2026-10-22",
+  "kind": "离线单轴比较，候选曲线尚未装机验证",
+  "sampleIntervalMs": 0.1,
+  "scope": "使用同一起点、终点及反推的松手速度；不包含缩放、裁剪、窗口交接或刷新率",
+  "metrics": "误差占松手到目标的初始距离；仅位置阈值，不能视作速度已归零或窗口完成",
+  "springParameters": "质量归一为 1，阻尼比为 1；omega=20/24 对应刚度 400/576",
+  "devices": [
+    {
+      "device": "samsung",
+      "input": "tmp/media-dismiss-inertia-samsung-final-fixtures/result.json",
+      "inputSha256": "bd89ad5453a17e93862acfe4c44c7b52925c5a9fefed5f2d10d007a101155852",
+      "startY": 1826.3525,
+      "targetY": 540,
+      "inferredVelocityPxPerSec": 14308.39977690787,
+      "maxReconstructionErrorPx": 0.0002278074261994334,
+      "recordedOutwardPx": 670.3395,
+      "models": {
+        "hermite432": {
+          "outwardPx": 670.364,
+          "turnMs": 101.7,
+          "within5PercentMs": 396.1,
+          "within1PercentMs": 416.3,
+          "within2PxMs": 425.9,
+          "initialVelocityPxPerSec": 14308.4
+        },
+        "hermite300": {
+          "outwardPx": 416.244,
+          "turnMs": 62.5,
+          "within5PercentMs": 272.3,
+          "within1PercentMs": 287.9,
+          "within2PxMs": 295.3,
+          "initialVelocityPxPerSec": 14308.4
+        },
+        "springOmega20": {
+          "outwardPx": 113.882,
+          "turnMs": 17.9,
+          "within5PercentMs": 260.2,
+          "within1PercentMs": 354.7,
+          "within2PxMs": 459.8,
+          "initialVelocityPxPerSec": 14308.4
+        },
+        "springOmega24": {
+          "outwardPx": 85.179,
+          "turnMs": 13.2,
+          "within5PercentMs": 214.1,
+          "within1PercentMs": 292.9,
+          "within2PxMs": 380.5,
+          "initialVelocityPxPerSec": 14308.4
+        }
+      }
+    },
+    {
+      "device": "oneplus",
+      "input": "tmp/media-dismiss-inertia-oneplus-confirmed-fixtures/result.json",
+      "inputSha256": "bec27e63e8cd99874d3c0598b4b929ec22ef6cd35605c061081e47d319269aaf",
+      "startY": 1583.9446,
+      "targetY": 456,
+      "inferredVelocityPxPerSec": 13375.579999605365,
+      "maxReconstructionErrorPx": 0.00016503608640050516,
+      "recordedOutwardPx": 636.2479999999998,
+      "models": {
+        "hermite432": {
+          "outwardPx": 637.281,
+          "turnMs": 103.6,
+          "within5PercentMs": 396.9,
+          "within1PercentMs": 416.6,
+          "within2PxMs": 425.6,
+          "initialVelocityPxPerSec": 13375.58
+        },
+        "hermite300": {
+          "outwardPx": 397.654,
+          "turnMs": 64.0,
+          "within5PercentMs": 272.8,
+          "within1PercentMs": 288.1,
+          "within2PxMs": 295.1,
+          "initialVelocityPxPerSec": 13375.58
+        },
+        "springOmega20": {
+          "outwardPx": 110.36,
+          "turnMs": 18.6,
+          "within5PercentMs": 261.5,
+          "within1PercentMs": 355.9,
+          "within2PxMs": 453.7,
+          "initialVelocityPxPerSec": 13375.58
+        },
+        "springOmega24": {
+          "outwardPx": 82.781,
+          "turnMs": 13.8,
+          "within5PercentMs": 215.1,
+          "within1PercentMs": 293.8,
+          "within2PxMs": 375.3,
+          "initialVelocityPxPerSec": 13375.58
+        }
+      }
+    },
+    {
+      "device": "meizu",
+      "input": "tmp/media-dismiss-inertia-meizu-final-fixtures/result.json",
+      "inputSha256": "711caccd341581e45a0d42cb58b05b7e11399544931af0497656b4c475fd6e7a",
+      "startY": 1859.0895,
+      "targetY": 513,
+      "inferredVelocityPxPerSec": 13332.238854993682,
+      "maxReconstructionErrorPx": 0.0002532176140448428,
+      "recordedOutwardPx": 603.8399,
+      "models": {
+        "hermite432": {
+          "outwardPx": 604.62,
+          "turnMs": 98.1,
+          "within5PercentMs": 394.8,
+          "within1PercentMs": 415.8,
+          "within2PxMs": 425.8,
+          "initialVelocityPxPerSec": 13332.239
+        },
+        "hermite300": {
+          "outwardPx": 371.969,
+          "turnMs": 59.8,
+          "within5PercentMs": 271.4,
+          "within1PercentMs": 287.6,
+          "within2PxMs": 295.3,
+          "initialVelocityPxPerSec": 13332.239
+        },
+        "springOmega20": {
+          "outwardPx": 99.15,
+          "turnMs": 16.6,
+          "within5PercentMs": 258.1,
+          "within1PercentMs": 352.6,
+          "within2PxMs": 460.2,
+          "initialVelocityPxPerSec": 13332.239
+        },
+        "springOmega24": {
+          "outwardPx": 73.783,
+          "turnMs": 12.2,
+          "within5PercentMs": 212.6,
+          "within1PercentMs": 291.4,
+          "within2PxMs": 381.1,
+          "initialVelocityPxPerSec": 13332.239
+        }
+      }
+    }
+  ]
+}

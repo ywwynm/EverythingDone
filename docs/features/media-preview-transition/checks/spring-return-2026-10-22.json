@@ -1,0 +1,497 @@
+{
+  "date": "2026-10-22",
+  "localTests": {
+    "tests": 1768,
+    "failures": 0,
+    "skipped": 3
+  },
+  "publication": {
+    "debugUpdateCode": 202610221340,
+    "publishedAt": "2026-10-22T13:40:05.216851900Z",
+    "sha256": "43762beede3bea5396c8d991e11a6940aac31df9f36b8bef27a8cd61abdb4c9e",
+    "sizeBytes": 36917327,
+    "apkUrl": "http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202610221340.apk"
+  },
+  "metricNote": "位置取实际页变换的逐帧记录；elapsedMs 为显示帧采样时间，timeNs 为回调时间，不等同于硬件呈现时间。主体回收按持续处于纵向初始距离 1% 内计算。",
+  "devices": [
+    {
+      "device": "samsung",
+      "installedSha256": "43762beede3bea5396c8d991e11a6940aac31df9f36b8bef27a8cd61abdb4c9e",
+      "checks": 488,
+      "originalRows": 375,
+      "rowsUnchanged": true,
+      "phases": [
+        {
+          "phase": "fixtures",
+          "checks": 280,
+          "failures": 0,
+          "source": "tmp/media-dismiss-inertia-samsung-spring202610221340-fixtures/result.json",
+          "sourceSha256": "d74e26c212d8655c95231454d8659d2b3df9173acf3cad43b44149a4c362ebd3",
+          "returns": [
+            {
+              "name": "dismiss-image-return",
+              "firstMovingCallbackMs": 9.60375,
+              "motionFinishedMs": 368.989791,
+              "endpointReleasedMs": 554.219843
+            },
+            {
+              "name": "dismiss-fast-down-return",
+              "firstMovingCallbackMs": 4.844063,
+              "motionFinishedMs": 364.213438,
+              "endpointReleasedMs": 549.638594,
+              "outwardPx": 77.15149999999994,
+              "body99ElapsedMs": 279,
+              "body99CallbackMs": 280.100677,
+              "initialY": 1826.3525,
+              "targetY": 540,
+              "peakElapsedMs": 12,
+              "previousOutwardPx": 670.3395
+            },
+            {
+              "name": "dismiss-fast-up-return",
+              "firstMovingCallbackMs": 9.817344,
+              "motionFinishedMs": 368.938854,
+              "endpointReleasedMs": 554.267865,
+              "outwardPx": 0,
+              "body99ElapsedMs": 225,
+              "body99CallbackMs": 226.482188,
+              "initialY": 1261.6473,
+              "targetY": 540
+            },
+            {
+              "name": "dismiss-gif-return",
+              "firstMovingCallbackMs": 2.731771,
+              "motionFinishedMs": 362.109479,
+              "endpointReleasedMs": 538.306041
+            },
+            {
+              "name": "dismiss-video-return",
+              "firstMovingCallbackMs": 2.776094,
+              "motionFinishedMs": 362.449532,
+              "endpointReleasedMs": 570.708386
+            },
+            {
+              "name": "dismiss-motion-return",
+              "firstMovingCallbackMs": 4.431719,
+              "motionFinishedMs": 364.218021,
+              "endpointReleasedMs": 564.454583
+            },
+            {
+              "name": "dismiss-hdr-return",
+              "firstMovingCallbackMs": 4.514271,
+              "motionFinishedMs": 363.746823,
+              "endpointReleasedMs": 557.941666
+            },
+            {
+              "name": "dismiss-webp-return",
+              "firstMovingCallbackMs": 3.838958,
+              "motionFinishedMs": 362.738698,
+              "endpointReleasedMs": 547.75125
+            },
+            {
+              "name": "dismiss-pq-return",
+              "firstMovingCallbackMs": 6.519791,
+              "motionFinishedMs": 365.134791,
+              "endpointReleasedMs": 564.999479
+            }
+          ]
+        },
+        {
+          "phase": "native",
+          "checks": 135,
+          "failures": 0,
+          "source": "tmp/media-dismiss-inertia-samsung-spring202610221340-native/result.json",
+          "sourceSha256": "5cda7d5620e4850a26b2682b9d5f4e0600332126b066b871640f50a6ac6afdd5",
+          "returns": [
+            {
+              "name": "real-largest-pixels-0-return",
+              "firstMovingCallbackMs": 15.305729,
+              "motionFinishedMs": 383.318593,
+              "endpointReleasedMs": 622.010312
+            },
+            {
+              "name": "real-largest-video-0-return",
+              "firstMovingCallbackMs": 14.432917,
+              "motionFinishedMs": 373.935625,
+              "endpointReleasedMs": 621.930625
+            },
+            {
+              "name": "real-largest-gif-0-return",
+              "firstMovingCallbackMs": 8.61125,
+              "motionFinishedMs": 374.589947,
+              "endpointReleasedMs": 605.224583
+            },
+            {
+              "name": "real-hdr-motion-0-return",
+              "firstMovingCallbackMs": 19.562552,
+              "motionFinishedMs": 377.77901,
+              "endpointReleasedMs": 650.050729
+            }
+          ],
+          "fullBitmapAndHdrParametersEqualToPreviousRelease": true
+        },
+        {
+          "phase": "pq",
+          "checks": 73,
+          "failures": 0,
+          "source": "tmp/media-dismiss-inertia-samsung-spring202610221340-pq/result.json",
+          "sourceSha256": "cbcbfe82796cc655fa41ddf9d732a0ef4a469c6ba69adc91e182fdc579e6cc17",
+          "returns": [
+            {
+              "name": "real-largest-video-0-return",
+              "firstMovingCallbackMs": 12.425833,
+              "motionFinishedMs": 381.939427,
+              "endpointReleasedMs": 641.236458
+            },
+            {
+              "name": "real-hdr-motion-0-return",
+              "firstMovingCallbackMs": 7.629635,
+              "motionFinishedMs": 371.719948,
+              "endpointReleasedMs": 631.206562
+            }
+          ],
+          "fullBitmapAndHdrParametersEqualToPreviousRelease": true
+        }
+      ]
+    },
+    {
+      "device": "oneplus",
+      "installedSha256": "43762beede3bea5396c8d991e11a6940aac31df9f36b8bef27a8cd61abdb4c9e",
+      "checks": 488,
+      "originalRows": 115,
+      "rowsUnchanged": true,
+      "phases": [
+        {
+          "phase": "fixtures",
+          "checks": 280,
+          "failures": 0,
+          "source": "tmp/media-dismiss-inertia-oneplus-spring202610221340-fixtures/result.json",
+          "sourceSha256": "3f267b34cf6001f2db3afeac9f0b1741bbddd922ba292ed27f7765194ad807c1",
+          "returns": [
+            {
+              "name": "dismiss-image-return",
+              "firstMovingCallbackMs": 5.784948,
+              "motionFinishedMs": 371.85427,
+              "endpointReleasedMs": 568.756354
+            },
+            {
+              "name": "dismiss-fast-down-return",
+              "firstMovingCallbackMs": 10.79875,
+              "motionFinishedMs": 376.456562,
+              "endpointReleasedMs": 577.303489,
+              "outwardPx": 70.49620000000004,
+              "body99ElapsedMs": 291,
+              "body99CallbackMs": 292.536666,
+              "initialY": 1583.9446,
+              "targetY": 456,
+              "peakElapsedMs": 9,
+              "previousOutwardPx": 636.2479999999998
+            },
+            {
+              "name": "dismiss-fast-up-return",
+              "firstMovingCallbackMs": 17.028802,
+              "motionFinishedMs": 366.133646,
+              "endpointReleasedMs": 566.442969,
+              "outwardPx": 0,
+              "body99ElapsedMs": 214,
+              "body99CallbackMs": 216.199427,
+              "initialY": 1056.0555,
+              "targetY": 456
+            },
+            {
+              "name": "dismiss-gif-return",
+              "firstMovingCallbackMs": 4.443646,
+              "motionFinishedMs": 361.864323,
+              "endpointReleasedMs": 560.879167
+            },
+            {
+              "name": "dismiss-video-return",
+              "firstMovingCallbackMs": 13.562969,
+              "motionFinishedMs": 378.123281,
+              "endpointReleasedMs": 593.548281
+            },
+            {
+              "name": "dismiss-motion-return",
+              "firstMovingCallbackMs": 3.79349,
+              "motionFinishedMs": 369.07375,
+              "endpointReleasedMs": 584.635938
+            },
+            {
+              "name": "dismiss-hdr-return",
+              "firstMovingCallbackMs": 16.102656,
+              "motionFinishedMs": 363.535937,
+              "endpointReleasedMs": 562.338385
+            },
+            {
+              "name": "dismiss-webp-return",
+              "firstMovingCallbackMs": 7.997812,
+              "motionFinishedMs": 373.819218,
+              "endpointReleasedMs": 573.378437
+            },
+            {
+              "name": "dismiss-pq-return",
+              "firstMovingCallbackMs": 7.71776,
+              "motionFinishedMs": 373.62552,
+              "endpointReleasedMs": 572.3075
+            }
+          ]
+        },
+        {
+          "phase": "native",
+          "checks": 135,
+          "failures": 0,
+          "source": "tmp/media-dismiss-inertia-oneplus-spring202610221340-native/result.json",
+          "sourceSha256": "a7b068dbaa24c058ef5e749fda614a3909e4e86f53fcfa072bb32364c03963a4",
+          "returns": [
+            {
+              "name": "real-largest-pixels-0-return",
+              "firstMovingCallbackMs": 12.868906,
+              "motionFinishedMs": 376.257812,
+              "endpointReleasedMs": 624.056302
+            },
+            {
+              "name": "real-largest-video-0-return",
+              "firstMovingCallbackMs": 14.097604,
+              "motionFinishedMs": 369.24427,
+              "endpointReleasedMs": 666.659322
+            },
+            {
+              "name": "real-largest-gif-0-return",
+              "firstMovingCallbackMs": 9.455313,
+              "motionFinishedMs": 384.38651,
+              "endpointReleasedMs": 573.283958
+            },
+            {
+              "name": "real-hdr-motion-0-return",
+              "firstMovingCallbackMs": 12.752656,
+              "motionFinishedMs": 385.779531,
+              "endpointReleasedMs": 684.441562
+            }
+          ],
+          "fullBitmapAndHdrParametersEqualToPreviousRelease": true
+        },
+        {
+          "phase": "pq",
+          "checks": 73,
+          "failures": 0,
+          "source": "tmp/media-dismiss-inertia-oneplus-spring202610221340-pq/result.json",
+          "sourceSha256": "5945b4c1a3ae8a49b8552187fc43d219cf933facca889155b6cc0dae2cdc66e2",
+          "returns": [
+            {
+              "name": "real-largest-video-0-return",
+              "firstMovingCallbackMs": 9.176406,
+              "motionFinishedMs": 379.25026,
+              "endpointReleasedMs": 661.190104
+            },
+            {
+              "name": "real-hdr-motion-0-return",
+              "firstMovingCallbackMs": 18.4525,
+              "motionFinishedMs": 371.624791,
+              "endpointReleasedMs": 624.170468
+            }
+          ],
+          "fullBitmapAndHdrParametersEqualToPreviousRelease": true
+        }
+      ]
+    },
+    {
+      "device": "meizu",
+      "installedSha256": "43762beede3bea5396c8d991e11a6940aac31df9f36b8bef27a8cd61abdb4c9e",
+      "checks": 488,
+      "originalRows": 182,
+      "rowsUnchanged": true,
+      "phases": [
+        {
+          "phase": "fixtures",
+          "checks": 280,
+          "failures": 0,
+          "source": "tmp/media-dismiss-inertia-meizu-spring202610221340-fixtures/result.json",
+          "sourceSha256": "04dcf8e4d2248c92466883bfb62faf5a6acfca7c76a61fb9d2b9642b9648d14f",
+          "returns": [
+            {
+              "name": "dismiss-image-return",
+              "firstMovingCallbackMs": 14.738542,
+              "motionFinishedMs": 381.420782,
+              "endpointReleasedMs": 589.074636
+            },
+            {
+              "name": "dismiss-fast-down-return",
+              "firstMovingCallbackMs": 6.338906,
+              "motionFinishedMs": 386.99651,
+              "endpointReleasedMs": 589.410469,
+              "outwardPx": 63.44249999999988,
+              "body99ElapsedMs": 280,
+              "body99CallbackMs": 282.961302,
+              "initialY": 1859.0895,
+              "targetY": 513,
+              "peakElapsedMs": 13,
+              "previousOutwardPx": 603.8399
+            },
+            {
+              "name": "dismiss-fast-up-return",
+              "firstMovingCallbackMs": 3.966667,
+              "motionFinishedMs": 375.251927,
+              "endpointReleasedMs": 576.908073,
+              "outwardPx": 0,
+              "body99ElapsedMs": 243,
+              "body99CallbackMs": 244.058021,
+              "initialY": 1332.9104,
+              "targetY": 513
+            },
+            {
+              "name": "dismiss-gif-return",
+              "firstMovingCallbackMs": 7.539843,
+              "motionFinishedMs": 373.062708,
+              "endpointReleasedMs": 561.618697
+            },
+            {
+              "name": "dismiss-video-return",
+              "firstMovingCallbackMs": 15.693803,
+              "motionFinishedMs": 373.594688,
+              "endpointReleasedMs": 586.811511
+            },
+            {
+              "name": "dismiss-motion-return",
+              "firstMovingCallbackMs": 15.831354,
+              "motionFinishedMs": 391.612968,
+              "endpointReleasedMs": 612.552551
+            },
+            {
+              "name": "dismiss-hdr-return",
+              "firstMovingCallbackMs": 18.078229,
+              "motionFinishedMs": 366.177969,
+              "endpointReleasedMs": 573.581406
+            },
+            {
+              "name": "dismiss-webp-return",
+              "firstMovingCallbackMs": 19.133958,
+              "motionFinishedMs": 366.959166,
+              "endpointReleasedMs": 555.586093
+            },
+            {
+              "name": "dismiss-pq-return",
+              "firstMovingCallbackMs": 13.094375,
+              "motionFinishedMs": 377.689011,
+              "endpointReleasedMs": 576.118698
+            }
+          ]
+        },
+        {
+          "phase": "native",
+          "checks": 135,
+          "failures": 0,
+          "source": "tmp/media-dismiss-inertia-meizu-spring202610221340-native/result.json",
+          "sourceSha256": "09229cfd1e8cdb2ea936d2aafac4c2eb178bcb0b6fe7d00a81ce2864b76b17b0",
+          "returns": [
+            {
+              "name": "real-largest-pixels-0-return",
+              "firstMovingCallbackMs": 11.791823,
+              "motionFinishedMs": 384.608177,
+              "endpointReleasedMs": 621.992812
+            },
+            {
+              "name": "real-largest-video-0-return",
+              "firstMovingCallbackMs": 9.080365,
+              "motionFinishedMs": 380.473386,
+              "endpointReleasedMs": 642.015052
+            },
+            {
+              "name": "real-largest-gif-0-return",
+              "firstMovingCallbackMs": 12.765886,
+              "motionFinishedMs": 382.936406,
+              "endpointReleasedMs": 612.119948
+            },
+            {
+              "name": "real-hdr-motion-0-return",
+              "firstMovingCallbackMs": 12.433229,
+              "motionFinishedMs": 384.791458,
+              "endpointReleasedMs": 637.139948
+            }
+          ],
+          "fullBitmapAndHdrParametersEqualToPreviousRelease": true
+        },
+        {
+          "phase": "pq",
+          "checks": 73,
+          "failures": 0,
+          "source": "tmp/media-dismiss-inertia-meizu-spring202610221340-pq/result.json",
+          "sourceSha256": "35b2e9ce5a6fa7e50aefe844194407d5a752afa08446a8a2dd95559298142c4b",
+          "returns": [
+            {
+              "name": "real-largest-video-0-return",
+              "firstMovingCallbackMs": 12.458906,
+              "motionFinishedMs": 383.802292,
+              "endpointReleasedMs": 628.490885
+            },
+            {
+              "name": "real-hdr-motion-0-return",
+              "firstMovingCallbackMs": 13.187864,
+              "motionFinishedMs": 386.153281,
+              "endpointReleasedMs": 656.34401
+            }
+          ],
+          "fullBitmapAndHdrParametersEqualToPreviousRelease": true
+        }
+      ]
+    }
+  ],
+  "checks": 1464,
+  "originalRows": 672,
+  "returns": 45,
+  "firstMovingCallbackMs": {
+    "min": 2.731771,
+    "max": 19.562552,
+    "mean": 10.604747666666666
+  },
+  "motionFinishedMs": {
+    "min": 361.864323,
+    "max": 391.612968,
+    "mean": 374.2751641555556
+  },
+  "endpointReleasedMs": {
+    "min": 538.306041,
+    "max": 684.441562,
+    "mean": 595.2689778
+  },
+  "cleanup": [
+    {
+      "device": "samsung",
+      "home": true,
+      "rotationLockedPortrait": true,
+      "diagnosticsRemoved": true,
+      "fixtureCleanup": {
+        "device": "samsung",
+        "fixtureJobs": 11,
+        "activeFixtureJobs": [],
+        "cleaned": true,
+        "removedDerivedPreviews": 11
+      }
+    },
+    {
+      "device": "oneplus",
+      "home": true,
+      "rotationLockedPortrait": true,
+      "diagnosticsRemoved": true,
+      "fixtureCleanup": {
+        "device": "oneplus",
+        "fixtureJobs": 11,
+        "activeFixtureJobs": [],
+        "cleaned": true,
+        "removedDerivedPreviews": 11
+      }
+    },
+    {
+      "device": "meizu",
+      "home": true,
+      "rotationLockedPortrait": true,
+      "diagnosticsRemoved": true,
+      "fixtureCleanup": {
+        "device": "meizu",
+        "fixtureJobs": 11,
+        "activeFixtureJobs": [],
+        "cleaned": true,
+        "removedDerivedPreviews": 11
+      }
+    }
+  ]
+}

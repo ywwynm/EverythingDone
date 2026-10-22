@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.res.Configuration
 import androidx.activity.OnBackPressedCallback
 import android.graphics.Point
+import android.graphics.Rect
 import android.graphics.PorterDuff
 import android.net.Uri
 import androidx.core.content.FileProvider
@@ -105,7 +106,7 @@ import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.utils.FileUtil
 import com.ywwynm.everythingdone.views.HdrBadgeView
 import com.ywwynm.everythingdone.views.MediaPreviewTransition
-import com.ywwynm.everythingdone.views.ThingDetailTransition
+import com.ywwynm.everythingdone.views.MediaPreviewDismissGesture
 
 import java.io.File
 import java.util.ArrayList
@@ -115,6 +116,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 open class ImageViewerActivity : EverythingDoneBaseActivity() {
 
     private var mPreviewTransition: MediaPreviewTransition? = null
+    private var mPreviewDismiss: MediaPreviewDismissGesture? = null
     private var mPreviewTransitionBlocked = false
     private val mDeferredPreviewLoads = mutableListOf<() -> Unit>()
     private val mFullResolutionImages = mutableSetOf<PhotoView>()
@@ -139,6 +141,28 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
             mPreviewTransitionBlocked = false
             resumeDeferredPreviewLoads()
         }
+        mPreviewDismiss = MediaPreviewDismissGesture(this, mVpImage!!,
+            currentPhoto = { mTabs?.getOrNull(mVpImage?.currentItem ?: mPosition)?.findViewById(R.id.iv_image_attachment) },
+            enabled = { mViewerResumed && mPagerIdle && !mSpatialMode && !mPreviewTransitionBlocked &&
+                mPreviewTransition?.returning != true && mSpatialGenerationOverlay?.visibility != View.VISIBLE },
+            excluded = { event ->
+                listOfNotNull(mActionbar, findViewById<View>(R.id.fl_top_badges)).any { view ->
+                    val bounds = Rect()
+                    view.isShown && view.alpha > 0f && view.getGlobalVisibleRect(bounds) &&
+                        bounds.contains(event.rawX.toInt(), event.rawY.toInt())
+                }
+            },
+            mediaBounds = { photo -> motionPreviewLocalBounds(photo) ?: photo.displayRect?.let(::RectF) },
+            background = { mPreviewTransition?.dismissBackground() },
+            chrome = { listOfNotNull(mActionbar, findViewById<View>(R.id.fl_top_badges)) },
+            cancelContent = { event ->
+                val cancel = MotionEvent.obtain(event).apply { action = MotionEvent.ACTION_CANCEL }
+                // 只撤销控件手势和待触发长按，不把内部接管误当成用户松手而停止播放。
+                mMotionGesture?.onTouchEvent(cancel)
+                super.dispatchTouchEvent(cancel)
+                cancel.recycle()
+            },
+            commit = { returnToDetailActivity() })
     }
 
     private fun resumeDeferredPreviewLoads() {
@@ -213,13 +237,17 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
 
     /** 返回动画读取正在显示的视频几何，不能用静态主图比例代替内嵌视频比例。 */
     internal fun motionPreviewBounds(photo: PhotoView): RectF? {
+        val local = motionPreviewLocalBounds(photo) ?: return null
+        val parent = mMotionTexture?.parent as? View ?: return null
+        return MediaPreviewTransition.mapToRoot(parent, window.decorView, local)
+    }
+
+    internal fun motionPreviewLocalBounds(photo: PhotoView): RectF? {
         val texture = mMotionTexture ?: return null
         if (!mMotionRevealed || mMotionPhotoView !== photo || texture.alpha <= 0f) return null
-        val parent = texture.parent as? View ?: return null
-        val location = ThingDetailTransition.bounds(parent, window.decorView)
         return RectF(mMotionBaseRect).apply {
             texture.matrix.mapRect(this)
-            offset(texture.left + location.left, texture.top + location.top)
+            offset(texture.left.toFloat(), texture.top.toFloat())
         }
     }
 
@@ -566,6 +594,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                     resource: Bitmap, model: Any, target: Target<Bitmap>?,
                     dataSource: DataSource, isFirstResource: Boolean
                 ): Boolean {
+                    if (mPreviewTransition?.returning == true) return true
                     MediaPreviewTransition.mark("$loadStage-ready:${resource.width}x${resource.height}:$dataSource")
                     if (!smallPreview) mPqController?.retainPreviewBeforeImageReplacement(iv)
                     iv.setImageBitmap(resource)
@@ -619,6 +648,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                     resource: Drawable, model: Any, target: Target<Drawable>?,
                     dataSource: DataSource, isFirstResource: Boolean
                 ): Boolean {
+                    if (mPreviewTransition?.returning == true) return true
                     pb.visibility = View.GONE
                     if (position == mVpImage?.currentItem) {
                         applyHdrStateForCurrentPage()
@@ -875,7 +905,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                 }
             }
             mp.setOnPreparedListener { player ->
-                if (mMotionPlayer !== player) return@setOnPreparedListener
+                if (mMotionPlayer !== player || mPreviewTransition?.returning == true) return@setOnPreparedListener
                 val vw = player.videoWidth
                 val vh = player.videoHeight
                 if (vw > 0 && vh > 0) {
@@ -2223,7 +2253,9 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
+        mPreviewDismiss?.cancelImmediately()
         super.onConfigurationChanged(newConfig)
+        mVpImage?.post { mPreviewTransition?.refreshDismissBackground() }
 
         val newNightModeMask = newConfig.uiMode and Configuration.UI_MODE_NIGHT_MASK
         if (newNightModeMask == mNightModeMask) return
@@ -2270,23 +2302,29 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     }
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
-        if (mPreviewTransitionBlocked || mPreviewTransition?.returning == true) return super.dispatchTouchEvent(ev)
+        if (mPreviewTransition?.returning == true) return true
+        if (mPreviewTransitionBlocked) return super.dispatchTouchEvent(ev)
+        val handled = mPreviewDismiss?.dispatch(ev, ::dispatchPreviewContentTouch) ?: dispatchPreviewContentTouch(ev)
+        // 长按播放仍在真实抬手时结束；已确认返回则先由转场保存实际视频帧。
+        if (mMotionPlayer != null && mMotionHoldToPlay && mPreviewTransition?.returning != true &&
+            (ev.actionMasked == MotionEvent.ACTION_UP || ev.actionMasked == MotionEvent.ACTION_CANCEL)) {
+            stopMotionPlayback()
+        }
+        return handled
+    }
+
+    private fun dispatchPreviewContentTouch(ev: MotionEvent): Boolean {
         val page = mVpImage?.currentItem ?: -1
         val isMotionPage = page in mMotionInfos.indices && mMotionInfos[page] != null
         // 自动播放进行中也接受长按（由它接管），只有"按住播放"进行中不再重复触发。
         if ((isMotionPage || isVideoPage(page)) && !mMotionHoldToPlay) {
             mMotionGesture?.onTouchEvent(ev)
         }
-        // 仅“长按按住播放”在抬手/取消时停止；自动播放一遍时任何触摸都不打断(播完由 OnCompletion 收尾)。
-        if (mMotionPlayer != null && mMotionHoldToPlay &&
-            (ev.actionMasked == MotionEvent.ACTION_UP || ev.actionMasked == MotionEvent.ACTION_CANCEL)
-        ) {
-            stopMotionPlayback()
-        }
         return super.dispatchTouchEvent(ev)
     }
 
     override fun onPause() {
+        mPreviewDismiss?.onPause()
         mPreviewTransition?.cancelEnter()
         mPqController?.freezeWindow()
         mViewerResumed = false
@@ -2316,7 +2354,9 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     }
 
     override fun onDestroy() {
-        mPreviewTransition?.cancelEnter()
+        mPreviewDismiss?.close()
+        mPreviewDismiss = null
+        mPreviewTransition?.close()
         mPreviewTransition = null
         mPqController?.close()
         cancelSpatialGeneration(showMessage = false)
@@ -2329,9 +2369,21 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     }
 
     override fun finish() {
+        mPreviewDismiss?.freezeForReturn()
         cancelScheduledAutoplay()
         val photo = mTabs?.getOrNull(mVpImage?.currentItem ?: mPosition)?.findViewById<PhotoView>(R.id.iv_image_attachment)
         val key = mTypePathNames?.getOrNull(mVpImage?.currentItem ?: mPosition)
+        if (mPreviewTransition?.returnInteractively(photo, key, mPreviewDismiss,
+                freezeMedia = {
+                    cancelAutoStop()
+                    mPqController?.freezeWindow()
+                    mMotionAwaitingFrame = false
+                    mMotionPlayer?.let { player ->
+                        player.setOnCompletionListener(null)
+                        runCatching { if (player.isPlaying) player.pause() }
+                    }
+                    (photo?.drawable as? android.graphics.drawable.Animatable)?.stop()
+                }, finish = { finishPreviewWindow() }) == true) return
         if (mPreviewTransition?.returnToDetail(photo, key) { finishPreviewWindow() } == true) return
         finishPreviewWindow()
     }

@@ -16,6 +16,7 @@ import android.os.SystemClock
 import android.os.Handler
 import android.os.HandlerThread
 import android.view.FrameMetrics
+import android.view.MotionEvent
 import android.view.Window
 import android.view.PixelCopy
 import android.view.View
@@ -51,6 +52,8 @@ import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.DetailAutoplayMode
 import com.ywwynm.everythingdone.model.DetailAttachmentMediaAppearance
 import com.ywwynm.everythingdone.views.MediaPreviewTransition
+import com.ywwynm.everythingdone.views.MediaPreviewDismissGesture
+import com.ywwynm.everythingdone.views.ThingDetailTransition
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -77,6 +80,7 @@ class MediaPreviewTransitionProbe : Instrumentation() {
     private val videoStartups = JSONArray()
     private val pqHandoffFrames = JSONArray()
     private val pqHandoffs = JSONArray()
+    private val interactiveFrames = JSONArray()
     private var pqPhase = "opening"
     private val pqObservers = mutableMapOf<Activity, android.view.Choreographer.FrameCallback>()
     private var requirePlayingReturn = false
@@ -172,7 +176,7 @@ class MediaPreviewTransitionProbe : Instrumentation() {
                 MediaPreviewTransition.diagnosticObserver = { event ->
                     events += event
                     timeline.put(JSONArray(listOf(event, System.nanoTime())))
-                    if (event == "return-capture" && requirePlayingReturn) {
+                    if (event in listOf("return-capture", "return-interactive-start") && requirePlayingReturn) {
                         check("$label 捕获发起时仍在播放动态", motionIsPlaying())
                     }
                     if (event == "enter-attached" && (args.getString("case") == "timeout" || forceEnterTimeout)) {
@@ -194,7 +198,7 @@ class MediaPreviewTransitionProbe : Instrumentation() {
                         }
                         val progress = event.substringAfter(':').toFloat()
                         if (screenshots && captureIndex < 3 && progress >= listOf(.05f, .45f, .9f)[captureIndex]) {
-                            val host = if (event.startsWith("enter")) viewer else detail
+                            val host = if (event.startsWith("enter") || events.contains("return-interactive-start")) viewer else detail
                             host?.let { capture(it, "$label-${captureIndex++}") }
                         }
                     }
@@ -207,12 +211,19 @@ class MediaPreviewTransitionProbe : Instrumentation() {
                     events += "$prefix-image:$width,$height,$from,$to"
                     check("$label 完整图像两端等比", kotlin.math.abs(from.width() / from.height() - to.width() / to.height()) < .01f)
                 }
+                MediaPreviewTransition.diagnosticInteractiveFrame = { progress, elapsedMs, image, clip ->
+                    interactiveFrames.put(JSONObject().put("name", label).put("timeNs", System.nanoTime())
+                        .put("progress", progress).put("elapsedMs", elapsedMs).put("x", image.centerX()).put("y", image.centerY())
+                        .put("width", image.width()).put("height", image.height())
+                        .put("clip", JSONArray(listOf(clip.left, clip.top, clip.right, clip.bottom))))
+                }
             }
             val only = args.getString("case")
             if (real) realCases(report, only == "real-inventory")
             if (only == "generic") genericCases()
             if (only == "animated-webp") animatedWebpCases()
             if (only == "embedded") embeddedCases(files)
+            if (only == "dismiss") dismissCases(files)
             if (only == "timeout") {
                 for ((index, name) in listOf(0 to "sdr-timeout", 4 to "hdr-timeout")) {
                     openDetail(listOf(files[index]))
@@ -300,6 +311,7 @@ class MediaPreviewTransitionProbe : Instrumentation() {
                 MediaPreviewTransition.diagnosticObserver = null
                 MediaPreviewTransition.diagnosticGeometry = null
                 MediaPreviewTransition.diagnosticImageGeometry = null
+                MediaPreviewTransition.diagnosticInteractiveFrame = null
                 HdrViewerDiagnostics.forceCompatibility = false
                 pqObservers.values.forEach(android.view.Choreographer.getInstance()::removeFrameCallback)
                 pqObservers.clear()
@@ -325,6 +337,7 @@ class MediaPreviewTransitionProbe : Instrumentation() {
                 .put("motionEdges", motionEdges)
                 .put("videoStartups", videoStartups)
                 .put("pqHandoffs", pqHandoffs).put("pqHandoffFrames", pqHandoffFrames)
+                .put("interactiveFrames", interactiveFrames)
                 .put("events", JSONArray(events)).put("device", android.os.Build.MODEL)
                 .put("windowFrameColumns", JSONArray(listOf("window", "intendedVsyncNs", "totalNs", "deadlineNs", "firstDraw", "droppedCallbacks")))
                 .put("windowFrames", JSONArray(windowFrames.toList()))
@@ -602,6 +615,11 @@ class MediaPreviewTransitionProbe : Instrumentation() {
                     }
                     main { photo().drawable?.let { sample.info.put("decodedWidth", it.intrinsicWidth).put("decodedHeight", it.intrinsicHeight) } }
                     if (!sample.info.getBoolean("video") && !sample.info.getBoolean("gif")) verifyResolution(run, sample.key)
+                    if (args.getString("case") == "real-dismiss") {
+                        verifyInteractiveDismiss(run, sample.key, extensive = false)
+                        check("$run 真实记事不变", baselineRow(sample.id) == rows()[sample.id])
+                        return@repeat
+                    }
                     if (args.getString("case") == "real-motion-edge") {
                         require(sample.info.getBoolean("motion") && sample.info.getBoolean("hdr"))
                         verifyMotionEdgeLifecycle(run, sample.key, iteration)
@@ -1564,7 +1582,7 @@ class MediaPreviewTransitionProbe : Instrumentation() {
     }
 
     private fun closePreview(name: String, expectedKey: String? = null, expectTarget: Boolean = true,
-                             expectStableResource: Boolean = true) {
+                             expectStableResource: Boolean = true, trigger: (() -> Unit)? = null) {
         val key = expectedKey ?: main { field<ArrayList<String>>(viewer!!, "mTypePathNames")[viewer!!.findViewById<ViewPager>(R.id.vp_image_viewer).currentItem] }
         val playbackBounds = main { viewer!!.motionPreviewBounds(photo())?.apply {
             intersect(com.ywwynm.everythingdone.views.ThingDetailTransition.bounds(photo(), viewer!!.window.decorView))
@@ -1576,11 +1594,43 @@ class MediaPreviewTransitionProbe : Instrumentation() {
             detail!!.window.decorView.viewTreeObserver.addOnPreDrawListener(continuityDraw)
             if (screenshots) capture(viewer!!, "$label-before")
         }
-        main { viewer!!.onBackPressedDispatcher.onBackPressed() }
+        if (trigger != null) trigger() else main { viewer!!.onBackPressedDispatcher.onBackPressed() }
         await("$name 返回完成") { detail!!.hasWindowFocus() && inputReady(detail!!) && viewer!!.isFinishing }
         check("$name 返回类型正确", events.contains(if (expectTarget) "return-prepared" else "return-fade"))
         check("$name 返回完成并释放", events.contains("return-finished"))
         check("$name 返回进度单调", monotonic("return"))
+        if (trigger != null) {
+            check("$name 松手直接进入连续运动", events.contains("return-interactive-start") && !events.contains("return-capture"))
+            val times = (0 until timeline.length()).map { timeline.getJSONArray(it) }
+            val start = times.firstOrNull { it.getString(0) == "return-interactive-start" }?.getLong(1)
+            val moved = times.firstOrNull { it.getString(0).startsWith("return-progress:") && it.getString(0).substringAfter(':').toFloat() > 0f }?.getLong(1)
+            check("$name 首个运动帧在 48 ms 内", start != null && moved != null && (moved - start) / 1_000_000 < 48)
+            val frames = (0 until interactiveFrames.length()).map { interactiveFrames.getJSONObject(it) }.filter { it.getString("name") == label }
+            check("$name 连续运动保持等比", frames.isNotEmpty() && frames.map { it.getDouble("width") / it.getDouble("height") }.let { it.max() - it.min() < .001 })
+            val finished = times.firstOrNull { it.getString(0) == "return-finished" }?.getLong(1)
+            check("$name 松手后 408 ms 内运动到位", start != null && finished != null && (finished - start) / 1_000_000 <= 408)
+            val density = detail!!.resources.displayMetrics.density.toDouble()
+            val first = frames.first()
+            val last = frames.last()
+            for ((axis, extent) in listOf("x" to detail!!.window.decorView.width, "y" to detail!!.window.decorView.height)) {
+                val minimum = minOf(first.getDouble(axis), last.getDouble(axis))
+                val maximum = maxOf(first.getDouble(axis), last.getDouble(axis))
+                val limit = minOf(36 * density, extent * .04)
+                check("$name $axis 外移受视口与 36dp 约束", frames.all { it.getDouble(axis) in (minimum - limit - 1)..(maximum + limit + 1) })
+            }
+            val minWidth = minOf(first.getDouble("width"), last.getDouble("width"))
+            val widthLimit = minOf(36 * density, minWidth * .06)
+            check("$name 尺寸惯性不额外塌缩", frames.all { it.getDouble("width") >= minWidth - widthLimit - 1 })
+            if (name.contains("fast-")) {
+                // 同一显示周期内可能先收到不足 1 ms 的零进度回调，检查真正开始运动的第一帧。
+                val firstMoving = frames.firstOrNull { it.getDouble("progress") > 0 }
+                val direction = if (name.contains("fast-down")) 1 else -1
+                check("$name 快甩接续手指方向", firstMoving != null && direction * (firstMoving.getDouble("y") - first.getDouble("y")) > 0)
+                val distance = kotlin.math.abs(first.getDouble("y") - last.getDouble("y"))
+                val body = frames.firstOrNull { kotlin.math.abs(it.getDouble("y") - last.getDouble("y")) <= maxOf(distance * .01, density) }
+                check("$name 324 ms 内完成主要回收", body != null && body.getDouble("elapsedMs") <= 324)
+            }
+        }
         if (playbackBounds != null) {
             check("$name 返回使用实际视频比例", sourceRect != null && rectNear(sourceRect!!, playbackBounds))
         }
@@ -1620,6 +1670,184 @@ class MediaPreviewTransitionProbe : Instrumentation() {
             }
         }
         viewer = null
+    }
+
+    private fun dismissCases(files: List<String>) {
+        val samples = listOf("image", "gif", "video", "motion", "hdr").zip(files) +
+            ("webp" to "0${animatedWebpFixture().path}")
+        for ((name, key) in samples) {
+            openDetail(listOf(key))
+            openPreview(0, "dismiss-$name")
+            verifyInteractiveDismiss("dismiss-$name", key, extensive = name == "image")
+            if (name == "image") {
+                for ((fastName, direction) in listOf("dismiss-fast-down" to 1f, "dismiss-fast-up" to -1f)) {
+                openPreview(0, fastName)
+                verifyResolution(fastName, key)
+                val density = viewer!!.resources.displayMetrics.density
+                closePreview(fastName, key, trigger = { main {
+                    val bounds = MediaPreviewTransition.fullPhotoRect(photo(), viewer!!.window.decorView)!!
+                    val now = SystemClock.uptimeMillis()
+                    // 固定事件间隔，避免 runOnMainSync 的调度延迟把快速手势变成慢拖。
+                    for ((index, offset) in listOf(0f, 8f, 30f, 60f, 90f).withIndex()) {
+                        val action = when (index) { 0 -> MotionEvent.ACTION_DOWN; 4 -> MotionEvent.ACTION_UP; else -> MotionEvent.ACTION_MOVE }
+                        val event = MotionEvent.obtain(now, now + index * 8L, action, bounds.centerX(), bounds.centerY() + direction * offset * density, 0)
+                        viewer!!.dispatchTouchEvent(event)
+                        event.recycle()
+                    }
+                } })
+                }
+            }
+            closeDetail()
+        }
+        main { HdrViewerDiagnostics.forceCompatibility = true }
+        openDetail(listOf(files[4]))
+        openPreview(0, "dismiss-pq")
+        verifyResolution("dismiss-pq", files[4])
+        verifyInteractiveDismiss("dismiss-pq", files[4], extensive = false)
+        closeDetail()
+        main { HdrViewerDiagnostics.forceCompatibility = false }
+    }
+
+    /** 真机 Activity 的完整触摸分发链；坐标取实际媒体区域，事件按真实时间推进。 */
+    private inner class PreviewFinger {
+        private val activity = viewer!!
+        private val down = SystemClock.uptimeMillis()
+        private val point = main {
+            val image = photo()
+            val bounds = activity.motionPreviewBounds(image) ?: MediaPreviewTransition.fullPhotoRect(image, activity.window.decorView)!!
+            bounds.intersect(ThingDetailTransition.bounds(image, activity.window.decorView))
+            bounds.centerX() to bounds.centerY()
+        }
+        var dy = 0f
+        init { event(MotionEvent.ACTION_DOWN) }
+        fun move(y: Float, millis: Long = 32, x: Float = 0f) {
+            SystemClock.sleep(millis)
+            dy = y
+            event(MotionEvent.ACTION_MOVE, x)
+        }
+        fun up(millis: Long = 160) { SystemClock.sleep(millis); event(MotionEvent.ACTION_UP) }
+        fun cancel() = event(MotionEvent.ACTION_CANCEL)
+        private fun event(action: Int, dx: Float = 0f) {
+            val event = MotionEvent.obtain(down, SystemClock.uptimeMillis(), action, point.first + dx, point.second + dy, 0)
+            main { activity.dispatchTouchEvent(event) }
+            event.recycle()
+        }
+    }
+
+    private fun verifyInteractiveDismiss(name: String, key: String, extensive: Boolean) {
+        val activity = viewer!!
+        val density = activity.resources.displayMetrics.density
+        val page = main { photo().parent as View }
+        fun active() = field<MediaPreviewDismissGesture>(activity, "mPreviewDismiss").isActive
+        fun invoke(method: String) = main { activity.javaClass.getDeclaredMethod(method).apply { isAccessible = true }.invoke(activity) }
+        fun restored() = await("$name 回弹完成") { !active() && page.scaleX == 1f && page.translationY == 0f }
+        fun screen(suffix: String) {
+            if (screenshots) {
+                waitForIdleSync()
+                SystemClock.sleep(64)
+                uiAutomation.takeScreenshot()?.let { saveBitmap(it, "$name-$suffix") }
+            }
+        }
+        val motion = key.first() == '1' || MotionPhotoDetector.detect(key.substring(1)).isMotionPhoto
+        if (key.first() != '1' && key.substring(1).endsWith(".jpg", true)) verifyResolution(name, key)
+        if (key.endsWith(".gif", true) || key.endsWith(".webp", true)) {
+            await("$name 动图加载完成") { (photo().drawable as? Animatable)?.isRunning == true }
+        }
+        if (motion) {
+            invoke("cancelScheduledAutoplay"); invoke("stopMotionPlayback")
+            invoke("scheduleAutoplayForCurrentPage")
+            await("$name 动态自动播放就绪") { motionIsPlaying() }
+        }
+        val drawable = main { photo().drawable }
+        val player = main { field<android.media.MediaPlayer?>(activity, "mMotionPlayer") }
+        val startPosition = main { player?.currentPosition ?: -1 }
+        val animation = drawable as? Animatable
+        val wasAnimating = main { animation?.isRunning == true }
+        val short = 36f * density
+        val finger = PreviewFinger()
+        finger.move(short, 48)
+        check("$name 单指接管并等比缩小", main { active() && page.scaleX < 1f && page.scaleX == page.scaleY })
+        check("$name 保持媒体实例", main { photo().drawable === drawable && field<Any?>(activity, "mMotionPlayer") === player })
+        if (player != null) check("$name 拖动时继续播放", main { player.isPlaying && player.currentPosition >= startPosition })
+        if (wasAnimating) check("$name 拖动时动图继续播放", main { animation!!.isRunning })
+        val smallScale = main { page.scaleX }
+        finger.move(80f * density, 48)
+        check("$name 外拖进一步缩小", main { page.scaleX < smallScale })
+        screen("drag")
+        finger.move(short, 80)
+        check("$name 回拖恢复尺寸", main { page.scaleX >= smallScale - .001f })
+        finger.up()
+        restored()
+        check("$name 取消不退出且不替换媒体", main { !activity.isFinishing && photo().drawable === drawable })
+        if (player != null) check("$name 回弹不重建播放器或重置进度", main {
+            field<Any?>(activity, "mMotionPlayer") === player && player.isPlaying && player.currentPosition >= startPosition
+        })
+        if (wasAnimating) check("$name 回弹后动图继续播放", main { animation!!.isRunning })
+        screen("restored")
+
+        if (motion) {
+            invoke("cancelScheduledAutoplay"); invoke("stopMotionPlayback")
+            val still = PreviewFinger()
+            still.move(-short, 48); still.up(); restored()
+            check("$name 原本停止的媒体保持停止", main { field<Any?>(activity, "mMotionPlayer") == null })
+        }
+        if (extensive) {
+            // 放大后实际平移到上边缘，接续拖动；回弹保留接管时的倍率与图像矩阵。
+            val zoomScale = main {
+                val image = photo()
+                val scale = (image.height / image.displayRect.height() + 1f).coerceAtLeast(3f)
+                image.maximumScale = maxOf(image.maximumScale, scale)
+                image.setScale(scale, false)
+                scale
+            }
+            val zoom = PreviewFinger()
+            val distance = main { (-photo().displayRect.top).coerceAtLeast(0f) }
+            if (distance > 20f * density) {
+                zoom.move(distance / 2, 80)
+                check("$name 放大后先平移", main { !active() && kotlin.math.abs(photo().scale - zoomScale) < .01f })
+            }
+            zoom.move(distance + short, 80)
+            check("$name 到边缘才接管", main { active() && kotlin.math.abs(photo().displayRect.top) < 2f })
+            val edge = main { RectF(photo().displayRect) }
+            zoom.up(); restored()
+            check("$name 回弹保留放大倍率及边缘位置", main { kotlin.math.abs(photo().scale - zoomScale) < .01f && rectNear(photo().displayRect, edge) })
+            main { photo().setScale(1f, false) }
+            val sideways = PreviewFinger()
+            sideways.move(2f, 64, 100f * density)
+            check("$name 横向手势不接管", main { !active() })
+            sideways.cancel()
+            // 模式门控在真实 Activity 校验；空间渲染自身不在此处伪造。
+            main { set(activity, "mSpatialMode", true) }
+            val spatial = PreviewFinger()
+            spatial.move(short, 64)
+            check("$name 空间模式关闭返回手势", main { !active() })
+            spatial.cancel()
+            main { set(activity, "mSpatialMode", false) }
+        }
+
+        // 再次启动动态，确认松手提交前仍显示真实视频帧；长按播放也只在确认返回后停止。
+        if (motion) {
+            invoke(if (key.first() == '1') "startVideoPlaybackForCurrentPage" else "startMotionPlaybackForCurrentPage")
+            await("$name 返回前动态播放") { motionIsPlaying() }
+        }
+        val commit = PreviewFinger()
+        commit.move(-40f * density, 48)
+        val distance = main { (page.height * .24f).coerceAtMost(230f * density) }
+        commit.move(-distance, 100)
+        check("$name 上滑达到返回距离", main { active() && page.translationY < 0f })
+        val from = main {
+            val root = activity.window.decorView
+            (activity.motionPreviewBounds(photo()) ?: MediaPreviewTransition.fullPhotoRect(photo(), root))?.apply {
+                intersect(ThingDetailTransition.bounds(photo(), root))
+                intersect(0f, 0f, root.width.toFloat(), root.height.toFloat())
+            }
+        }
+        screen("commit")
+        requirePlayingReturn = motion
+        closePreview(name, expectedKey = key, trigger = { commit.up() })
+        requirePlayingReturn = false
+        check("$name 从拖动位置接续返回", sourceRect != null && from != null && rectNear(sourceRect!!, from))
+        check("$name 返回后释放播放器", main { field<Any?>(activity, "mMotionPlayer") == null })
     }
 
     private fun closeDetail() { main { detail?.finish() }; waitForIdleSync(); detail = null }

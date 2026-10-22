@@ -9,6 +9,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.RectF
@@ -19,6 +20,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.MotionEvent
 import android.widget.ImageButton
+import android.widget.ImageView
 import androidx.appcompat.view.WindowCallbackWrapper
 import androidx.appcompat.widget.Toolbar
 import android.view.animation.PathInterpolator
@@ -41,17 +43,114 @@ import java.util.concurrent.CompletableFuture
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-/** 画面只在一次转场内存活，返回来源仅保留弱引用，不保留旧附件位置或详情截图。 */
+/** 详情画面保留到此次查看器关闭；返回来源使用弱引用，每次重新读取附件位置。 */
 internal class MediaPreviewTransition private constructor(
     private val viewer: Activity,
     private val origin: WeakReference<DetailActivity>
 ) {
     private var animation: Presentation? = null
+    // 交互返回在原窗口恢复前需要详情背景；复用打开时的单张画面，不冻结当前媒体。
+    private var detailFrame: Frame? = null
+    private var backgroundGeneration = 0
     var returning = false
         private set
     val isRunning get() = animation?.running == true
 
     fun cancelEnter() { animation?.close("cancelled"); animation = null }
+
+    fun dismissBackground(): Bitmap? = detailFrame?.takeIf {
+        it.width == viewer.window.decorView.width && it.height == viewer.window.decorView.height
+    }?.pixels
+
+    fun refreshDismissBackground() {
+        val token = ++backgroundGeneration
+        detailFrame = null
+        val detail = origin.get()?.takeUnless { it.isFinishing || it.isDestroyed } ?: return
+        val root = detail.window.decorView
+        val destination = viewer.window.decorView
+        if (root.width != destination.width || root.height != destination.height) return
+        capture(root, null, bars(detail)) { frame ->
+            if (backgroundGeneration == token && !viewer.isDestroyed && !returning) detailFrame = frame
+        }
+    }
+
+    fun close() { cancelEnter(); backgroundGeneration++; detailFrame = null }
+
+    fun returnInteractively(photo: PhotoView?, key: String?, gesture: MediaPreviewDismissGesture?,
+                            freezeMedia: () -> Unit, finish: () -> Unit): Boolean {
+        if (returning) return true
+        if (gesture?.isActive != true || photo == null || !ValueAnimator.areAnimatorsEnabled()) return false
+        val detail = origin.get()?.takeUnless { it.isFinishing || it.isDestroyed } ?: return false
+        val background = detailFrame?.takeIf { it.pixels === dismissBackground() } ?: return false
+        val destination = detail.window.decorView as ViewGroup
+        if (destination.width != background.width || destination.height != background.height) return false
+        // 详情仍在后台，getGlobalVisibleRect 会因为窗口不可见返回 false；读取保留的布局与祖先裁剪。
+        val sourceView = detail.findMediaPreviewSource(key) ?: return false
+        val target = laidOutDetailRect(sourceView, destination) ?: return false
+        val targetMedia = sourceView.findViewById<ImageView>(R.id.iv_image_attachment) ?: return false
+        val travel = imageTravel(photo, detail, key, false) ?: return false
+        val source = photoRect(photo, viewer.window.decorView) ?: return false
+        returning = true
+        mark("return-interactive-start")
+        if (BuildConfig.DEBUG) {
+            diagnosticGeometry?.invoke(false, source, target)
+            diagnosticImageGeometry?.invoke(false, travel.width, travel.height, travel.from, travel.to)
+        }
+        mark("return-prepared")
+        val started = gesture.animateReturn(target, travel.to, targetMedia, ThingDetailTransition.bounds(targetMedia, destination)) {
+            holdDetailEndpoint(detail, background, key)
+            mark("return-finished")
+            finish()
+            viewer.overridePendingTransition(0, 0)
+        }
+        if (!started) { returning = false; return false }
+        freezeMedia()
+        return true
+    }
+
+    /** 只在运动结束后等待真实详情恢复；遮盖端点，避免旧窗口撤去时出现空图或布局跳变。 */
+    private fun holdDetailEndpoint(detail: DetailActivity, frame: Frame, key: String?) {
+        val host = detail.window.decorView as ViewGroup
+        val layer = StillLayer(detail, frame)
+        val lease = UiInteractions.restore(detail, "media-preview-return-endpoint")
+        var closed = false
+        var stable = 0
+        var fadeStarted = false
+        lateinit var timeout: Runnable
+        lateinit var listener: android.view.ViewTreeObserver.OnPreDrawListener
+        fun close() {
+            if (closed) return
+            closed = true
+            host.removeCallbacks(timeout)
+            host.viewTreeObserver.takeIf { it.isAlive }?.removeOnPreDrawListener(listener)
+            layer.animate().cancel()
+            host.removeView(layer)
+            lease.release()
+            detail.setMediaPreviewTransitionPaused(false)
+            mark("return-endpoint-released")
+        }
+        timeout = Runnable { close() }
+        listener = android.view.ViewTreeObserver.OnPreDrawListener {
+            if (!closed && !fadeStarted) {
+                val ready = detail.hasWindowFocus() && detail.isMediaPreviewLayoutReady(key)
+                stable = if (ready) stable + 1 else 0
+                if (stable >= 2) {
+                    fadeStarted = true
+                    layer.animate().alpha(0f).setDuration(96L).withEndAction { close() }.start()
+                }
+                host.postOnAnimation { host.invalidate() }
+            }
+            true
+        }
+        layer.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(v: View) = Unit
+            override fun onViewDetachedFromWindow(v: View) { close() }
+        })
+        detail.setMediaPreviewTransitionPaused(true)
+        host.addView(layer, ViewGroup.LayoutParams(-1, -1))
+        host.viewTreeObserver.addOnPreDrawListener(listener)
+        host.postDelayed(timeout, 1500)
+    }
 
     fun returnToDetail(photo: PhotoView?, key: String?, finish: () -> Unit): Boolean {
         if (returning) return true
@@ -369,6 +468,10 @@ internal class MediaPreviewTransition private constructor(
         internal var diagnosticObserver: ((String) -> Unit)? = null
         internal var diagnosticGeometry: ((Boolean, RectF?, RectF?) -> Unit)? = null
         internal var diagnosticImageGeometry: ((Boolean, Int, Int, RectF, RectF) -> Unit)? = null
+        internal var diagnosticInteractiveFrame: ((Float, Float, RectF, RectF) -> Unit)? = null
+        internal fun reportInteractiveFrame(progress: Float, elapsedMs: Float, image: RectF, clip: RectF) {
+            if (BuildConfig.DEBUG) diagnosticInteractiveFrame?.invoke(progress, elapsedMs, image, clip)
+        }
         internal fun mark(stage: String) { if (BuildConfig.DEBUG) diagnosticObserver?.invoke(stage) }
         private fun bars(activity: Activity) = WindowInsetsControllerCompat(activity.window, activity.window.decorView).isAppearanceLightStatusBars
 
@@ -419,6 +522,7 @@ internal class MediaPreviewTransition private constructor(
             val data = pending.remove(token) ?: return null
             if (!ValueAnimator.areAnimatorsEnabled()) return null
             return MediaPreviewTransition(activity, data.origin).also { session ->
+                session.detailFrame = data.frame
                 session.animation = Presentation(activity, data.frame, true, photo,
                     travelProvider = { data.origin.get()?.let { imageTravel(photo(), it, data.key, true) } }, completed = {
                     session.animation = null
@@ -431,6 +535,17 @@ internal class MediaPreviewTransition private constructor(
         private fun visibleRect(view: View?, root: View): RectF? =
             view?.let { ThingDetailTransition.visibleBounds(it, root) }
 
+        internal fun laidOutDetailRect(view: View?, root: View): RectF? {
+            if (view == null || view.visibility != View.VISIBLE || view.width <= 0 || view.height <= 0) return null
+            val rect = ThingDetailTransition.bounds(view, root)
+            var parent = view.parent as? View
+            while (parent != null && parent !== root) {
+                if (parent is ViewGroup && parent.clipChildren && !rect.intersect(ThingDetailTransition.bounds(parent, root))) return null
+                parent = parent.parent as? View
+            }
+            return rect.takeIf { it.intersect(0f, 0f, root.width.toFloat(), root.height.toFloat()) }
+        }
+
         private fun photoRect(photo: PhotoView?, root: View): RectF? {
             val view = photo ?: return null
             val rect = fullPhotoRect(view, root) ?: return null
@@ -440,12 +555,22 @@ internal class MediaPreviewTransition private constructor(
             return rect
         }
 
-        private fun fullPhotoRect(view: PhotoView, root: View): RectF? {
+        internal fun fullPhotoRect(view: PhotoView, root: View): RectF? {
             (view.context as? ImageViewerActivity)?.motionPreviewBounds(view)?.let { return it }
-            return view.displayRect?.let(::RectF)?.apply {
-                val bounds = ThingDetailTransition.bounds(view, root)
-                offset(bounds.left, bounds.top)
+            return view.displayRect?.let { mapToRoot(view, root, it) }
+        }
+
+        /** 包含父容器的交互缩放，不能只给 displayRect 加一个左上角偏移。 */
+        internal fun mapToRoot(view: View, root: View, rect: RectF): RectF {
+            val matrix = Matrix()
+            var child = view
+            while (child !== root) {
+                matrix.postConcat(child.matrix)
+                val parent = child.parent as? View ?: break
+                matrix.postTranslate((child.left - parent.scrollX).toFloat(), (child.top - parent.scrollY).toFloat())
+                child = parent
             }
+            return RectF(rect).also(matrix::mapRect)
         }
 
         private fun imageTravel(photo: PhotoView?, detail: DetailActivity, key: String?, entering: Boolean): Travel? {

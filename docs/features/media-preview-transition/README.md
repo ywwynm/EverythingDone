@@ -4,6 +4,10 @@
 
 - [需求与验证范围](preferences.md)
 - [实现决策](decisions.md)
+- [单指上下滑动返回](interactive-dismiss-2026-10-22.md)
+- [松手返回的停顿与惯性衔接](return-inertia-2026-10-22.md)
+- [返回惯性距离与速度曲线调研](motion-curve-research-2026-10-22.md)
+- [弹簧返回的实现与验证](spring-return-2026-10-22.md)
 - [实机验证与性能](validation-2026-10-21.md)
 - [第二轮延迟、几何与闪烁诊断](diagnosis-2026-10-21-second-pass.md)
 - [卓易通清晰度回归](resolution-regression-2026-10-21.md)
