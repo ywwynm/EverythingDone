@@ -33,6 +33,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.RectF
+import android.graphics.SurfaceTexture
 import android.graphics.drawable.BitmapDrawable
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
@@ -207,6 +208,8 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     private val mMotionBaseRect = RectF()
     private val mMotionMatrix = Matrix()
     private var mMotionRevealed = false
+    private var mMotionAwaitingFrame = false
+    private var mMotionPreviousTimestamp = 0L
 
     /** 返回动画读取正在显示的视频几何，不能用静态主图比例代替内嵌视频比例。 */
     internal fun motionPreviewBounds(photo: PhotoView): RectF? {
@@ -350,6 +353,22 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
             val pb: ProgressBar       = f(tab, R.id.pb_image_attachment)!!
             val iv: PhotoView         = f(tab, R.id.iv_image_attachment)!!
             val videoSignal: ImageView = f(tab, R.id.iv_video_signal)!!
+            val motionTexture: TextureView = f(tab, R.id.tv_motion_surface)!!
+            motionTexture.surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+                override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) = Unit
+                override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) = Unit
+                override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
+                    if (mMotionTexture === motionTexture) stopMotionPlayback()
+                    return true
+                }
+                override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {
+                    if (mMotionTexture === motionTexture && mMotionAwaitingFrame &&
+                        surface.timestamp != mMotionPreviousTimestamp) {
+                        mMotionAwaitingFrame = false
+                        revealMotionSurface()
+                    }
+                }
+            }
 
             BackgroundUtil.applyProgressBarGradient(pb, App.defaultAccentBackground)
 
@@ -866,6 +885,9 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                 if (startMs > 0) {
                     try { player.seekTo(startMs) } catch (_: Exception) {}
                 }
+                // 准备完成或首帧推送通知都不代表目标纹理已有画面；旧缓冲也不能触发交接。
+                mMotionPreviousTimestamp = surfaceTexture.timestamp
+                mMotionAwaitingFrame = true
                 player.start()
                 if (autoStopAfterMs > 0L) {
                     // MediaPlayer 没有"播到某时刻停"的原生能力，用定时停实现那 3 秒。
@@ -877,13 +899,11 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                     mAutoStopRunnable = stop
                     mVpImage?.postDelayed(stop, autoStopAfterMs)
                 }
-                // 兜底:个别机型不发 VIDEO_RENDERING_START 时,延迟揭示避免卡在照片。
-                mVpImage?.postDelayed({ if (mMotionPlayer === player) revealMotionSurface() }, 180L)
             }
             mp.setOnInfoListener { player, what, _ ->
-                // 首帧真正渲染出来后才切换到视频层,做到从照片“无缝”变实况,消除起播闪烁/拉伸。
+                // 只请求刷新；是否交接由目标纹理更新决定，兼容缺失或提前到达的播放器通知。
                 if (mMotionPlayer === player && what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
-                    revealMotionSurface()
+                    texture.invalidate()
                 }
                 false
             }
@@ -969,6 +989,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     }
 
     private fun stopMotionPlayback() {
+        mMotionAwaitingFrame = false
         cancelAutoStop()
         val mp = mMotionPlayer
         if (mp != null) {

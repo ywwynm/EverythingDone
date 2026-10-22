@@ -11,5 +11,6 @@
 - [无内嵌预览的大图展开](opening-without-thumbnail-2026-10-21.md)
 - [动态 WebP 裁剪与播放修复](animated-webp-2026-10-21.md)
 - [HDR 动态照片播放中返回拉伸](motion-return-stretch-2026-10-22.md)
+- [大视频预览图到首帧的黑屏交接](video-startup-2026-10-22.md)
 - [后续检查](followups.md)
 - 相关功能：[首页详情转场](../thing-detail-transition/README.md)、[附件外观](../detail-attachment-media-appearance/README.md)、[动态照片](../motion-photo-playback/README.md)、[HDR 显示](../hdr-media-display/README.md)。

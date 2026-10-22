@@ -74,6 +74,7 @@ class MediaPreviewTransitionProbe : Instrumentation() {
     private val previewCopies = JSONArray()
     private val motionSnapshots = JSONArray()
     private val motionEdges = JSONArray()
+    private val videoStartups = JSONArray()
     private var requirePlayingReturn = false
     private var continuityKey: String? = null
     private val continuityDraw = android.view.ViewTreeObserver.OnPreDrawListener {
@@ -304,6 +305,7 @@ class MediaPreviewTransitionProbe : Instrumentation() {
                 .put("previewCopies", previewCopies)
                 .put("motionSnapshots", motionSnapshots)
                 .put("motionEdges", motionEdges)
+                .put("videoStartups", videoStartups)
                 .put("events", JSONArray(events)).put("device", android.os.Build.MODEL)
                 .put("windowFrameColumns", JSONArray(listOf("window", "intendedVsyncNs", "totalNs", "deadlineNs", "firstDraw", "droppedCallbacks")))
                 .put("windowFrames", JSONArray(windowFrames.toList()))
@@ -558,6 +560,13 @@ class MediaPreviewTransitionProbe : Instrumentation() {
                 repeat(args.getString("repeat", "2").toInt()) { iteration ->
                     val run = "real-$name-$iteration"
                     openPreview(sample.index, run)
+                    if (args.getString("case") == "real-video-startup") {
+                        require(sample.info.getBoolean("video"))
+                        repeat(args.getString("startupRepeats", "1").toInt()) { playback -> verifyVideoStartup("$run-play$playback") }
+                        closePreview(run, expectedKey = sample.key)
+                        check("$run 真实记事不变", baselineRow(sample.id) == rows()[sample.id])
+                        return@repeat
+                    }
                     await("真实预览正常清晰度就绪") {
                         val image = photo()
                         val original = maxOf(sample.info.optInt("width"), sample.info.optInt("height"))
@@ -925,6 +934,142 @@ class MediaPreviewTransitionProbe : Instrumentation() {
             field<android.view.TextureView?>(current, "mMotionTexture")?.alpha == 1f &&
             field<Boolean>(current, "mMotionRevealed")
     } == true
+
+    /** 仅测试时延迟真实播放器向目标 Surface 交付画面，原文件与生产计时逻辑保持。 */
+    private fun verifyVideoStartup(name: String) {
+        val current = viewer!!
+        fun invoke(method: String) = main { current.javaClass.getDeclaredMethod(method).apply { isAccessible = true }.invoke(current) }
+        invoke("cancelScheduledAutoplay")
+        invoke("stopMotionPlayback")
+        val delay = args.getString("frameDelay", "0").toLong()
+        val suppressInfo = args.getString("suppressInfo") == "true"
+        val autoplay = args.getString("autoplay") == "true"
+        val cancelWaiting = args.getString("cancelWaiting") == "true"
+        val record = JSONObject().put("name", name).put("frameDelayMs", delay).put("suppressInfo", suppressInfo)
+            .put("autoplay", autoplay).put("cancelWaiting", cancelWaiting)
+        val prepared = java.util.concurrent.CountDownLatch(1)
+        val firstFrame = java.util.concurrent.CountDownLatch(1)
+        val texture = main { (photo().parent as ViewGroup).findViewById<android.view.TextureView>(R.id.tv_motion_surface) }
+        val backdrop = main { (photo().parent as ViewGroup).findViewById<View>(R.id.v_motion_backdrop) }
+        val listener = main { texture.surfaceTextureListener }
+        val originalTimestamp = main { texture.surfaceTexture?.timestamp }
+        val started = SystemClock.elapsedRealtime()
+        var firstFrameMs = -1L
+        var shownMs = -1L
+        var heldTexture: android.graphics.SurfaceTexture? = null
+        var heldSurface: android.view.Surface? = null
+        var deliver: Runnable? = null
+        var lateInfo: (() -> Unit)? = null
+        val draw = android.view.ViewTreeObserver.OnPreDrawListener {
+            if (shownMs < 0 && texture.alpha > .99f && backdrop.visibility == View.VISIBLE) {
+                shownMs = SystemClock.elapsedRealtime() - started
+            }
+            true
+        }
+        fun screen(stage: String): Double {
+            val bitmap = checkNotNull(uiAutomation.takeScreenshot())
+            val rect = main { RectF(photo().displayRect).apply {
+                val at = IntArray(2); photo().getLocationOnScreen(at); offset(at[0].toFloat(), at[1].toFloat())
+            } }
+            var light = 0; var count = 0
+            for (y in rect.top.toInt().coerceAtLeast(0) until rect.bottom.toInt().coerceAtMost(bitmap.height) step 8) {
+                for (x in rect.left.toInt().coerceAtLeast(0) until rect.right.toInt().coerceAtMost(bitmap.width) step 8) {
+                    val c = bitmap.getPixel(x, y)
+                    if (maxOf(Color.red(c), Color.green(c), Color.blue(c)) > 16) light++
+                    count++
+                }
+            }
+            val fraction = light.toDouble() / count.coerceAtLeast(1)
+            record.put("${stage}LightFraction", fraction)
+            if (screenshots) saveBitmap(bitmap, "$name-startup-$stage") else bitmap.recycle()
+            return fraction
+        }
+        try {
+            screen("cover")
+            main {
+                texture.surfaceTextureListener = object : android.view.TextureView.SurfaceTextureListener {
+                    override fun onSurfaceTextureAvailable(s: android.graphics.SurfaceTexture, w: Int, h: Int) { listener?.onSurfaceTextureAvailable(s, w, h) }
+                    override fun onSurfaceTextureSizeChanged(s: android.graphics.SurfaceTexture, w: Int, h: Int) { listener?.onSurfaceTextureSizeChanged(s, w, h) }
+                    override fun onSurfaceTextureDestroyed(s: android.graphics.SurfaceTexture): Boolean = listener?.onSurfaceTextureDestroyed(s) ?: true
+                    override fun onSurfaceTextureUpdated(s: android.graphics.SurfaceTexture) {
+                        if (firstFrameMs < 0 && s.timestamp != originalTimestamp) {
+                            firstFrameMs = SystemClock.elapsedRealtime() - started
+                            record.put("alphaAtFirstUpdate", texture.alpha)
+                            firstFrame.countDown()
+                        }
+                        listener?.onSurfaceTextureUpdated(s)
+                    }
+                }
+                texture.viewTreeObserver.addOnPreDrawListener(draw)
+                if (autoplay) {
+                    val pager = current.findViewById<ViewPager>(R.id.vp_image_viewer)
+                    current.javaClass.getDeclaredMethod("postAutoplay", Int::class.javaPrimitiveType,
+                        Int::class.javaPrimitiveType, Long::class.javaPrimitiveType).apply { isAccessible = true }
+                        .invoke(current, pager.currentItem, 0, 0L)
+                    field<Runnable>(current, "mAutoplayRunnable").let { pager.removeCallbacks(it); it.run() }
+                } else current.javaClass.getDeclaredMethod("startVideoPlaybackForCurrentPage").apply { isAccessible = true }.invoke(current)
+                val player = checkNotNull(field<android.media.MediaPlayer?>(current, "mMotionPlayer"))
+                val onPrepared = field<android.media.MediaPlayer.OnPreparedListener>(player, "mOnPreparedListener")
+                val onInfo = field<android.media.MediaPlayer.OnInfoListener>(player, "mOnInfoListener")
+                lateInfo = { onInfo.onInfo(player, android.media.MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START, 0) }
+                player.setOnInfoListener { mp, what, extra ->
+                    if (what == android.media.MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) record.put("infoMs", SystemClock.elapsedRealtime() - started)
+                    if (suppressInfo && what == android.media.MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) false else onInfo.onInfo(mp, what, extra)
+                }
+                player.setOnPreparedListener { mp ->
+                    if (delay > 0) {
+                        heldTexture = android.graphics.SurfaceTexture(false)
+                        heldSurface = android.view.Surface(heldTexture)
+                        mp.setSurface(heldSurface)
+                    }
+                    record.put("preparedMs", SystemClock.elapsedRealtime() - started)
+                    onPrepared.onPrepared(mp)
+                    prepared.countDown()
+                    if (delay > 0) {
+                        deliver = Runnable {
+                            if (field<Any?>(current, "mMotionPlayer") === mp) {
+                                record.put("deliveredMs", SystemClock.elapsedRealtime() - started)
+                                mp.setSurface(field<android.view.Surface>(current, "mMotionSurface"))
+                            }
+                        }.also { texture.postDelayed(it, delay) }
+                    }
+                }
+            }
+            check("$name 播放器准备完成", prepared.await(5, java.util.concurrent.TimeUnit.SECONDS))
+            if (delay > 0) {
+                SystemClock.sleep(delay / 2)
+                screen("waiting")
+                check("$name 首帧未到时保留预览", main { texture.alpha == 0f && backdrop.visibility != View.VISIBLE })
+                if (cancelWaiting) {
+                    invoke("stopMotionPlayback")
+                    main {
+                        lateInfo?.invoke()
+                        listener?.onSurfaceTextureUpdated(checkNotNull(texture.surfaceTexture))
+                    }
+                    SystemClock.sleep(delay)
+                    check("$name 取消后迟到通知不揭示", main { field<Any?>(current, "mMotionPlayer") == null &&
+                        texture.alpha == 0f && backdrop.visibility != View.VISIBLE })
+                    screen("cancelled")
+                    return
+                }
+            }
+            check("$name 实际视频纹理到达", firstFrame.await(5, java.util.concurrent.TimeUnit.SECONDS))
+            await("$name 视频已揭示") { texture.alpha == 1f && backdrop.visibility == View.VISIBLE }
+            SystemClock.sleep(100)
+            screen("playing")
+            check("$name 不早于实际视频纹理揭示", shownMs >= firstFrameMs && firstFrameMs >= 0)
+            check("$name 视频正常播放", motionIsPlaying())
+        } finally {
+            main {
+                deliver?.let(texture::removeCallbacks)
+                texture.viewTreeObserver.removeOnPreDrawListener(draw)
+                texture.surfaceTextureListener = listener
+                record.put("firstFrameMs", firstFrameMs).put("shownMs", shownMs)
+                videoStartups.put(record)
+            }
+            heldSurface?.release(); heldTexture?.release()
+        }
+    }
 
     private fun verifyMotionEdgeLifecycle(name: String, key: String, iteration: Int) {
         val current = viewer!!
