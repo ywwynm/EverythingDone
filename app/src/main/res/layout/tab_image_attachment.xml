@@ -13,7 +13,16 @@
         android:contentDescription="@string/cd_image_attachment"
         android:background="#000000"/>
 
-    <!-- Motion Photo 按住播放层：默认 alpha=0（不可见），按住时播放内嵌视频并置 alpha=1 盖住静图。 -->
+    <!-- 静图与视频比例可能不同；只在视频揭示后遮住下层静图／PQ，不重建 HDR 层。 -->
+    <View
+        android:id="@+id/v_motion_backdrop"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#000000"
+        android:importantForAccessibility="no"
+        android:visibility="invisible"/>
+
+    <!-- 视频与黑底同帧揭示，保留原比例、缩放和平移，不依赖视频恰好覆盖静图。 -->
     <TextureView
         android:id="@+id/tv_motion_surface"
         android:layout_width="match_parent"

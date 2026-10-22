@@ -941,6 +941,8 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         m.reset()
         m.setScale(dw / texW, dh / texH)
         m.postTranslate(left, top)
+        // 内容变换后的留黑区域不属于视频像素，不能声明整个 TextureView 不透明。
+        texture.isOpaque = false
         texture.setTransform(m)
         texture.pivotX = left
         texture.pivotY = top
@@ -960,8 +962,10 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         val texture = mMotionTexture ?: return
         // 基准变换已在 onPrepared 套好；此刻仅显示视频层（首帧已渲染，故无缝、不拉伸）。
         if (!mMotionRevealed) setupMotionBaseTransform(texture)
+        // 两种媒体的宽高比可能略有差异，视频边缘外只能显示黑底，不能露出下层静图。
+        // 保留 PhotoView 触摸／矩阵及已准备的 PQ 层，结束时直接恢复，避免重新解码或建层。
+        (texture.parent as? View)?.findViewById<View>(R.id.v_motion_backdrop)?.visibility = View.VISIBLE
         texture.alpha = 1f
-        // 不隐藏静图：保持它可见可触（可缩放），视频覆在其显示区域上、并随缩放平移用 View 属性跟随。
     }
 
     private fun stopMotionPlayback() {
@@ -989,6 +993,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         mMotionRevealed = false
         mMotionTexture?.let {
             it.alpha = 0f
+            (it.parent as? View)?.findViewById<View>(R.id.v_motion_backdrop)?.visibility = View.INVISIBLE
             it.scaleX = 1f; it.scaleY = 1f
             it.translationX = 0f; it.translationY = 0f
             it.setTransform(Matrix())

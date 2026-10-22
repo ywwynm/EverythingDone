@@ -73,6 +73,7 @@ class MediaPreviewTransitionProbe : Instrumentation() {
     private val continuity = JSONArray()
     private val previewCopies = JSONArray()
     private val motionSnapshots = JSONArray()
+    private val motionEdges = JSONArray()
     private var requirePlayingReturn = false
     private var continuityKey: String? = null
     private val continuityDraw = android.view.ViewTreeObserver.OnPreDrawListener {
@@ -302,6 +303,7 @@ class MediaPreviewTransitionProbe : Instrumentation() {
                 .put("continuity", continuity)
                 .put("previewCopies", previewCopies)
                 .put("motionSnapshots", motionSnapshots)
+                .put("motionEdges", motionEdges)
                 .put("events", JSONArray(events)).put("device", android.os.Build.MODEL)
                 .put("windowFrameColumns", JSONArray(listOf("window", "intendedVsyncNs", "totalNs", "deadlineNs", "firstDraw", "droppedCallbacks")))
                 .put("windowFrames", JSONArray(windowFrames.toList()))
@@ -452,6 +454,7 @@ class MediaPreviewTransitionProbe : Instrumentation() {
                         .put("hdr", !video && !gif && HdrImageDetector.detect(file.path))
                     candidates += RealMedia(thing.id, index, items.size, key, info)
                     if (thing.title == "新的测试君") info.put("namedSample", true)
+                    if (thing.title == args.getString("noteTitle")) info.put("targetNote", true)
                 }
             }
         }
@@ -477,8 +480,11 @@ class MediaPreviewTransitionProbe : Instrumentation() {
         val many = candidates.maxByOrNull { it.count }
         select("many-first", many?.let { sample -> candidates.first { it.id == sample.id } })
         select("many-last", many?.let { sample -> candidates.last { it.id == sample.id } })
+        candidates.filter { it.info.optBoolean("targetNote") && !it.info.getBoolean("video") }
+            .forEach { select("target-photo-${it.index}", it) }
         val samples = selected.entries
             .filter { args.getString("sample") == null || it.key in args.getString("sample")!!.split(',') }
+            .filter { args.getString("noteTitle") == null || it.value.info.optBoolean("targetNote") }
             .distinctBy { it.value.id to it.value.index }
         for ((_, sample) in samples) if (!sample.info.getBoolean("video") && !sample.info.getBoolean("gif")) {
             val started = System.nanoTime()
@@ -560,6 +566,15 @@ class MediaPreviewTransitionProbe : Instrumentation() {
                     }
                     main { photo().drawable?.let { sample.info.put("decodedWidth", it.intrinsicWidth).put("decodedHeight", it.intrinsicHeight) } }
                     if (!sample.info.getBoolean("video") && !sample.info.getBoolean("gif")) verifyResolution(run, sample.key)
+                    if (args.getString("case") == "real-motion-edge") {
+                        require(sample.info.getBoolean("motion") && sample.info.getBoolean("hdr"))
+                        verifyMotionEdgeLifecycle(run, sample.key, iteration)
+                        requirePlayingReturn = true
+                        closePreview(run, expectedKey = sample.key)
+                        requirePlayingReturn = false
+                        check("$run 真实记事不变", baselineRow(sample.id) == rows()[sample.id])
+                        return@repeat
+                    }
                     if (args.getString("case") == "real-motion-return") {
                         require(sample.info.getBoolean("motion"))
                         if (iteration % 2 == 1) main {
@@ -911,6 +926,95 @@ class MediaPreviewTransitionProbe : Instrumentation() {
             field<Boolean>(current, "mMotionRevealed")
     } == true
 
+    private fun verifyMotionEdgeLifecycle(name: String, key: String, iteration: Int) {
+        val current = viewer!!
+        fun invoke(method: String) = main { current.javaClass.getDeclaredMethod(method).apply { isAccessible = true }.invoke(current) }
+        fun pqSurface(): HdrProbeSurface? = field<Any?>(current, "mPqController")?.let { field(it, "surface") }
+        invoke("stopMotionPlayback")
+        verifyHdrReady(name, key)
+        val surface = main { pqSurface() }
+        val bitmap = main { (photo().drawable as android.graphics.drawable.BitmapDrawable).bitmap }
+        val backdrop = main { (photo().parent as ViewGroup).findViewById<View>(R.id.v_motion_backdrop) }
+        check("$name 静态显示不被黑底覆盖", main { backdrop.visibility != View.VISIBLE })
+        if (iteration % 2 == 1) main { photo().setScale(2f, photo().width * .8f, photo().height * .5f, false) }
+        for (mode in listOf("auto", "hold")) {
+            invoke(if (mode == "auto") "maybeAutoplayCurrentMotionPage" else "startMotionPlaybackForCurrentPage")
+            await("$name-$mode 动态正在播放") { motionIsPlaying() }
+            check("$name-$mode 视频揭示时下层遮挡已就绪", main { backdrop.visibility == View.VISIBLE })
+            check("$name-$mode 保留同一 HDR 输出层", main { pqSurface() === surface })
+            verifyMotionEdge("$name-$mode")
+            if (mode == "hold") {
+                verifyMotionSnapshot("$name-$mode")
+                invoke("stopMotionPlayback")
+            } else await("$name 自动播放自然结束") { field<Any?>(current, "mMotionPlayer") == null }
+            verifyHdrReady("$name-after-$mode", key)
+            check("$name-$mode 停止后移除遮挡", main { backdrop.visibility != View.VISIBLE })
+            check("$name-$mode 保留同一高清位图", main { (photo().drawable as android.graphics.drawable.BitmapDrawable).bitmap === bitmap })
+            check("$name-$mode 恢复原 HDR 输出层", main { pqSurface() === surface })
+            check("$name-$mode 保留缩放", main { kotlin.math.abs(photo().scale - if (iteration % 2 == 1) 2f else 1f) < .001f })
+        }
+        invoke("startMotionPlaybackForCurrentPage")
+        await("$name 播放中返回就绪") { motionIsPlaying() }
+    }
+
+    /** 冻结实际视频，在其后插入黑底；播放画面若改变，说明仍有下层静图暴露。 */
+    private fun verifyMotionEdge(name: String) {
+        val current = viewer!!
+        val player = main { checkNotNull(field<android.media.MediaPlayer?>(current, "mMotionPlayer")).also { it.pause() } }
+        SystemClock.sleep(160)
+        val texture = main { checkNotNull(field<android.view.TextureView?>(current, "mMotionTexture")) }
+        val parent = texture.parent as ViewGroup
+        val root = current.window.decorView
+        fun captureScreen(): Bitmap {
+            // Window PixelCopy 不包含下方独立 PQ Surface；边缘必须检查系统合成后的屏幕。
+            val screenshot = checkNotNull(uiAutomation.takeScreenshot())
+            require(screenshot.width == root.width && screenshot.height == root.height)
+            return checkNotNull(screenshot.copy(Bitmap.Config.ARGB_8888, false)).also { screenshot.recycle() }
+        }
+        val original = captureScreen()
+        val imageRect = main { RectF(photo().displayRect).apply {
+            val location = IntArray(2); photo().getLocationInWindow(location)
+            offset(location[0].toFloat(), location[1].toFloat())
+        } }
+        val videoRect = main { current.motionPreviewBounds(photo()) }
+        val mask = main { View(current).apply {
+            setBackgroundColor(Color.BLACK)
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            parent.addView(this, parent.indexOfChild(texture), ViewGroup.LayoutParams(-1, -1))
+        } }
+        try {
+            SystemClock.sleep(100)
+            val masked = captureScreen()
+            val rowChanges = JSONArray()
+            var total = 0; var interior = 0; var maxDifference = 0
+            val visible = RectF(imageRect).apply { intersect(0f, 0f, root.width.toFloat(), root.height.toFloat()) }
+            for (y in (visible.top.toInt() - 4).coerceAtLeast(0) until (visible.bottom.toInt() + 5).coerceAtMost(root.height)) {
+                var rowCount = 0
+                for (x in (visible.left.toInt() + 2).coerceAtLeast(0) until (visible.right.toInt() - 2).coerceAtMost(root.width)) {
+                    val a = original.getPixel(x, y); val b = masked.getPixel(x, y)
+                    val difference = maxOf(kotlin.math.abs(Color.red(a) - Color.red(b)),
+                        kotlin.math.abs(Color.green(a) - Color.green(b)), kotlin.math.abs(Color.blue(a) - Color.blue(b)))
+                    maxDifference = maxOf(maxDifference, difference)
+                    if (difference > 3) { rowCount++; total++; if (y > visible.top + 8 && y < visible.bottom - 8) interior++ }
+                }
+                if (rowCount > 0) rowChanges.put(JSONArray(listOf(y, rowCount)))
+            }
+            motionEdges.put(JSONObject().put("name", name).put("photoRect", imageRect.toShortString())
+                .put("videoRect", videoRect?.toShortString()).put("videoWidth", player.videoWidth).put("videoHeight", player.videoHeight)
+                .put("underlayChangedPixels", total).put("interiorChangedPixels", interior).put("maxDifference", maxDifference)
+                .put("changedRows", rowChanges).put("compatibility", field<Any?>(current, "mPqController") != null))
+            check("$name 冻结视频内部稳定", interior == 0)
+            check("$name 播放画面不露出下层静图", total == 0)
+            if (screenshots || args.getString("edgeScreens") == "true") {
+                saveBitmap(original, "$name-edge-original"); saveBitmap(masked, "$name-edge-masked")
+            }
+            else { original.recycle(); masked.recycle() }
+        } finally {
+            main { parent.removeView(mask); player.start() }
+        }
+        await("$name 边缘检查后恢复播放") { motionIsPlaying() }
+    }
+
     /** 冻结同一视频帧，对比实际窗口与返回动画使用的捕获入口；随后恢复播放再真正返回。 */
     private fun verifyMotionSnapshot(name: String) {
         val current = viewer!!
@@ -1088,10 +1192,10 @@ class MediaPreviewTransitionProbe : Instrumentation() {
                 val surface = controller?.let { field<HdrProbeSurface?>(it, "surface") }
                 val edge = maxOf(bitmap?.width ?: 0, bitmap?.height ?: 0)
                 val required = minOf(maxOf(bounds.outWidth, bounds.outHeight), maxOf(image.width, image.height))
-                // PQ 原有内存预算会限制超大图；实际输出至少覆盖未放大时的显示像素。
-                // PhotoView 另行验证正常尺寸请求，不能以 PQ 首帧或低清缓存替代。
+                // PQ 依原有预算一次性准备，缩放只更新矩阵；最低尺寸按未放大的显示区域验证。
+                // 同时保留实际缩放尺寸，播放专项另核对前后同一高清位图和同一输出层。
                 val displayed = image.displayRect?.let { maxOf(it.width(), it.height()) } ?: 0f
-                val pqRequired = minOf(edge.toFloat(), displayed)
+                val pqRequired = minOf(edge.toFloat(), displayed / image.scale.coerceAtLeast(1f))
                 val full = image in field<Set<PhotoView>>(viewer!!, "mFullResolutionImages")
                 decoded = full && required > 0 && edge >= required * .95f
                 presented = if (controller != null && hdr) surface?.isFrameReady == true && gpu != null &&
@@ -1103,6 +1207,7 @@ class MediaPreviewTransitionProbe : Instrumentation() {
                     .put("fullRequestReady", full).put("bitmapColorSpace", bitmap?.colorSpace?.name)
                     .put("bitmapGainmap", android.os.Build.VERSION.SDK_INT >= 34 && bitmap?.hasGainmap() == true)
                     .put("requiredPqEdge", pqRequired)
+                    .put("displayedEdge", displayed).put("photoScale", image.scale)
                     .put("pqWidth", gpu?.width).put("pqHeight", gpu?.height)
                     .put("pqReady", surface?.isFrameReady).put("photoAlpha", image.alpha)
                     .put("deferredLoads", field<List<*>>(viewer!!, "mDeferredPreviewLoads").size)
