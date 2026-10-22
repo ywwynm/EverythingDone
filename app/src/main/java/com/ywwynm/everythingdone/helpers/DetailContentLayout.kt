@@ -49,6 +49,7 @@ class DetailContentLayout(val recyclerView: RecyclerView, preparedSections: Line
     private var checklist: CheckListAdapter? = null
     private var audios: AudioAttachmentAdapter? = null
     private var audioColumns = 1
+    private val attachmentAnimator = DetailAttachmentItemAnimator()
     var checklistTopMargin = dp(20)
     var audioTopMargin = dp(32)
 
@@ -68,7 +69,7 @@ class DetailContentLayout(val recyclerView: RecyclerView, preparedSections: Line
         }
         recyclerView.layoutManager = layoutManager
         recyclerView.adapter = adapter
-        recyclerView.itemAnimator = null
+        restoreAttachmentAnimator()
         layoutManager.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
             override fun getSpanSize(position: Int): Int {
                 val (section, local) = sectionAt(position) ?: return layoutManager.spanCount
@@ -128,6 +129,9 @@ class DetailContentLayout(val recyclerView: RecyclerView, preparedSections: Line
 
     @Suppress("UNCHECKED_CAST")
     fun <T : View> view(id: Int): T = requireNotNull(views[id]) { "详情区域缺少 View：$id" } as T
+
+    /** 清单移动模式结束后恢复附件动画，不能把整个共用列表的动画关闭。 */
+    fun restoreAttachmentAnimator() { recyclerView.itemAnimator = attachmentAnimator }
 
     /** RecyclerView 只保存自身状态，固定编辑区需显式保留原先的 View 状态恢复行为。 */
     fun saveFixedViewState(): Bundle = Bundle().apply {

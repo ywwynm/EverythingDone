@@ -1,0 +1,56 @@
+{
+  "devices": [
+    {
+      "device": "samsung",
+      "originalRows": 375,
+      "originalRowsUnchangedAcrossAllRuns": true,
+      "fixtureRunsArchived": 2,
+      "mediaDirectoriesRemoved": 2,
+      "derivedCacheFilesRemovedAtCloseout": 0,
+      "noFixtureMediaOrDerivedPreviewsRemain": true,
+      "testPackageUninstalled": true,
+      "diagnosticsRemovedFromDevice": true,
+      "orientation": [
+        "0",
+        "0"
+      ],
+      "returnedToHome": true,
+      "installedSha256": "d91cdad0d1fc47a1cc0f8fce86c10b0ba70605590dedfa38c43ddf29bd4d8d92"
+    },
+    {
+      "device": "oneplus",
+      "originalRows": 115,
+      "originalRowsUnchangedAcrossAllRuns": true,
+      "fixtureRunsArchived": 4,
+      "mediaDirectoriesRemoved": 4,
+      "derivedCacheFilesRemovedAtCloseout": 0,
+      "noFixtureMediaOrDerivedPreviewsRemain": true,
+      "testPackageUninstalled": true,
+      "diagnosticsRemovedFromDevice": true,
+      "orientation": [
+        "0",
+        "0"
+      ],
+      "returnedToHome": true,
+      "installedSha256": "d91cdad0d1fc47a1cc0f8fce86c10b0ba70605590dedfa38c43ddf29bd4d8d92"
+    },
+    {
+      "device": "meizu",
+      "originalRows": 182,
+      "originalRowsUnchangedAcrossAllRuns": true,
+      "fixtureRunsArchived": 4,
+      "mediaDirectoriesRemoved": 4,
+      "derivedCacheFilesRemovedAtCloseout": 0,
+      "noFixtureMediaOrDerivedPreviewsRemain": true,
+      "testPackageUninstalled": true,
+      "diagnosticsRemovedFromDevice": true,
+      "orientation": [
+        "0",
+        "0"
+      ],
+      "returnedToHome": true,
+      "installedSha256": "d91cdad0d1fc47a1cc0f8fce86c10b0ba70605590dedfa38c43ddf29bd4d8d92"
+    }
+  ],
+  "allOriginalRowsUnchanged": true
+}

@@ -1,0 +1,580 @@
+{
+  "version": 202610221516,
+  "productionCodeChangedDuringDeviceValidation": false,
+  "independentTestApk": true,
+  "devices": [
+    {
+      "device": "samsung",
+      "serial": "R5CW20BLNKL",
+      "version": 202610221516,
+      "installedSha256": "d91cdad0d1fc47a1cc0f8fce86c10b0ba70605590dedfa38c43ddf29bd4d8d92",
+      "testSha256": "27eef7e3a3cf3405f11057453e9be6f24f520019b55fc1c4eb803c1be164877d",
+      "originalRows": 375,
+      "originalRowsUnchanged": true,
+      "settings": {
+        "accelerometer_rotation": "0",
+        "user_rotation": "0",
+        "animator_duration_scale": "1.0"
+      },
+      "driverError": null,
+      "checks": 127,
+      "failures": 0,
+      "error": null,
+      "failed": [],
+      "runs": 20,
+      "cases": [
+        {
+          "name": "grid/normal/image-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 141,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 252
+        },
+        {
+          "name": "grid/normal/video-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 127,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 252
+        },
+        {
+          "name": "grid/move-1/image-0",
+          "animator": "ChecklistDragItemAnimator",
+          "frames": 119,
+          "distinctIntermediatePositions": 21,
+          "sampledMotionMs": 189
+        },
+        {
+          "name": "grid/move-1/video-0",
+          "animator": "ChecklistDragItemAnimator",
+          "frames": 119,
+          "distinctIntermediatePositions": 21,
+          "sampledMotionMs": 187
+        },
+        {
+          "name": "grid/exit-1/image-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 127,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 254
+        },
+        {
+          "name": "grid/exit-1/video-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 127,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 253
+        },
+        {
+          "name": "grid/move-2/image-0",
+          "animator": "ChecklistDragItemAnimator",
+          "frames": 121,
+          "distinctIntermediatePositions": 21,
+          "sampledMotionMs": 187
+        },
+        {
+          "name": "grid/move-2/video-0",
+          "animator": "ChecklistDragItemAnimator",
+          "frames": 126,
+          "distinctIntermediatePositions": 21,
+          "sampledMotionMs": 188
+        },
+        {
+          "name": "grid/exit-2/image-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 144,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 254
+        },
+        {
+          "name": "grid/exit-2/video-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 146,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 252
+        },
+        {
+          "name": "full-span/normal/image-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 144,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 267
+        },
+        {
+          "name": "full-span/normal/video-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 144,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 285
+        },
+        {
+          "name": "full-span/move-1/image-0",
+          "animator": "ChecklistDragItemAnimator",
+          "frames": 137,
+          "distinctIntermediatePositions": 21,
+          "sampledMotionMs": 202
+        },
+        {
+          "name": "full-span/move-1/video-0",
+          "animator": "ChecklistDragItemAnimator",
+          "frames": 141,
+          "distinctIntermediatePositions": 21,
+          "sampledMotionMs": 220
+        },
+        {
+          "name": "full-span/exit-1/image-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 142,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 269
+        },
+        {
+          "name": "full-span/exit-1/video-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 144,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 294
+        },
+        {
+          "name": "full-span/move-2/image-0",
+          "animator": "ChecklistDragItemAnimator",
+          "frames": 137,
+          "distinctIntermediatePositions": 21,
+          "sampledMotionMs": 201
+        },
+        {
+          "name": "full-span/move-2/video-0",
+          "animator": "ChecklistDragItemAnimator",
+          "frames": 137,
+          "distinctIntermediatePositions": 21,
+          "sampledMotionMs": 220
+        },
+        {
+          "name": "full-span/exit-2/image-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 141,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 266
+        },
+        {
+          "name": "full-span/exit-2/video-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 145,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 287
+        }
+      ],
+      "minDistinctIntermediatePositions": 21,
+      "model": "SM-S9180",
+      "sdk": 36,
+      "rawChecksSha256": "b24a6dfdaea12bbe2ebbcb3a7032cf37d8fea8bd695f31a7e385fd40b3530c07",
+      "recording": {
+        "frames": 3327,
+        "width": 720,
+        "height": 1280
+      }
+    },
+    {
+      "device": "oneplus",
+      "serial": "192.168.100.184:36007",
+      "version": 202610221516,
+      "installedSha256": "d91cdad0d1fc47a1cc0f8fce86c10b0ba70605590dedfa38c43ddf29bd4d8d92",
+      "testSha256": "27eef7e3a3cf3405f11057453e9be6f24f520019b55fc1c4eb803c1be164877d",
+      "originalRows": 115,
+      "originalRowsUnchanged": true,
+      "settings": {
+        "accelerometer_rotation": "0",
+        "user_rotation": "0",
+        "animator_duration_scale": "null"
+      },
+      "driverError": null,
+      "checks": 127,
+      "failures": 0,
+      "error": null,
+      "failed": [],
+      "runs": 20,
+      "cases": [
+        {
+          "name": "grid/normal/image-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 128,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 252
+        },
+        {
+          "name": "grid/normal/video-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 128,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 258
+        },
+        {
+          "name": "grid/move-1/image-0",
+          "animator": "ChecklistDragItemAnimator",
+          "frames": 119,
+          "distinctIntermediatePositions": 21,
+          "sampledMotionMs": 193
+        },
+        {
+          "name": "grid/move-1/video-0",
+          "animator": "ChecklistDragItemAnimator",
+          "frames": 120,
+          "distinctIntermediatePositions": 21,
+          "sampledMotionMs": 189
+        },
+        {
+          "name": "grid/exit-1/image-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 135,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 256
+        },
+        {
+          "name": "grid/exit-1/video-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 127,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 259
+        },
+        {
+          "name": "grid/move-2/image-0",
+          "animator": "ChecklistDragItemAnimator",
+          "frames": 119,
+          "distinctIntermediatePositions": 21,
+          "sampledMotionMs": 191
+        },
+        {
+          "name": "grid/move-2/video-0",
+          "animator": "ChecklistDragItemAnimator",
+          "frames": 121,
+          "distinctIntermediatePositions": 21,
+          "sampledMotionMs": 190
+        },
+        {
+          "name": "grid/exit-2/image-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 136,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 254
+        },
+        {
+          "name": "grid/exit-2/video-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 129,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 254
+        },
+        {
+          "name": "full-span/normal/image-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 128,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 255
+        },
+        {
+          "name": "full-span/normal/video-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 136,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 290
+        },
+        {
+          "name": "full-span/move-1/image-0",
+          "animator": "ChecklistDragItemAnimator",
+          "frames": 124,
+          "distinctIntermediatePositions": 21,
+          "sampledMotionMs": 207
+        },
+        {
+          "name": "full-span/move-1/video-0",
+          "animator": "ChecklistDragItemAnimator",
+          "frames": 123,
+          "distinctIntermediatePositions": 21,
+          "sampledMotionMs": 224
+        },
+        {
+          "name": "full-span/exit-1/image-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 133,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 266
+        },
+        {
+          "name": "full-span/exit-1/video-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 133,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 290
+        },
+        {
+          "name": "full-span/move-2/image-0",
+          "animator": "ChecklistDragItemAnimator",
+          "frames": 125,
+          "distinctIntermediatePositions": 21,
+          "sampledMotionMs": 201
+        },
+        {
+          "name": "full-span/move-2/video-0",
+          "animator": "ChecklistDragItemAnimator",
+          "frames": 125,
+          "distinctIntermediatePositions": 21,
+          "sampledMotionMs": 219
+        },
+        {
+          "name": "full-span/exit-2/image-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 133,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 268
+        },
+        {
+          "name": "full-span/exit-2/video-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 134,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 287
+        }
+      ],
+      "minDistinctIntermediatePositions": 21,
+      "model": "PLZ110",
+      "sdk": 37,
+      "rawChecksSha256": "740c1aca1c1d9f58d559d7ff59d1bb83999882d64d0fbda3c58c26afd3467ce2",
+      "recording": {
+        "frames": 3097,
+        "width": 720,
+        "height": 1280
+      }
+    },
+    {
+      "device": "meizu",
+      "serial": "192.168.100.67:40807",
+      "version": 202610221516,
+      "installedSha256": "d91cdad0d1fc47a1cc0f8fce86c10b0ba70605590dedfa38c43ddf29bd4d8d92",
+      "testSha256": "27eef7e3a3cf3405f11057453e9be6f24f520019b55fc1c4eb803c1be164877d",
+      "originalRows": 182,
+      "originalRowsUnchanged": true,
+      "settings": {
+        "accelerometer_rotation": "0",
+        "user_rotation": "0",
+        "animator_duration_scale": "1.0"
+      },
+      "driverError": null,
+      "checks": 159,
+      "failures": 0,
+      "error": null,
+      "failed": [],
+      "runs": 28,
+      "cases": [
+        {
+          "name": "grid/normal/image-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 124,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 291
+        },
+        {
+          "name": "grid/normal/video-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 125,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 274
+        },
+        {
+          "name": "grid/move-1/image-0",
+          "animator": "ChecklistDragItemAnimator",
+          "frames": 113,
+          "distinctIntermediatePositions": 21,
+          "sampledMotionMs": 217
+        },
+        {
+          "name": "grid/move-1/video-0",
+          "animator": "ChecklistDragItemAnimator",
+          "frames": 117,
+          "distinctIntermediatePositions": 21,
+          "sampledMotionMs": 191
+        },
+        {
+          "name": "grid/exit-1/image-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 135,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 260
+        },
+        {
+          "name": "grid/exit-1/video-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 129,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 257
+        },
+        {
+          "name": "grid/move-2/image-0",
+          "animator": "ChecklistDragItemAnimator",
+          "frames": 121,
+          "distinctIntermediatePositions": 21,
+          "sampledMotionMs": 185
+        },
+        {
+          "name": "grid/move-2/video-0",
+          "animator": "ChecklistDragItemAnimator",
+          "frames": 121,
+          "distinctIntermediatePositions": 21,
+          "sampledMotionMs": 186
+        },
+        {
+          "name": "grid/exit-2/image-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 136,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 253
+        },
+        {
+          "name": "grid/exit-2/video-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 133,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 252
+        },
+        {
+          "name": "grid/exit-2/image-1",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 131,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 254
+        },
+        {
+          "name": "grid/exit-2/video-1",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 131,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 258
+        },
+        {
+          "name": "grid/exit-2/image-2",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 144,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 258
+        },
+        {
+          "name": "grid/exit-2/video-2",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 142,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 253
+        },
+        {
+          "name": "full-span/normal/image-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 143,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 267
+        },
+        {
+          "name": "full-span/normal/video-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 141,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 301
+        },
+        {
+          "name": "full-span/move-1/image-0",
+          "animator": "ChecklistDragItemAnimator",
+          "frames": 129,
+          "distinctIntermediatePositions": 21,
+          "sampledMotionMs": 200
+        },
+        {
+          "name": "full-span/move-1/video-0",
+          "animator": "ChecklistDragItemAnimator",
+          "frames": 135,
+          "distinctIntermediatePositions": 21,
+          "sampledMotionMs": 247
+        },
+        {
+          "name": "full-span/exit-1/image-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 142,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 269
+        },
+        {
+          "name": "full-span/exit-1/video-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 144,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 310
+        },
+        {
+          "name": "full-span/move-2/image-0",
+          "animator": "ChecklistDragItemAnimator",
+          "frames": 133,
+          "distinctIntermediatePositions": 21,
+          "sampledMotionMs": 204
+        },
+        {
+          "name": "full-span/move-2/video-0",
+          "animator": "ChecklistDragItemAnimator",
+          "frames": 132,
+          "distinctIntermediatePositions": 21,
+          "sampledMotionMs": 237
+        },
+        {
+          "name": "full-span/exit-2/image-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 140,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 264
+        },
+        {
+          "name": "full-span/exit-2/video-0",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 144,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 301
+        },
+        {
+          "name": "full-span/exit-2/image-1",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 142,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 269
+        },
+        {
+          "name": "full-span/exit-2/video-1",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 142,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 311
+        },
+        {
+          "name": "full-span/exit-2/image-2",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 142,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 268
+        },
+        {
+          "name": "full-span/exit-2/video-2",
+          "animator": "DetailAttachmentItemAnimator",
+          "frames": 140,
+          "distinctIntermediatePositions": 29,
+          "sampledMotionMs": 296
+        }
+      ],
+      "minDistinctIntermediatePositions": 21,
+      "model": "MEIZU 20 Inf",
+      "sdk": 35,
+      "rawChecksSha256": "f52a68be058dcfb1d5cd5c86cacb62cb51d80e9c7eccf9812384b484619b26be",
+      "recording": {
+        "frames": 4866,
+        "width": 720,
+        "height": 1280
+      }
+    }
+  ],
+  "totalChecks": 413,
+  "totalAttachmentDrags": 68,
+  "totalOriginalRows": 672,
+  "failures": 0
+}

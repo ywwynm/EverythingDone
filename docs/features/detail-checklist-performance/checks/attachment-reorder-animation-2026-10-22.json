@@ -1,0 +1,38 @@
+{
+  "日期": "2026-10-22",
+  "问题": "记事详情附件换位没有动画",
+  "原配置复现": {
+    "首帧期望横坐标": 0,
+    "首帧实际横坐标": 200,
+    "单位": "px",
+    "媒体视图实例保持": true
+  },
+  "单变量对照": "仅恢复标准动画器后通过；预测布局仍关闭",
+  "全套本地测试": {
+    "tests": 1775,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3
+  },
+  "专项通过": [
+    "清单移动模式的实际动画器仍允许附件换位",
+    "图片视频换位在原位置开始并连续移动到新位置",
+    "连续反向换位不会遗留平移或更换媒体视图",
+    "对照仅恢复动画器且保持预测布局关闭即可连续换位",
+    "临时动画器退出后恢复附件换位动画",
+    "普通编辑区域重排增删与内容刷新不产生动画",
+    "中断换位动画后位置与透明度正确恢复"
+  ],
+  "生产与测试文件SHA256": {
+    "app/src/main/java/com/ywwynm/everythingdone/activities/DetailActivity.kt": "a72264293d1d641c66ddf8da8ef3a39a0b964af469f0f4718202f0defb3c1fe5",
+    "app/src/main/java/com/ywwynm/everythingdone/helpers/DetailContentLayout.kt": "4d09ca3f010699905185f9424e3985d37081a24527b366c661f4cdc08f68247d",
+    "app/src/main/java/com/ywwynm/everythingdone/helpers/DetailAttachmentItemAnimator.kt": "67a013a791cb8a613c90837f013626ee72f672b01a632044ec185b390d09b9cf",
+    "app/src/test/java/com/ywwynm/everythingdone/helpers/DetailAttachmentReorderAnimationTest.kt": "36dd280404a836a93440a85babbd4cb5896af5868a0242aaede32175b2e2bb30"
+  },
+  "原始日志": [
+    "tmp/detail-attachment-reorder-red.txt",
+    "tmp/detail-attachment-reorder-ab.txt",
+    "tmp/detail-attachment-reorder-all-tests.txt"
+  ],
+  "验证边界": "本轮未使用 ADB；本地回归替换媒体加载与资源布局，不代表三机真实触摸和通栏换位录屏已验证。"
+}

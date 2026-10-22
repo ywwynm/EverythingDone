@@ -8,7 +8,6 @@ import android.animation.ArgbEvaluator
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import androidx.lifecycle.Lifecycle
-import androidx.recyclerview.widget.DefaultItemAnimator
 import android.Manifest
 import androidx.activity.OnBackPressedCallback
 import android.annotation.SuppressLint
@@ -98,6 +97,7 @@ import com.ywwynm.everythingdone.adapters.CheckListAdapter
 import com.ywwynm.everythingdone.adapters.ImageAttachmentAdapter
 import com.ywwynm.everythingdone.helpers.DetailAttachmentPlaybackController
 import com.ywwynm.everythingdone.helpers.DetailContentLayout
+import com.ywwynm.everythingdone.helpers.DetailAttachmentItemAnimator
 import com.ywwynm.everythingdone.helpers.DetailViewPreparation
 import com.ywwynm.everythingdone.helpers.DetailScreenshotRenderer
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper
@@ -1515,7 +1515,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             R.drawable.act_back_from_move_checklist, 0, 0, 0
         )
         mCheckListAdapter!!.setDragging(true)
-        // 移动模式期间挂自定义 ItemAnimator（做收束/展开动画 + 门控重排）；平时为 null（编辑输入不闪动）。
+        // 移动模式增加清单收束／展开动画；附件仍保留位移，普通编辑不做变化动画。
         if (mChecklistDragAnimator == null) mChecklistDragAnimator = ChecklistDragItemAnimator()
         mDetailList!!.itemAnimator = mChecklistDragAnimator
         // 不裁剪子项，让被拖项的轮廓可在 itemView 下方溢出一点（多行文字时给文字底与轮廓底留白用），不被裁掉。
@@ -1531,7 +1531,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         )
         mCheckListAdapter!!.setDragging(false)
         removeChecklistCapsule()                 // 兜底：移动模式结束清掉可能残留的轮廓
-        mDetailList!!.itemAnimator = null
+        mDetailContent.restoreAttachmentAnimator()
         mDetailList!!.clipChildren = true       // 恢复默认裁剪
         mDetailList!!.clipToPadding = false
         mCheckListAdapter!!.notifyDataSetChanged()
@@ -5887,7 +5887,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
      *   展开期间（allowMoveAnimation=true）让下方兄弟平滑滑动填补/让位；被拖代理本身任何时候都不做 move 动画。
      * isRunning 计入自管的收缩/展开动画，避免 RecyclerView 误判动画结束而提前回收被动画的视图。
      */
-    private inner class ChecklistDragItemAnimator : DefaultItemAnimator() {
+    private inner class ChecklistDragItemAnimator : DetailAttachmentItemAnimator() {
         var allowMoveAnimation = false
         private val running = HashSet<RecyclerView.ViewHolder>()
 
@@ -5898,6 +5898,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
 
         override fun animateRemove(holder: RecyclerView.ViewHolder): Boolean {
+            if (holder.bindingAdapter !== mCheckListAdapter) return super.animateRemove(holder)
             endViewAnimation(holder)
             val v = holder.itemView
             v.pivotY = 0f
@@ -5917,6 +5918,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
 
         override fun animateAdd(holder: RecyclerView.ViewHolder): Boolean {
+            if (holder.bindingAdapter !== mCheckListAdapter) return super.animateAdd(holder)
             endViewAnimation(holder)
             val v = holder.itemView
             v.pivotY = 0f; v.scaleY = 0f; v.alpha = 0f
@@ -5935,17 +5937,9 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             return true
         }
 
-        override fun animateMove(
-            holder: RecyclerView.ViewHolder, fromX: Int, fromY: Int, toX: Int, toY: Int
-        ): Boolean {
-            if (!allowMoveAnimation || holder === mDraggedChecklistVH) {
-                holder.itemView.translationX = 0f
-                holder.itemView.translationY = 0f
-                dispatchMoveFinished(holder)
-                return false
-            }
-            return super.animateMove(holder, fromX, fromY, toX, toY)
-        }
+        override fun shouldAnimateMove(holder: RecyclerView.ViewHolder): Boolean =
+            if (holder.bindingAdapter === mCheckListAdapter) allowMoveAnimation && holder !== mDraggedChecklistVH
+            else super.shouldAnimateMove(holder)
 
         private fun endViewAnimation(holder: RecyclerView.ViewHolder) {
             if (running.remove(holder)) {
