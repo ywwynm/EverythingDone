@@ -47,6 +47,10 @@ internal object ParticleHardwareSnapshot {
     fun captureKeepingHardware(view: View, done: (Bitmap?) -> Unit) =
         capture(view, null, null, keepHardware = true, done = done)
 
+    /** 容器转场独立绘制投影；只在独立的捕获节点中排除来源阴影，不修改真实窗口。 */
+    fun captureWithoutShadow(view: View, caster: View, done: (Bitmap?) -> Unit) =
+        capture(view, null, null, keepHardware = true, shadowlessView = caster, done = done)
+
     /** 安全重建普通控件投影；软件内容不会携带活 SurfaceView 或 Ripple 的 RenderNode。 */
     fun captureSoftwareShadow(view: View, shadow: ParticleCardSnapshot, done: (Bitmap?) -> Unit) {
         val pixels = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
@@ -88,12 +92,14 @@ internal object ParticleHardwareSnapshot {
                         softwareContent: Bitmap? = null,
                         surfaceFrames: Map<View, Bitmap>? = null,
                         omitFeedback: Boolean = false,
+                        shadowlessView: View? = null,
                         done: (Bitmap?) -> Unit) {
         if (softwareContent == null && surfaceFrames == null && ParticlePresentationPolicy.of(view).unified &&
             ParticleSnapshot.hasVisibleSurface(view)) {
             ParticleSurfaceFrames.capture(view) { frames ->
                 if (frames == null) done(null)
-                else capture(view, clip, shadow, keepHardware, surfaceFrames = frames, omitFeedback = omitFeedback) { result ->
+                else capture(view, clip, shadow, keepHardware, surfaceFrames = frames, omitFeedback = omitFeedback,
+                    shadowlessView = shadowlessView) { result ->
                     frames.values.forEach { it.recycle() }; done(result)
                 }
             }
@@ -226,8 +232,8 @@ internal object ParticleHardwareSnapshot {
                 if (shadow != null) view.height else height)
             if (shadow == null && (clipLeft != 0 || clipTop != 0)) canvas.translate(-clipLeft.toFloat(), -clipTop.toFloat())
             if (softwareContent != null) canvas.drawBitmap(softwareContent, 0f, 0f, null)
-            else if (surfaceFrames != null) capturedNodes = ParticleViewCaptureTree.record(canvas, view, surfaceFrames,
-                borrowedViews = borrowedViews)
+            else if (surfaceFrames != null || shadowlessView != null) capturedNodes = ParticleViewCaptureTree.record(
+                canvas, view, surfaceFrames ?: emptyMap(), borrowedViews = borrowedViews, shadowlessView = shadowlessView)
             else {
                 borrowedViews.add(view)
                 ParticleForegroundSurface.withNativeDrawing(view) { view.draw(canvas) }

@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.detail
 
+import android.animation.ValueAnimator
 import android.app.Activity
 import android.app.Application
 import android.app.Dialog
@@ -15,6 +16,9 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
+import android.graphics.drawable.Drawable
+import android.graphics.drawable.DrawableWrapper
+import android.graphics.drawable.RippleDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -101,6 +105,10 @@ class ThingDetailTransitionProbe : Instrumentation() {
     private var failures = 0
     @Volatile private var label = ""
     private var expectFrames = false
+    private var samplingShadow = false
+    private var sampledOpeningShadow = false
+    private var shadowSourcePixels: Bitmap? = null
+    private var rippleTrace: RippleTrace? = null
     private var frameTimes = mutableListOf<Long>()
     private var progressValues = mutableListOf<Float>()
     private var matches = 0
@@ -115,6 +123,27 @@ class ThingDetailTransitionProbe : Instrumentation() {
     private val writer = Executors.newSingleThreadExecutor()
     private val stackSamples = ConcurrentLinkedQueue<JSONObject>()
     private var sampler: java.util.concurrent.ScheduledExecutorService? = null
+    private class RippleTrace(drawable: Drawable) : DrawableWrapper(drawable) {
+        var capturing = false
+        val captureAlphas = mutableListOf<Int>()
+        val assignedAlphas = mutableListOf<Int>()
+        val captureMaskAlphas = mutableListOf<Int>()
+        val capturePressed = mutableListOf<Boolean>()
+        val maskAlpha: Int? get() = (drawable as? RippleDrawable)?.findDrawableByLayerId(android.R.id.mask)?.alpha
+        val initialMaskAlpha = maskAlpha
+        override fun setAlpha(alpha: Int) {
+            if (capturing) assignedAlphas += alpha
+            super.setAlpha(alpha)
+        }
+        override fun draw(canvas: Canvas) {
+            if (capturing) {
+                captureAlphas += alpha
+                maskAlpha?.let(captureMaskAlphas::add)
+                capturePressed += state.contains(android.R.attr.state_pressed)
+            }
+            super.draw(canvas)
+        }
+    }
     private val callbacks = object : Application.ActivityLifecycleCallbacks {
         override fun onActivityCreated(activity: Activity, state: Bundle?) {
             if (activity is DetailActivity) {
@@ -138,6 +167,15 @@ class ThingDetailTransitionProbe : Instrumentation() {
                 override fun onDraw() {
                     val transition = field<ThingDetailTransition?>(activity, "detailTransition")
                     if (transition?.isRunning == true) {
+                        if (samplingShadow) return
+                        if (args.getString("phase") == "shadow" && !sampledOpeningShadow &&
+                            field<ValueAnimator?>(transition, "animator") != null) {
+                            sampledOpeningShadow = true
+                            samplingShadow = true
+                            field<ValueAnimator>(transition, "animator").pause()
+                            decor.post { sampleShadow(transition, true, "$label-shadow") }
+                            return
+                        }
                         frameTimes += SystemClock.elapsedRealtimeNanos()
                         progressValues += transition.progress
                         matches = maxOf(matches, transition.matchedElementCount)
@@ -341,7 +379,74 @@ class ThingDetailTransitionProbe : Instrumentation() {
             if (args.getString("orientation") == "landscape") {
                 check(baseOrientation == Configuration.ORIENTATION_LANDSCAPE) { "测试窗口未进入横屏" }
             }
-            if (args.getString("phase") == "appearance-parsing") {
+            if (args.getString("phase") == "shadow") {
+                val rotationBefore = baseRotation
+                val orientationBefore = baseOrientation
+                try {
+                    if (args.getString("landscape") == "true") {
+                        automation.setRotation(UiAutomation.ROTATION_FREEZE_90)
+                        await("阴影回归横屏布局") { home.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE && !list.isLayoutRequested }
+                        baseRotation = main { home.window.decorView.display.rotation }
+                        baseOrientation = Configuration.ORIENTATION_LANDSCAPE
+                    }
+                    for (wide in listOf(false, true)) {
+                        val gradient = args.getString("shadow_gradient") == "true"
+                        val note = fixture("连续阴影专用模拟", content = if (gradient)
+                            List(12) { "• 渐变卡片第 ${it + 1} 项：核对放大时的内部颜色与外侧投影。" }.joinToString("\n")
+                            else "仅检查打开和返回时卡片外侧的投影。",
+                            appearance = ThingCardAppearance(spanMode = if (wide) Thing.THING_CARD_SPAN_FULL else Thing.THING_CARD_SPAN_NORMAL),
+                            backgroundOverride = if (gradient) ThingBackground.gradient(Color.rgb(236, 36, 86), Color.rgb(120, 85, 226),
+                                if (wide) ThingBackground.Orientation.T_B else ThingBackground.Orientation.L_R) else null,
+                            pinned = gradient)
+                        runCase("shadow-$wide-open", note, keepOpen = true,
+                            touch = args.getString("shadow_touch") == "true")
+                        returnCase("shadow-$wide-return")
+                    }
+                } finally {
+                    automation.setRotation(rotationBefore)
+                    await("阴影回归恢复方向") { home.window.decorView.display.rotation == rotationBefore }
+                    baseRotation = rotationBefore
+                    baseOrientation = orientationBefore
+                }
+            } else if (args.getString("phase") == "ripple") {
+                val rotationBefore = baseRotation
+                val orientationBefore = baseOrientation
+                try {
+                    if (args.getString("landscape") == "true") {
+                        automation.setRotation(UiAutomation.ROTATION_FREEZE_90)
+                        await("波纹回归横屏布局") { home.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE && !list.isLayoutRequested }
+                        baseRotation = main { home.window.decorView.display.rotation }
+                        baseOrientation = Configuration.ORIENTATION_LANDSCAPE
+                    }
+                    val content = "第一行\n\n\n\n\n\n\n\n\n末行"
+                    val notes = listOf(
+                        "dark" to fixture("深色波纹专用模拟", content = content, pinned = true),
+                        "light" to fixture("浅色波纹专用模拟", content = content, pinned = true,
+                            backgroundOverride = ThingBackground.pure(Color.rgb(237, 225, 192))),
+                        "gradient" to fixture("渐变波纹专用模拟", content = content, pinned = true,
+                            backgroundOverride = ThingBackground.gradient(Color.rgb(180, 16, 62), Color.rgb(64, 20, 180),
+                                ThingBackground.Orientation.L_R)))
+                    for ((color, note) in notes) for (hold in listOf(0L, 48L, 120L)) {
+                        val name = "ripple-$color-$hold"
+                        runCase("$name-open", note, touch = true, keepOpen = true, touchHoldMs = hold)
+                        val trace = checkNotNull(rippleTrace)
+                        checkResult("$name-first-draw", trace.captureAlphas.isNotEmpty() && trace.assignedAlphas.isEmpty() &&
+                            trace.initialMaskAlpha == 255 && trace.maskAlpha == 255 && trace.captureMaskAlphas.all { it == 255 },
+                            JSONObject().put("capture_alphas", JSONArray(trace.captureAlphas.toList()))
+                                .put("assigned_alphas", JSONArray(trace.assignedAlphas.toList()))
+                                .put("capture_mask_alphas", JSONArray(trace.captureMaskAlphas.toList()))
+                                .put("capture_pressed", JSONArray(trace.capturePressed.toList()))
+                                .put("initial_mask_alpha", trace.initialMaskAlpha).put("final_mask_alpha", trace.maskAlpha))
+                        returnCase("$name-return")
+                    }
+                } finally {
+                    rippleTrace = null
+                    automation.setRotation(rotationBefore)
+                    await("波纹回归恢复方向") { home.window.decorView.display.rotation == rotationBefore }
+                    baseRotation = rotationBefore
+                    baseOrientation = orientationBefore
+                }
+            } else if (args.getString("phase") == "appearance-parsing") {
                 appearanceParsing()
             } else if (args.getString("phase") == "appearance-cost") {
                 appearanceCost()
@@ -458,6 +563,8 @@ class ThingDetailTransitionProbe : Instrumentation() {
             failures++
             result.put("error", error.stackTraceToString())
         } finally {
+            shadowSourcePixels?.recycle()
+            shadowSourcePixels = null
             if (App.getDoingThingId() in created) {
                 main { ThingDoingHelper.stopDoing(targetContext, DoingRecord.STOP_REASON_CANCEL_USER) }
                 await("仅停止本次测试计时") { App.getDoingThingId() == -1L }
@@ -1239,10 +1346,11 @@ class ThingDetailTransitionProbe : Instrumentation() {
     private fun fixture(title: String, content: String = "专用动画测试，运行结束自动清理。",
                         media: List<String> = emptyList(), appearance: ThingCardAppearance = ThingCardAppearance(),
                         gradient: Boolean = false,
-                        detailAppearance: DetailAttachmentMediaAppearance = DetailAttachmentMediaAppearance()): Thing {
+                        detailAppearance: DetailAttachmentMediaAppearance = DetailAttachmentMediaAppearance(),
+                        backgroundOverride: ThingBackground? = null, pinned: Boolean = false): Thing {
         val db = DBHelper(targetContext).writableDatabase
         val id = db.rawQuery("SELECT MAX(id) FROM things", null).use { it.moveToFirst(); it.getLong(0) + 1 }
-        val background = if (gradient) ThingBackground.gradient(Color.rgb(48, 79, 110), Color.rgb(147, 64, 75),
+        val background = backgroundOverride ?: if (gradient) ThingBackground.gradient(Color.rgb(48, 79, 110), Color.rgb(147, 64, 75),
             ThingBackground.Orientation.LT_RB) else ThingBackground.pure(Color.rgb(42, 83, 103))
         // 与真实创建保持同一不变量：头部占位记录始终在新记录之后，避免状态保存推进时碰撞。
         db.execSQL("UPDATE things SET id=?, location=? WHERE type=-1", arrayOf(id + 1, id + 1))
@@ -1250,7 +1358,7 @@ class ThingDetailTransitionProbe : Instrumentation() {
             put("id", id); put("type", Thing.NOTE); put("state", Thing.UNDERWAY)
             put("color", background.representativeColor()); put("background", background.toJson())
             put("title", title); put("content", content); put("attachment", AttachmentHelper.toAttachmentStr(media, emptyList()))
-            put("location", id); put("create_time", fixtureTime); put("update_time", fixtureTime); put("finish_time", 0L)
+            put("location", if (pinned) -id else id); put("create_time", fixtureTime); put("update_time", fixtureTime); put("finish_time", 0L)
             put("thing_card_appearance", appearance.toJson())
             put("detail_attachment_media_appearance", detailAppearance.toJson())
         })
@@ -1874,12 +1982,13 @@ class ThingDetailTransitionProbe : Instrumentation() {
                         touch: Boolean = false, rotate: Boolean = false, back: Boolean = false,
                         authHandoff: Boolean = false, recreate: Boolean = false, keepOpen: Boolean = false,
                         preparationPolicy: Int = 0, readyMedia: Boolean = false,
-                        quickReturn: Float? = null, quickToolbar: Boolean = false) {
+                        quickReturn: Float? = null, quickToolbar: Boolean = false, touchHoldMs: Long = 48L) {
         close()
         // 后台测试可能经过固定竖屏的系统桌面，每个样本重新确认所声明的基准方向。
         automation.setRotation(baseRotation)
         await("样本方向稳定") { home.resources.configuration.orientation == baseOrientation && !list.isLayoutRequested }
         label = name; expectFrames = visual; captureStage = 0; mediaMatched = false; enterToolbarDark = null
+        sampledOpeningShadow = false
         statusBarHandoffCorrect = true
         sourceLightStatusBars = main { WindowInsetsControllerCompat(home.window, home.window.decorView).isAppearanceLightStatusBars }
         frameTimes = mutableListOf(); progressValues = mutableListOf(); matches = 0
@@ -1962,6 +2071,23 @@ class ThingDetailTransitionProbe : Instrumentation() {
                     it.isShown && it.getTag(R.id.tag_thing_card_bound_stable_id) == thing.id } == true
         }
         card = main { list.findViewHolderForAdapterPosition(position)!!.itemView.findViewById<View>(R.id.cv_thing) }
+        if (args.getString("phase") == "ripple") main {
+            val foreground = checkNotNull(card.foreground).let { if (it is RippleTrace) checkNotNull(it.drawable) else it }
+            rippleTrace = RippleTrace(foreground).also {
+                card.foreground = it
+                // setForeground 会清除旧前景的 callback；恢复包装层回调，避免探针自己阻止波纹重绘。
+                it.drawable?.callback = it
+            }
+        }
+        if (args.getString("phase") == "shadow") {
+            val captured = java.util.concurrent.CountDownLatch(1)
+            main { com.ywwynm.everythingdone.views.particledismiss.ParticleHardwareSnapshot.capture(home.window.decorView) {
+                shadowSourcePixels?.recycle()
+                shadowSourcePixels = it
+                captured.countDown()
+            } }
+            check(captured.await(5, TimeUnit.SECONDS) && shadowSourcePixels != null)
+        }
         if (readyMedia) await("$name 首页 GIF 已加载") {
             descendants(card).filterIsInstance<ImageView>().any { it.drawable is GifDrawable }
         }
@@ -1970,6 +2096,17 @@ class ThingDetailTransitionProbe : Instrumentation() {
         val stages = JSONArray()
         main {
             ThingDetailTransition.diagnosticObserver = { stage ->
+                if (args.getString("phase") == "ripple") {
+                    if (stage == "source-elements") rippleTrace?.capturing = true
+                    if (stage == "captured") rippleTrace?.capturing = false
+                }
+                // 触摸包含按压缩放；在来源录制边界对照实际姿态，不能拿按压前的首页作参照。
+                if (args.getString("phase") == "shadow" && touch && stage == "source-elements") {
+                    com.ywwynm.everythingdone.views.particledismiss.ParticleHardwareSnapshot.capture(home.window.decorView) {
+                        shadowSourcePixels?.recycle()
+                        shadowSourcePixels = it
+                    }
+                }
                 stages.put(JSONObject().put("stage", stage)
                     .put("ms", SystemClock.elapsedRealtimeNanos() / 1_000_000.0 - start))
             }
@@ -1987,11 +2124,24 @@ class ThingDetailTransitionProbe : Instrumentation() {
                 event.source = InputDevice.SOURCE_TOUCHSCREEN
                 check(automation.injectInputEvent(event, true))
                 event.recycle()
-                if (action == MotionEvent.ACTION_DOWN) SystemClock.sleep(48)
+                if (action == MotionEvent.ACTION_DOWN && touchHoldMs > 0) SystemClock.sleep(touchHoldMs)
+                if (action == MotionEvent.ACTION_DOWN && args.getString("phase") == "ripple" && touchHoldMs == 120L)
+                    main { capture(home, "$name-held") }
             }
         } else main { card.performClick(); if (doubleClick) card.performClick() }
         await("$name 详情创建") { detail?.let { !it.isFinishing && it.hasWindowFocus() } == true }
         val activity = detail!!
+        if (args.getString("phase") == "ripple") {
+            val readable = main {
+                val transition = field<ThingDetailTransition?>(activity, "detailTransition")
+                val pending = transition?.let { field<Any>(it, "pending") }
+                pending?.let { field<Bitmap>(it, "scene") }?.copy(Bitmap.Config.ARGB_8888, false)
+            }
+            // PNG 编码必须离开主线程，否则采样会占掉整段展开动画。
+            if (readable != null) try {
+                File(output, "$name-ripple.png").outputStream().use { readable.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            } finally { readable.recycle() }
+        }
         if (quickReturn != null) {
             await("快速返回所需进度") {
                 field<ThingDetailTransition?>(activity, "detailTransition")?.progress?.let { it >= quickReturn } == true
@@ -2159,6 +2309,7 @@ class ThingDetailTransitionProbe : Instrumentation() {
         val stages = JSONArray()
         var captureIndex = 0
         var motionCaptured = false
+        var sampledReturnShadow = false
         var injected = false
         var geometryStable = true
         var inputProtected = true
@@ -2172,6 +2323,15 @@ class ThingDetailTransitionProbe : Instrumentation() {
         val decor = home.window.decorView
         val listener = ViewTreeObserver.OnDrawListener {
             val current = field<ThingDetailReturnTransition?>(home, "detailReturnTransition")
+            if (samplingShadow) return@OnDrawListener
+            if (args.getString("phase") == "shadow" && !sampledReturnShadow && current?.hasTarget == true &&
+                field<ValueAnimator?>(current, "animator") != null) {
+                sampledReturnShadow = true
+                samplingShadow = true
+                field<ValueAnimator>(current, "animator").pause()
+                decor.post { sampleShadow(current, false, "$name-shadow") }
+                return@OnDrawListener
+            }
             if (current != null && current.isRunning) {
                 transition = current
                 times += SystemClock.elapsedRealtimeNanos()
@@ -2683,6 +2843,191 @@ class ThingDetailTransitionProbe : Instrumentation() {
             File(output, "$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
             bitmap.recycle()
         }
+    }
+
+    /** 固定生产动画的中间帧，用硬件绘制核对卡片外侧；软件 Canvas 不会绘制 elevation 投影。 */
+    private fun sampleShadow(transition: Any, opening: Boolean, name: String) {
+        val layer = field<View>(transition, "layer")
+        val animator = field<ValueAnimator>(transition, "animator")
+        val oldProgress = field<Float>(layer, "progress")
+        fun resume() {
+            setField(layer, "progress", oldProgress)
+            layer.invalidate()
+            samplingShadow = false
+            animator.resume()
+        }
+        setField(layer, "progress", .5f)
+        val pending = if (opening) field<Any>(transition, "pending") else null
+        val scene = if (opening) field<Bitmap>(pending!!, "scene") else field<Bitmap>(transition, "listScene")
+        val readable = if (scene.config == Bitmap.Config.HARDWARE) scene.copy(Bitmap.Config.ARGB_8888, false) else scene
+        val background = Bitmap.createBitmap(layer.width, layer.height, Bitmap.Config.ARGB_8888)
+        val bounds = if (opening) android.graphics.RectF(0f, 0f, layer.width.toFloat(), layer.height.toFloat())
+            else field<android.graphics.RectF>(transition, "backgroundBounds")
+        Canvas(background).apply { drawColor(Color.BLACK); drawBitmap(readable, null, bounds, null) }
+        if (readable !== scene) readable.recycle()
+        val box = if (opening) {
+            @Suppress("UNCHECKED_CAST")
+            (layer.javaClass.getDeclaredMethod("returnGeometry").apply { isAccessible = true }.invoke(layer)
+                as Pair<android.graphics.RectF, android.graphics.RectF>).first
+        } else {
+            val a = field<ThingDetailReturnTransition.Frame>(transition, "source").rect
+            val b = field<ThingDetailReturnTransition.Frame>(transition, "destination").rect
+            val p = (transition as ThingDetailReturnTransition).progress
+            android.graphics.RectF(a.left + (b.left - a.left) * p, a.top + (b.top - a.top) * p,
+                a.right + (b.right - a.right) * p, a.bottom + (b.bottom - a.bottom) * p)
+        }
+        com.ywwynm.everythingdone.views.particledismiss.ParticleHardwareSnapshot.capture(layer) { bitmap ->
+            try {
+                var darkened = 0
+                val inset = (24 * layer.resources.displayMetrics.density).toInt()
+                if (bitmap != null) {
+                    for (y in maxOf(0, box.top.toInt() - inset) until minOf(bitmap.height, box.bottom.toInt() + inset)) {
+                        for (x in maxOf(0, box.left.toInt() - inset) until minOf(bitmap.width, box.right.toInt() + inset)) {
+                            if (x >= box.left - 1 && x <= box.right + 1 && y >= box.top - 1 && y <= box.bottom + 1) continue
+                            val a = background.getPixel(x, y)
+                            val b = bitmap.getPixel(x, y)
+                            if (Color.red(a) + Color.green(a) + Color.blue(a) -
+                                Color.red(b) - Color.green(b) - Color.blue(b) > 12) darkened++
+                        }
+                    }
+                    File(output, "$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                }
+                checkResult(name, bitmap != null && darkened > 100,
+                    JSONObject().put("darkened_outer_pixels", darkened).put("box", box.toString()))
+                bitmap?.recycle()
+            } finally {
+                background.recycle()
+                if (opening) sampleShadowStart(transition, name, ::resume)
+                else sampleShadowHandoff(transition as ThingDetailReturnTransition, name, ::resume)
+            }
+        }
+    }
+
+    private fun sampleShadowStart(transition: Any, name: String, done: () -> Unit) {
+        val layer = field<View>(transition, "layer")
+        val pending = field<Any>(transition, "pending")
+        val box = field<android.graphics.RectF>(pending, "card")
+        setField(layer, "progress", 0f)
+        com.ywwynm.everythingdone.views.particledismiss.ParticleHardwareSnapshot.capture(layer) { bitmap ->
+            try {
+                val reference = shadowSourcePixels
+                val error = if (bitmap == null || reference == null) Double.POSITIVE_INFINITY
+                    else shadowRingError(bitmap, reference, box, field<com.ywwynm.everythingdone.views.ThingDetailTransitionShadow.Style?>(pending, "shadow")?.clip,
+                        (16 * layer.resources.displayMetrics.density).toInt())
+                checkResult("$name-start", error < 1.0,
+                    JSONObject().put("mean_channel_error", error.takeIf { it.isFinite() } ?: JSONObject.NULL)
+                        .put("card", box.toString()).put("radius", field<Float>(pending, "radius")))
+                reference?.let { File(output, "$name-reference.png").outputStream().use { out -> it.compress(Bitmap.CompressFormat.PNG, 100, out) } }
+                field<Bitmap>(pending, "scene").let { scene ->
+                    val readable = if (scene.config == Bitmap.Config.HARDWARE) scene.copy(Bitmap.Config.ARGB_8888, false) else scene
+                    try { File(output, "$name-scene.png").outputStream().use { readable.compress(Bitmap.CompressFormat.PNG, 100, it) } }
+                    finally { if (readable !== scene) readable.recycle() }
+                }
+                val (contentMean, channels) = shadowContentError(bitmap, pending)
+                checkResult("$name-content", channels > 0 && contentMean < 1.0,
+                    JSONObject().put("mean_channel_error", contentMean).put("channels", channels))
+                bitmap?.let { File(output, "$name-start.png").outputStream().use { out -> it.compress(Bitmap.CompressFormat.PNG, 100, out) } }
+            } finally {
+                bitmap?.recycle()
+                shadowSourcePixels?.recycle()
+                shadowSourcePixels = null
+                done()
+            }
+        }
+    }
+
+    private fun shadowContentError(frame: Bitmap?, pending: Any): Pair<Double, Int> {
+        if (frame == null) return Double.POSITIVE_INFINITY to 0
+        val scene = field<Bitmap>(pending, "scene")
+        val readable = if (scene.config == Bitmap.Config.HARDWARE) scene.copy(Bitmap.Config.ARGB_8888, false) else scene
+        try {
+            val box = field<android.graphics.RectF>(pending, "card")
+            val clip = field<android.graphics.RectF>(pending, "visibleCard")
+            val radius = field<Float>(pending, "radius")
+            var error = 0L
+            var channels = 0
+            for (y in maxOf(0, (box.top + 2).toInt(), clip.top.toInt()) until minOf(frame.height, (box.bottom - 2).toInt(), clip.bottom.toInt())) {
+                for (x in maxOf(0, (box.left + 2).toInt(), clip.left.toInt()) until minOf(frame.width, (box.right - 2).toInt(), clip.right.toInt())) {
+                    if ((x < box.left + radius || x > box.right - radius) &&
+                        (y < box.top + radius || y > box.bottom - radius)) continue
+                    val a = readable.getPixel(x, y)
+                    val b = frame.getPixel(x, y)
+                    for (shift in listOf(0, 8, 16)) error += kotlin.math.abs((a shr shift and 255) - (b shr shift and 255))
+                    channels += 3
+                }
+            }
+            return error.toDouble() / maxOf(1, channels) to channels
+        } finally {
+            if (readable !== scene) readable.recycle()
+        }
+    }
+
+    private fun shadowRingError(frame: Bitmap, reference: Bitmap, box: android.graphics.RectF,
+                                clip: android.graphics.RectF?, margin: Int): Double {
+        val visible = clip ?: android.graphics.RectF(0f, 0f, frame.width.toFloat(), frame.height.toFloat())
+        var total = 0L
+        var channels = 0
+        for (y in maxOf(0, visible.top.toInt(), box.top.toInt() - margin) until minOf(frame.height, visible.bottom.toInt(), box.bottom.toInt() + margin)) {
+            for (x in maxOf(0, visible.left.toInt(), box.left.toInt() - margin) until minOf(frame.width, visible.right.toInt(), box.right.toInt() + margin)) {
+                if (x >= box.left - 1 && x <= box.right + 1 && y >= box.top - 1 && y <= box.bottom + 1) continue
+                val a = reference.getPixel(x, y)
+                val b = frame.getPixel(x, y)
+                for (shift in listOf(0, 8, 16)) total += kotlin.math.abs((a shr shift and 255) - (b shr shift and 255))
+                channels += 3
+            }
+        }
+        return if (channels == 0) Double.POSITIVE_INFINITY else total.toDouble() / channels
+    }
+
+    /** 交接区间的几何固定；只比较卡片周围投影，避免正文与媒体的正常更新干扰。 */
+    private fun sampleShadowHandoff(transition: ThingDetailReturnTransition, name: String, done: () -> Unit) {
+        val layer = field<View>(transition, "layer")
+        val end = field<ThingDetailReturnTransition.Frame>(transition, "destination")
+        val frames = mutableListOf<Bitmap>()
+        val times = listOf(.84f, .92f, 1f)
+        fun capture(index: Int) {
+            if (index == times.size) {
+                try {
+                    val reference = frames.last()
+                    val clip = end.shadow?.clip ?: android.graphics.RectF(0f, 0f, layer.width.toFloat(), layer.height.toFloat())
+                    val box = end.rect
+                    val margin = (16 * layer.resources.displayMetrics.density).toInt()
+                    var total = 0L
+                    var channels = 0
+                    for (frame in frames.dropLast(1)) {
+                        for (y in maxOf(0, clip.top.toInt(), box.top.toInt() - margin) until minOf(frame.height, clip.bottom.toInt(), box.bottom.toInt() + margin)) {
+                            for (x in maxOf(0, clip.left.toInt(), box.left.toInt() - margin) until minOf(frame.width, clip.right.toInt(), box.right.toInt() + margin)) {
+                                if (x >= box.left - 1 && x <= box.right + 1 && y >= box.top - 1 && y <= box.bottom + 1) continue
+                                val a = reference.getPixel(x, y)
+                                val b = frame.getPixel(x, y)
+                                for (shift in listOf(0, 8, 16)) total += kotlin.math.abs((a shr shift and 255) - (b shr shift and 255))
+                                channels += 3
+                            }
+                        }
+                    }
+                    val error = total.toDouble() / maxOf(1, channels)
+                    checkResult("$name-handoff", channels > 0 && error < 1.0,
+                        JSONObject().put("mean_channel_error", error).put("channels", channels))
+                } finally {
+                    frames.forEach(Bitmap::recycle)
+                    done()
+                }
+                return
+            }
+            setField(layer, "progress", times[index])
+            com.ywwynm.everythingdone.views.particledismiss.ParticleHardwareSnapshot.capture(layer) { bitmap ->
+                if (bitmap == null) {
+                    checkResult("$name-handoff", false)
+                    frames.forEach(Bitmap::recycle)
+                    done()
+                } else {
+                    File(output, "$name-handoff-$index.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                    frames += bitmap
+                    capture(index + 1)
+                }
+            }
+        }
+        capture(0)
     }
 
     private fun capture(activity: Activity, name: String) {

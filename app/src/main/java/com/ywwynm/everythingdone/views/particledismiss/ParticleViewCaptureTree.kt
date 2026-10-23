@@ -100,7 +100,8 @@ internal object ParticleViewCaptureTree {
     fun record(canvas: Canvas, root: View, frames: Map<View, Bitmap>,
                excluded: Set<View> = emptySet(), cache: Cache? = null,
                forceRootRecording: Boolean = false,
-               borrowedViews: MutableSet<View>? = null): List<RenderNode> {
+               borrowedViews: MutableSet<View>? = null,
+               shadowlessView: View? = null): List<RenderNode> {
         val nodes = mutableListOf<RenderNode>()
         val affected = java.util.Collections.newSetFromMap(java.util.IdentityHashMap<View, Boolean>())
         fun includeAncestors(source: View) {
@@ -113,7 +114,10 @@ internal object ParticleViewCaptureTree {
         }
         frames.keys.forEach(::includeAncestors)
         excluded.forEach(::includeAncestors)
-        if (cache != null) {
+        // 只拆父链：卡片副本的高度已由父节点去除，卡片自身应完整绘制一次。
+        // 再拆卡片会临时改写 foreground.alpha，原生 ripple 的透明内容层会使遮罩被错误恢复为 0。
+        (shadowlessView?.parent as? View)?.let(::includeAncestors)
+        if (cache != null && shadowlessView == null) {
             canvas.drawRenderNode(cache.update(root, frames, excluded, affected, forceRootRecording))
             return emptyList()
         }
@@ -147,6 +151,11 @@ internal object ParticleViewCaptureTree {
                     child.width <= 0 || child.height <= 0) return@forEachIndexed
                 val node = RenderNode("particleCaptured-${child.javaClass.simpleName}").also { nodes += it }
                 pose(node, child, view)
+                if (child === shadowlessView) {
+                    // 只修改副本，避免真实节点的按压动画或下一帧同步把原投影带回捕获画面。
+                    node.elevation = 0f
+                    node.translationZ = 0f
+                }
                 val recording = node.beginRecording(child.width, child.height)
                 try { draw(child, recording) } finally { node.endRecording() }
                 target.drawRenderNode(node)

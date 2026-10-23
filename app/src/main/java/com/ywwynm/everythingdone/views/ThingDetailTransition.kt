@@ -25,6 +25,7 @@ import android.view.WindowManager
 import androidx.appcompat.view.WindowCallbackWrapper
 import android.view.animation.PathInterpolator
 import android.widget.ImageView
+import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.core.view.doOnPreDraw
@@ -186,7 +187,9 @@ internal class ThingDetailTransition private constructor(
                     RectF(0f, 0f, host.width.toFloat(), host.height.toFloat()),
                     geometry.first, geometry.second, pending.radius * (1f - layer.progress),
                     emptyList(), null, systemBars.isAppearanceLightStatusBars,
-                    host.width, host.height, content.background?.constantState?.newDrawable()?.mutate()) })
+                    host.width, host.height, content.background?.constantState?.newDrawable()?.mutate(),
+                    pending.shadow?.copy(elevation = pending.shadow.elevation * (1f - layer.progress),
+                        clip = layer.shadowClip())) })
             }
         }
         if (Build.VERSION.SDK_INT >= 29 && host.isHardwareAccelerated) {
@@ -253,7 +256,8 @@ internal class ThingDetailTransition private constructor(
     private data class Pending(
         var scene: Bitmap?, val width: Int, val height: Int,
         val card: RectF, val visibleCard: RectF, val radius: Float,
-        val elements: List<Element>, val mediaKey: String?, val thingId: Long, val lightStatusBars: Boolean
+        val elements: List<Element>, val mediaKey: String?, val thingId: Long, val lightStatusBars: Boolean,
+        val shadow: ThingDetailTransitionShadow.Style?
     ) {
         fun release() { scene = null; elements.forEach { it.pixels = null } }
     }
@@ -263,7 +267,7 @@ internal class ThingDetailTransition private constructor(
         val pixels: Bitmap? = null
     )
 
-    private inner class TransitionLayer : View(activity) {
+    private inner class TransitionLayer : FrameLayout(activity) {
         var returnPixels: Bitmap? = null
         private var motionMarked = false
         var progress = 0f
@@ -276,12 +280,20 @@ internal class ThingDetailTransition private constructor(
         private val destination = RectF()
         private var statusBarHeight = 0
         private val background = content.background?.constantState?.newDrawable()?.mutate()
+        private val shadow = ThingDetailTransitionShadow(activity)
 
         init {
             isClickable = true
             isFocusable = false
             importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
             setWillNotDraw(false)
+            clipChildren = false
+            addView(shadow, LayoutParams(-1, -1))
+        }
+
+        fun shadowClip(): RectF {
+            val window = RectF(0f, 0f, host.width.toFloat(), host.height.toFloat())
+            return RectF().also { interpolate(pending.shadow?.clip ?: window, window, progress, it) }
         }
 
         fun returnGeometry(): Pair<RectF, RectF> {
@@ -334,7 +346,7 @@ internal class ThingDetailTransition private constructor(
         fun coversStatusBar(): Boolean = !end.isEmpty && progress >= .9f &&
             pending.card.top + (end.top - pending.card.top) * progress <= statusBarHeight * .5f
 
-        override fun onDraw(canvas: Canvas) {
+        override fun dispatchDraw(canvas: Canvas) {
             returnPixels?.let { paint.alpha = 255; canvas.drawBitmap(it, 0f, 0f, paint); return }
             if (progress > 0f && !motionMarked) {
                 motionMarked = true
@@ -346,6 +358,17 @@ internal class ThingDetailTransition private constructor(
             canvas.drawColor(Color.BLACK)
             paint.alpha = 255
             canvas.drawBitmap(scene, 0f, 0f, paint)
+            val geometry = returnGeometry().first
+            shadow.update(geometry, pending.radius * (1f - progress), pending.shadow,
+                (pending.shadow?.elevation ?: 0f) * (1f - progress))
+            val projection = canvas.save()
+            canvas.clipRect(shadowClip())
+            // 投影节点本身透明，原生阴影也会覆盖轮廓内部；只保留卡片外侧，不能污染来源内容。
+            path.rewind()
+            path.addRoundRect(geometry, pending.radius * (1f - progress), pending.radius * (1f - progress), Path.Direction.CW)
+            canvas.clipOutPath(path)
+            super.dispatchDraw(canvas)
+            canvas.restoreToCount(projection)
             if (progress <= 0f || end.isEmpty) return
             interpolate(pending.card, end, progress, current)
             interpolate(pending.visibleCard, end, progress, currentClip)
@@ -558,6 +581,7 @@ internal class ThingDetailTransition private constructor(
             val width = decor.width
             mark("source-elements")
             val height = decor.height
+            val sourceShadow = ThingDetailTransitionShadow.Style.capture(card, decor)
             var scene: Bitmap? = null
             var capturesLeft = if (mediaView != null) 2 else 1
             var cancelled = false
@@ -585,7 +609,7 @@ internal class ThingDetailTransition private constructor(
                     }
                     pendingTransitions[token] = Pending(scene, width, height, sourceBounds, visible,
                         (card as? CardView)?.radius ?: 0f, elements, mediaKey, thing.id,
-                        WindowInsetsControllerCompat(activity.window, decor).isAppearanceLightStatusBars)
+                        WindowInsetsControllerCompat(activity.window, decor).isAppearanceLightStatusBars, sourceShadow)
                     scene?.prepareToDraw()
                     elements.forEach { it.pixels?.prepareToDraw() }
                     intent.putExtra(EXTRA_TOKEN, token)
@@ -611,7 +635,7 @@ internal class ThingDetailTransition private constructor(
             // 整屏承接画面只交给硬件 Canvas，不读取像素；避免 GPU → CPU → GPU 的整屏往返。
             // 旧系统或硬件捕获失败仍沿用已验证的内容快照路径。
             if (Build.VERSION.SDK_INT >= 29 && decor.isHardwareAccelerated) {
-                ParticleHardwareSnapshot.captureKeepingHardware(decor) { bitmap ->
+                ParticleHardwareSnapshot.captureWithoutShadow(decor, card) { bitmap ->
                     if (bitmap != null) { scene = bitmap; captured() }
                     else ParticleDismissController.captureContent(decor) { scene = it; captured() }
                 }

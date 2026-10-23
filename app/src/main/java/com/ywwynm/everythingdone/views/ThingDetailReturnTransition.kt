@@ -23,6 +23,7 @@ import android.view.ViewGroup
 import android.view.animation.LinearInterpolator
 import android.view.animation.PathInterpolator
 import android.widget.ImageView
+import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.core.view.ViewCompat
@@ -259,7 +260,7 @@ internal class ThingDetailReturnTransition(
     /** 输入保护覆盖随后一批列表提交，避免旧卡片按 Manager 的新位置响应点击。 */
     fun releaseInput() = input.release()
 
-    private inner class ReturnLayer : View(activity) {
+    private inner class ReturnLayer : FrameLayout(activity) {
         // 前 252 ms 完成几何收回，再用 48 ms 在同一位置交接；总时长仍为 300 ms。
         var progress = 0f
         private val motionCurve = PathInterpolator(.2f, 0f, 0f, 1f)
@@ -268,9 +269,15 @@ internal class ThingDetailReturnTransition(
         val matches = mutableListOf<Pair<Part, Part>>()
         private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
         private val path = Path()
+        private val shadow = ThingDetailTransitionShadow(activity)
         private var motionMarked = false
 
-        init { isClickable = true; importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS }
+        init {
+            isClickable = true
+            importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+            clipChildren = false
+            addView(shadow, LayoutParams(-1, -1))
+        }
 
         fun prepare() {
             val end = destination ?: return
@@ -284,7 +291,7 @@ internal class ThingDetailReturnTransition(
             matches.sortBy { if (it.first.role == MEDIA) 0 else 1 }
         }
 
-        override fun onDraw(canvas: Canvas) {
+        override fun dispatchDraw(canvas: Canvas) {
             val startPixels = source.pixels ?: return
             val motion = motionProgress
             if (motion > 0f && !motionMarked) { motionMarked = true; mark("first-motion") }
@@ -304,11 +311,20 @@ internal class ThingDetailReturnTransition(
             }
             val rect = lerp(source.rect, end.rect, motion)
             val clip = lerp(source.clip, end.clip, motion)
+            val radius = source.radius + (end.radius - source.radius) * motion
+            val style = end.shadow ?: source.shadow
+            shadow.update(rect, radius, style,
+                (source.shadow?.elevation ?: 0f) * (1f - motion) + (end.shadow?.elevation ?: 0f) * motion)
+            val projection = canvas.save()
+            val window = RectF(0f, 0f, width.toFloat(), height.toFloat())
+            canvas.clipRect(lerp(source.shadow?.clip ?: window, end.shadow?.clip ?: window, motion))
+            path.rewind()
+            path.addRoundRect(rect, radius, radius, Path.Direction.CW)
+            canvas.clipOutPath(path)
+            super.dispatchDraw(canvas)
+            canvas.restoreToCount(projection)
             val saved = canvas.save()
             canvas.clipRect(clip)
-            path.rewind()
-            val radius = source.radius + (end.radius - source.radius) * motion
-            path.addRoundRect(rect, radius, radius, Path.Direction.CW)
             canvas.clipPath(path)
             val blend = fraction(motion, .08f, .8f)
             for ((frame, alpha) in listOf(source to 1f, end to blend)) {
@@ -404,7 +420,8 @@ internal class ThingDetailReturnTransition(
         val lineCount: Int = 0, val ellipsized: Boolean = false)
     internal data class Frame(var pixels: Bitmap?, val pixelsRect: RectF, val rect: RectF, val clip: RectF,
         val radius: Float, val parts: List<Part>, val mediaKey: String?, val lightBars: Boolean,
-        val windowWidth: Int, val windowHeight: Int, val background: Drawable?) {
+        val windowWidth: Int, val windowHeight: Int, val background: Drawable?,
+        val shadow: ThingDetailTransitionShadow.Style? = null) {
         fun release() { pixels = null; parts.forEach { it.pixels = null } }
     }
 
@@ -556,7 +573,8 @@ internal class ThingDetailReturnTransition(
                 done(scene?.let { Frame(it, RectF(visible), rect, RectF(visible),
                     (view as? CardView)?.radius ?: 0f, parts, mediaKey, light, host.width, host.height,
                     (if (detail) view.findViewById<View>(R.id.fl_root_detail)?.background else view.background)
-                        ?.constantState?.newDrawable()?.mutate()) })
+                        ?.constantState?.newDrawable()?.mutate(),
+                    if (detail) null else ThingDetailTransitionShadow.Style.capture(view, host)) })
             }
             capturePixels(view, if (view === host) null else clip) { scene = it; captured() }
             boundedMedia?.let { image ->
