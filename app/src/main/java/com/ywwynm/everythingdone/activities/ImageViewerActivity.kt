@@ -144,6 +144,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         mPreviewDismiss = MediaPreviewDismissGesture(this, mVpImage!!,
             currentPhoto = { mTabs?.getOrNull(mVpImage?.currentItem ?: mPosition)?.findViewById(R.id.iv_image_attachment) },
             enabled = { mViewerResumed && mPagerIdle && !mSpatialMode && !mPreviewTransitionBlocked &&
+                mPreviewTransition?.isRefreshingDismissBackground != true &&
                 mPreviewTransition?.returning != true && mSpatialGenerationOverlay?.visibility != View.VISIBLE },
             excluded = { event ->
                 listOfNotNull(mActionbar, findViewById<View>(R.id.fl_top_badges)).any { view ->
@@ -162,7 +163,10 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                 super.dispatchTouchEvent(cancel)
                 cancel.recycle()
             },
-            commit = { returnToDetailActivity() })
+            commit = { returnToDetailActivity() },
+            backgroundMedia = { mPreviewTransition?.dismissBackgroundMedia(
+                mTypePathNames?.getOrNull(mVpImage?.currentItem ?: mPosition)) },
+            backgroundFill = { mPreviewTransition?.dismissBackgroundFill() })
     }
 
     private fun resumeDeferredPreviewLoads() {

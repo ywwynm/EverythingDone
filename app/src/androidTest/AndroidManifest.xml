@@ -1,6 +1,3 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <instrumentation
-        android:name="com.ywwynm.everythingdone.detail.DetailAttachmentReorderProbe"
-        android:targetPackage="com.ywwynm.everythingdone"
-        android:label="详情附件换位与清单移动模式实机回归" />
+    <!-- 测试入口由 detailTestRunner 选择；默认仍为附件换位回归。 -->
 </manifest>

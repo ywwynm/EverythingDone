@@ -51,6 +51,7 @@ class MediaPreviewDismissGestureTest {
     private val actions = mutableListOf<Int>()
     private var videoBounds: RectF? = null
     private var backdrop: Bitmap? = null
+    private var backgroundMask: RectF? = null
     private var committed: () -> Unit = {}
 
     @Before fun setup() {
@@ -77,7 +78,8 @@ class MediaPreviewDismissGestureTest {
                 val cancel = MotionEvent.obtain(event).apply { action = MotionEvent.ACTION_CANCEL }
                 content(cancel)
                 cancel.recycle()
-            }, { commits++; committed() })
+            }, { commits++; committed() }, { backgroundMask },
+            { MediaPreviewDetailBackground.capture(host, activity.window.decorView) })
         eventTime = SystemClock.uptimeMillis()
     }
 
@@ -347,6 +349,29 @@ class MediaPreviewDismissGestureTest {
         assertEquals(1, host.childCount)
     }
 
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `拖动时原附件显示记事底色且完整快照保留用于最终交接`() {
+        host.setBackgroundColor(Color.BLUE)
+        backdrop = Bitmap.createBitmap(400, 800, Bitmap.Config.ARGB_8888).apply { eraseColor(Color.GREEN) }
+        backgroundMask = RectF(40f, 100f, 160f, 200f)
+        down()
+        send(MotionEvent.ACTION_MOVE, touchX, touchY + 120f)
+        val backgroundView = host.getChildAt(0)
+        backgroundView.layout(0, 0, host.width, host.height)
+        val pixels = Bitmap.createBitmap(host.width, host.height, Bitmap.Config.ARGB_8888)
+        backgroundView.draw(Canvas(pixels))
+        val offset = ThingDetailTransition.bounds(backgroundView, activity.window.decorView)
+        val hole = pixels.getPixel((100 - offset.left).toInt(), (150 - offset.top).toInt())
+        val outside = pixels.getPixel((220 - offset.left).toInt(), (150 - offset.top).toInt())
+        assertTrue(Color.green(outside) > 0)
+        assertEquals("空区应与其余详情使用相同显露程度的记事底色", Color.green(outside), Color.blue(hole))
+        assertEquals(0, Color.red(hole) + Color.green(hole))
+        assertEquals(Color.GREEN, backdrop!!.getPixel(100, 150))
+        pixels.recycle()
+        gesture.cancelImmediately()
+        assertEquals(1, host.childCount)
+    }
+
     @Test fun `确认返回后立即承接向外速度并在原窗口收回`() {
         val destination = RectF(20f, 40f, 220f, 240f)
         var finished = 0
@@ -428,6 +453,41 @@ class MediaPreviewDismissGestureTest {
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(500))
         assertTrue("最小宽度 ${widths.min()}", widths.all { it >= target.width() * .94f - .001f })
         animation.close()
+    }
+
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `返回期间固定图标经历半透明帧且不随媒体移动`() {
+        val start = MediaPreviewTransition.fullPhotoRect(photo, host)!!
+        val end = RectF(start).apply { offset(0f, -100f) }
+        val detail = FrameLayout(activity)
+        val icon = View(activity).apply { setBackgroundColor(Color.BLACK) }
+        detail.addView(icon)
+        detail.layout(0, 0, host.width, host.height)
+        val x = start.centerX().toInt()
+        val y = (start.centerY() - 50).toInt()
+        icon.layout(x - 10, y - 10, x + 10, y + 10)
+        val chrome = MediaPreviewDetailChrome.capture(detail, listOf(icon))
+        val red = mutableListOf<Int>()
+        val clear = mutableListOf<Int>()
+        val pixels = Bitmap.createBitmap(host.width, host.height, Bitmap.Config.ARGB_8888)
+        MediaPreviewTransition.diagnosticInteractiveFrame = { _, _, _, _ ->
+            for (i in 0 until host.childCount) if (host.getChildAt(i) !== pager)
+                host.getChildAt(i).layout(0, 0, host.width, host.height)
+            pixels.eraseColor(Color.WHITE)
+            host.draw(Canvas(pixels))
+            red += Color.red(pixels.getPixel(x, y))
+            clear += Color.red(pixels.getPixel(x + 30, y))
+        }
+        val animation = MediaPreviewReturnAnimation(host, pager, page, RectF(photo.displayRect),
+            start, start, end, end, targetMedia(end), end, 0f, 0f, 0f, {}, {}, chrome)
+        try {
+            animation.start()
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(500))
+            assertEquals(255, red.first())
+            assertTrue("应有渐显中间帧：$red", red.any { it in 20..235 })
+            assertEquals(0, red.last())
+            assertTrue("图标之外始终是红色媒体", clear.all { it == 255 })
+        } finally { animation.close(); pixels.recycle() }
     }
 
     @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)

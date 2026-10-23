@@ -1,0 +1,254 @@
+{
+  "date": "2026-10-23",
+  "release": {
+    "debugUpdateCode": 202610230232,
+    "sha256": "be16b43ac609678ac6c8f8d999004a8ef9b01cac730e2c3c346ad674b17ee967",
+    "sizeBytes": 36917327,
+    "apkUrl": "http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202610230232.apk",
+    "publishedAt": "2026-10-23T02:32:23.163307300Z",
+    "installed": {
+      "samsung": {
+        "serial": "R5CW20BLNKL",
+        "sha256": "be16b43ac609678ac6c8f8d999004a8ef9b01cac730e2c3c346ad674b17ee967"
+      },
+      "oneplus": {
+        "serial": "192.168.100.184:36007",
+        "sha256": "be16b43ac609678ac6c8f8d999004a8ef9b01cac730e2c3c346ad674b17ee967"
+      },
+      "meizu": {
+        "serial": "192.168.100.67:40807",
+        "sha256": "be16b43ac609678ac6c8f8d999004a8ef9b01cac730e2c3c346ad674b17ee967"
+      }
+    }
+  },
+  "unit_tests": {
+    "tests": 1779,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3
+  },
+  "baselines": [
+    {
+      "phase": "图标、配色与波纹",
+      "model": "SM-S9180",
+      "checks": 24,
+      "failures": [
+        "image-pulled-1 后台准备配色与正常详情一致",
+        "image-pulled-1 背景与正常详情附件区域一致",
+        "image-pulled-1 运动与交接颜色保持",
+        "image-pulled-1 actionbar 在结束前渐显",
+        "image-pulled-1 delete 在结束前渐显"
+      ],
+      "runs": [
+        {
+          "name": "image-pulled-1",
+          "open_offset": 575,
+          "background_difference": 0.9984358706986444,
+          "stopped_background_difference": 0,
+          "target": "RectF(0.0, 0.0, 1440.0, 1080.0)",
+          "actual": "RectF(0.0, 0.0, 1440.0, 1080.0)",
+          "first_motion_ms": 9.566354,
+          "icon_frames": [
+            {
+              "progress": 0.6,
+              "glyph": "actionbar",
+              "covered": 634,
+              "visible": 0
+            },
+            {
+              "progress": 0.6,
+              "glyph": "delete",
+              "covered": 548,
+              "visible": 0
+            },
+            {
+              "progress": 0.76,
+              "glyph": "actionbar",
+              "covered": 634,
+              "visible": 0
+            },
+            {
+              "progress": 0.76,
+              "glyph": "delete",
+              "covered": 548,
+              "visible": 0
+            },
+            {
+              "progress": 0.9,
+              "glyph": "actionbar",
+              "covered": 634,
+              "visible": 0
+            },
+            {
+              "progress": 0.9,
+              "glyph": "delete",
+              "covered": 548,
+              "visible": 0
+            }
+          ],
+          "palette": [
+            false,
+            false,
+            false,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "原附件位置静止副本",
+      "model": "SM-S9180",
+      "checks": 25,
+      "failures": [
+        "image-pulled-1 原附件位置空出且没有静止媒体副本"
+      ],
+      "runs": [
+        {
+          "name": "image-pulled-1",
+          "open_offset": 575,
+          "background_difference": 0,
+          "stopped_background_difference": 0,
+          "target": "RectF(0.0, 0.0, 1440.0, 1080.0)",
+          "actual": "RectF(0.0, 0.0, 1440.0, 1080.0)",
+          "first_motion_ms": 7.242187,
+          "icon_frames": [
+            {
+              "progress": 0.6,
+              "glyph": "actionbar",
+              "covered": 634,
+              "visible": 1
+            },
+            {
+              "progress": 0.6,
+              "glyph": "delete",
+              "covered": 548,
+              "visible": 1
+            },
+            {
+              "progress": 0.76,
+              "glyph": "actionbar",
+              "covered": 634,
+              "visible": 1
+            },
+            {
+              "progress": 0.76,
+              "glyph": "delete",
+              "covered": 548,
+              "visible": 1
+            },
+            {
+              "progress": 0.9,
+              "glyph": "actionbar",
+              "covered": 634,
+              "visible": 1
+            },
+            {
+              "progress": 0.9,
+              "glyph": "delete",
+              "covered": 548,
+              "visible": 1
+            }
+          ],
+          "palette": [
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true
+          ],
+          "touch_route": "activity"
+        }
+      ]
+    }
+  ],
+  "devices": [
+    {
+      "device": "samsung",
+      "model": "SM-S9180",
+      "original_rows": 375,
+      "cases": 27,
+      "activity_touch_cases": 18,
+      "receiver_boundary_cases": 9,
+      "checks": 572,
+      "failures": 0,
+      "error": null,
+      "empty_target_checks": 18,
+      "glyph_fade_checks": 30,
+      "max_endpoint_snapshot_difference": 0,
+      "min_late_glyph_visibility": 1,
+      "first_motion_ms": {
+        "min": 4.267865,
+        "max": 22.080625
+      },
+      "data_preserved": true,
+      "fixtures_removed": true,
+      "raw_result": "tmp/media-empty-published-samsung/checks.json"
+    },
+    {
+      "device": "oneplus",
+      "model": "PLZ110",
+      "original_rows": 115,
+      "cases": 27,
+      "activity_touch_cases": 18,
+      "receiver_boundary_cases": 9,
+      "checks": 572,
+      "failures": 0,
+      "error": null,
+      "empty_target_checks": 18,
+      "glyph_fade_checks": 30,
+      "max_endpoint_snapshot_difference": 0,
+      "min_late_glyph_visibility": 1,
+      "first_motion_ms": {
+        "min": 6.52375,
+        "max": 17.002968
+      },
+      "data_preserved": true,
+      "fixtures_removed": true,
+      "raw_result": "tmp/media-empty-published-oneplus/checks.json"
+    },
+    {
+      "device": "meizu",
+      "model": "MEIZU 20 Inf",
+      "original_rows": 182,
+      "cases": 27,
+      "activity_touch_cases": 18,
+      "receiver_boundary_cases": 9,
+      "checks": 572,
+      "failures": 0,
+      "error": null,
+      "empty_target_checks": 18,
+      "glyph_fade_checks": 30,
+      "max_endpoint_snapshot_difference": 0,
+      "min_late_glyph_visibility": 1,
+      "first_motion_ms": {
+        "min": 3.827708,
+        "max": 31.57401
+      },
+      "data_preserved": true,
+      "fixtures_removed": true,
+      "raw_result": "tmp/media-empty-published-meizu/checks.json"
+    }
+  ],
+  "scope": "普通详情和入口展开走完整触摸分发；接收舞台禁止点击，边界组直接向附件分发 DOWN/UP。详情固定静态代表帧以比较像素，测试结束恢复原设置；不计实体 NFC 来件或所有播放档位验证。首运动回调不等于硬件呈现延迟。"
+}

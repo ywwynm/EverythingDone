@@ -35,7 +35,9 @@ internal class MediaPreviewDismissGesture(
     private val background: () -> Bitmap?,
     private val chrome: () -> List<View>,
     private val cancelContent: (MotionEvent) -> Unit,
-    private val commit: () -> Unit
+    private val commit: () -> Unit,
+    private val backgroundMedia: () -> RectF? = { null },
+    private val backgroundFill: () -> MediaPreviewDetailBackground? = { null }
 ) {
     private val root get() = activity.window.decorView
     private val density = activity.resources.displayMetrics.density
@@ -173,7 +175,7 @@ internal class MediaPreviewDismissGesture(
     private fun begin(photo: PhotoView, event: MotionEvent, initialY: Float) {
         val page = photo.parent as? View ?: return
         val host = pager.parent as? ViewGroup ?: return
-        val backdrop = Backdrop(activity, background())
+        val backdrop = Backdrop(activity, background(), backgroundMedia(), backgroundFill())
         host.addView(backdrop, host.indexOfChild(pager), ViewGroup.LayoutParams(-1, -1))
         val startY = event.y - initialY
         val state = Drag(photo, page, backdrop, root.width, root.height, event.x, startY,
@@ -241,6 +243,7 @@ internal class MediaPreviewDismissGesture(
     }
 
     fun animateReturn(target: RectF, targetImage: RectF, targetMedia: ImageView, targetMediaBounds: RectF,
+                      detailChrome: MediaPreviewDetailChrome? = null,
                       finished: () -> Unit): Boolean {
         val state = drag ?: return false
         if (returnAnimation != null) return true
@@ -261,7 +264,7 @@ internal class MediaPreviewDismissGesture(
             targetImage, target, targetMedia, targetMediaBounds, vx, vy, widthSpeed, { p ->
                 state.backdrop.progress = initialBackground + (1f - initialBackground) * p
                 initialChrome.forEach { (view, alpha) -> view.alpha = alpha * (1f - p) }
-            }, finished).also { it.start() }
+            }, finished, detailChrome).also { it.start() }
         return true
     }
 
@@ -308,7 +311,8 @@ internal class MediaPreviewDismissGesture(
         velocity?.recycle(); velocity = null
     }
 
-    private class Backdrop(context: Activity, private val bitmap: Bitmap?) : View(context) {
+    private class Backdrop(context: Activity, private val bitmap: Bitmap?, private val omittedMedia: RectF?,
+                           private val fill: MediaPreviewDetailBackground?) : View(context) {
         private val paint = Paint(Paint.FILTER_BITMAP_FLAG)
         var progress = 0f
             set(value) { field = value; invalidate() }
@@ -317,7 +321,15 @@ internal class MediaPreviewDismissGesture(
             canvas.drawColor(Color.BLACK)
             if (bitmap != null && !bitmap.isRecycled) {
                 val offset = ThingDetailTransition.bounds(this, rootView)
-                canvas.drawBitmap(bitmap, -offset.left, -offset.top, paint)
+                val save = canvas.save()
+                canvas.translate(-offset.left, -offset.top)
+                // 空区显示原位置的记事背景；完整快照仍保留，供端点交接使用。
+                omittedMedia?.let {
+                    fill?.draw(canvas, it)
+                    canvas.clipOutRect(it)
+                }
+                canvas.drawBitmap(bitmap, 0f, 0f, paint)
+                canvas.restoreToCount(save)
             }
             canvas.drawColor(Color.argb(((1f - progress) * 255).roundToInt(), 0, 0, 0))
         }

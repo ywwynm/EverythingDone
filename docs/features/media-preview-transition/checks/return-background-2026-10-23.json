@@ -1,0 +1,119 @@
+{
+  "date": "2026-10-23",
+  "artifacts": {
+    "debugUpdateCode": 202610230254,
+    "sha256": "cfac7f6509539a6617b9c5a42b3d398ba9a1db02a2d0315460e9e43fbecefe10",
+    "sizeBytes": 36917327,
+    "apkUrl": "http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202610230254.apk",
+    "publishedAt": "2026-10-23T02:54:57.249269600Z",
+    "installed": {
+      "samsung": {
+        "serial": "R5CW20BLNKL",
+        "sha256": "cfac7f6509539a6617b9c5a42b3d398ba9a1db02a2d0315460e9e43fbecefe10"
+      },
+      "oneplus": {
+        "serial": "192.168.100.184:36007",
+        "sha256": "cfac7f6509539a6617b9c5a42b3d398ba9a1db02a2d0315460e9e43fbecefe10"
+      },
+      "meizu": {
+        "serial": "192.168.100.67:40807",
+        "sha256": "cfac7f6509539a6617b9c5a42b3d398ba9a1db02a2d0315460e9e43fbecefe10"
+      }
+    }
+  },
+  "unit_tests": 42,
+  "devices": {
+    "samsung": {
+      "model": "SM-S9180",
+      "runs": 27,
+      "checks": 581,
+      "failures": 0,
+      "original_rows": 375,
+      "background_frames": 36,
+      "sampled_background_frames": 27,
+      "sampled_points": 35298,
+      "min_matching_fraction": 1.0,
+      "first_motion_ms_range": [
+        4.399584,
+        21.403802
+      ],
+      "background_checks": 27,
+      "original_rows_unchanged": true,
+      "fixtures_removed": true,
+      "report": "tmp/media-note-background-samsung/checks.json"
+    },
+    "oneplus": {
+      "model": "PLZ110",
+      "runs": 27,
+      "checks": 581,
+      "failures": 0,
+      "original_rows": 115,
+      "background_frames": 36,
+      "sampled_background_frames": 27,
+      "sampled_points": 19762,
+      "min_matching_fraction": 1.0,
+      "first_motion_ms_range": [
+        4.457448,
+        15.006511
+      ],
+      "background_checks": 27,
+      "original_rows_unchanged": true,
+      "fixtures_removed": true,
+      "report": "tmp/media-note-background-oneplus/checks.json"
+    },
+    "meizu": {
+      "model": "MEIZU 20 Inf",
+      "runs": 27,
+      "checks": 581,
+      "failures": 0,
+      "original_rows": 182,
+      "background_frames": 36,
+      "sampled_background_frames": 29,
+      "sampled_points": 35955,
+      "min_matching_fraction": 1.0,
+      "first_motion_ms_range": [
+        2.853073,
+        32.450521
+      ],
+      "background_checks": 27,
+      "original_rows_unchanged": true,
+      "fixtures_removed": true,
+      "report": "tmp/media-note-background-meizu/checks.json"
+    }
+  },
+  "total_runs": 81,
+  "total_checks": 1743,
+  "original_rows": 672,
+  "cleanup": {
+    "samsung": {
+      "cache_removed": true,
+      "device_diagnostics_removed": true,
+      "test_apk_removed": true,
+      "foreground": "topResumedActivity=ActivityRecord{6236025 u0 com.ywwynm.everythingdone/.activities.ThingsActivity t11524}",
+      "rotation": {
+        "accelerometer_rotation": "0",
+        "user_rotation": "0"
+      }
+    },
+    "oneplus": {
+      "cache_removed": true,
+      "device_diagnostics_removed": true,
+      "test_apk_removed": true,
+      "foreground": "topResumedActivity=ActivityRecord{6191502 u0 com.ywwynm.everythingdone/.activities.ThingsActivity t4430}",
+      "rotation": {
+        "accelerometer_rotation": "0",
+        "user_rotation": "0"
+      }
+    },
+    "meizu": {
+      "cache_removed": true,
+      "device_diagnostics_removed": true,
+      "test_apk_removed": true,
+      "foreground": "topResumedActivity=ActivityRecord{823256d u0 com.ywwynm.everythingdone/.activities.ThingsActivity t5468}",
+      "rotation": {
+        "accelerometer_rotation": "0",
+        "user_rotation": "0"
+      }
+    }
+  }
+}

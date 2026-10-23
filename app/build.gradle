@@ -75,6 +75,8 @@ android {
         targetSdk 36
         versionCode 43
         versionName "2.0.0"
+        testInstrumentationRunner providers.gradleProperty('detailTestRunner')
+                .getOrElse('com.ywwynm.everythingdone.detail.DetailAttachmentReorderProbe')
         externalNativeBuild {
             cmake { arguments '-DANDROID_STL=c++_static' }
         }

@@ -1,0 +1,94 @@
+{
+  "debugUpdateCode": 202610221711,
+  "unit_tests": {
+    "tests": 1775,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3
+  },
+  "devices": [
+    {
+      "device": "SM-S9180",
+      "serial": "R5CW20BLNKL",
+      "cases": 18,
+      "checks": 80,
+      "failures": 0,
+      "error": null,
+      "original_rows": 375,
+      "first_motion_ms": [
+        3.827969,
+        12.630677
+      ],
+      "max_background_difference": 0,
+      "installed_sha256": "f37ec75540092220a4fdaa051362e97e9fd294f6ba5887c4ea6187afa99dd016",
+      "evidence": "tmp/media-receive-published-samsung/checks.json"
+    },
+    {
+      "device": "PLZ110",
+      "serial": "192.168.100.184:36007",
+      "cases": 18,
+      "checks": 80,
+      "failures": 0,
+      "error": null,
+      "original_rows": 115,
+      "first_motion_ms": [
+        3.878489,
+        15.631875
+      ],
+      "max_background_difference": 0,
+      "installed_sha256": "f37ec75540092220a4fdaa051362e97e9fd294f6ba5887c4ea6187afa99dd016",
+      "evidence": "tmp/media-receive-published-oneplus/checks.json"
+    },
+    {
+      "device": "MEIZU 20 Inf",
+      "serial": "192.168.100.67:40807",
+      "cases": 18,
+      "checks": 80,
+      "failures": 0,
+      "error": null,
+      "original_rows": 182,
+      "first_motion_ms": [
+        2.936927,
+        16.619323
+      ],
+      "max_background_difference": 0,
+      "installed_sha256": "f37ec75540092220a4fdaa051362e97e9fd294f6ba5887c4ea6187afa99dd016",
+      "evidence": "tmp/media-receive-published-meizu/checks.json"
+    }
+  ],
+  "baseline": "tmp/media-receive-baseline/checks.json",
+  "baseline_repeat": "tmp/media-receive-baseline-confirm/checks.json",
+  "cleanup": [
+    {
+      "device": "samsung",
+      "test_apk_removed": true,
+      "diagnostics_removed": true,
+      "focus": "com.ywwynm.everythingdone.activities.ThingsActivity",
+      "auto_rotation": "0",
+      "user_rotation": "0"
+    },
+    {
+      "device": "oneplus",
+      "test_apk_removed": true,
+      "diagnostics_removed": true,
+      "focus": "com.ywwynm.everythingdone.activities.ThingsActivity",
+      "auto_rotation": "0",
+      "user_rotation": "0"
+    },
+    {
+      "device": "meizu",
+      "test_apk_removed": true,
+      "diagnostics_removed": true,
+      "focus": "com.ywwynm.everythingdone.activities.ThingsActivity",
+      "auto_rotation": "0",
+      "user_rotation": "0"
+    }
+  ],
+  "publish": {
+    "debugUpdateCode": 202610221711,
+    "sha256": "f37ec75540092220a4fdaa051362e97e9fd294f6ba5887c4ea6187afa99dd016",
+    "sizeBytes": 36917327,
+    "apkUrl": "http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202610221711.apk",
+    "remote_metadata_and_apk_verified": true
+  }
+}

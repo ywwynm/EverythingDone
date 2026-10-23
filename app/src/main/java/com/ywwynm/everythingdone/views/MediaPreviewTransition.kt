@@ -49,9 +49,14 @@ internal class MediaPreviewTransition private constructor(
     private val origin: WeakReference<DetailActivity>
 ) {
     private var animation: Presentation? = null
-    // 交互返回在原窗口恢复前需要详情背景；复用打开时的单张画面，不冻结当前媒体。
+    // 交互返回在原窗口恢复前需要详情背景；详情后台复位后更新，不冻结当前媒体。
     private var detailFrame: Frame? = null
+    private var detailChrome: MediaPreviewDetailChrome? = null
+    private var detailBackground: MediaPreviewDetailBackground? = null
     private var backgroundGeneration = 0
+    private var originObserver: LifecycleEventObserver? = null
+    var isRefreshingDismissBackground = false
+        private set
     var returning = false
         private set
     val isRunning get() = animation?.running == true
@@ -62,19 +67,84 @@ internal class MediaPreviewTransition private constructor(
         it.width == viewer.window.decorView.width && it.height == viewer.window.decorView.height
     }?.pixels
 
+    fun dismissBackgroundMedia(key: String?): RectF? = origin.get()?.let { detail ->
+        laidOutDetailRect(detail.findMediaPreviewSource(key), detail.window.decorView)
+    }
+
+    fun dismissBackgroundFill(): MediaPreviewDetailBackground? = detailBackground
+
     fun refreshDismissBackground() {
         val token = ++backgroundGeneration
         detailFrame = null
+        detailChrome = null
+        detailBackground = null
+        isRefreshingDismissBackground = false
         val detail = origin.get()?.takeUnless { it.isFinishing || it.isDestroyed } ?: return
         val root = detail.window.decorView
         val destination = viewer.window.decorView
         if (root.width != destination.width || root.height != destination.height) return
-        capture(root, null, bars(detail)) { frame ->
-            if (backgroundGeneration == token && !viewer.isDestroyed && !returning) detailFrame = frame
+        isRefreshingDismissBackground = true
+        MediaPreviewDetailChrome.clearTouchFeedback(root)
+        val deadline = SystemClock.uptimeMillis() + 1200
+        fun prepare() {
+            if (backgroundGeneration != token || viewer.isDestroyed || returning) return
+            if (SystemClock.uptimeMillis() >= deadline || detail.isDestroyed || detail.isFinishing ||
+                root.width != destination.width || root.height != destination.height) {
+                isRefreshingDismissBackground = false
+                return
+            }
+            // 后台窗口没有 preDraw，主动提交与返回键相同的静态取色，并等待真实完成。
+            if (!detail.isMediaPreviewLayoutReady(includeStoppedWindow = true)) {
+                main.postDelayed({ prepare() }, 16)
+                return
+            }
+            val generation = detail.mediaPreviewToolbarGeneration()
+            val chrome = MediaPreviewDetailChrome.capture(root, detail.mediaPreviewChromeViews())
+            val fill = MediaPreviewDetailBackground.capture(detail.findViewById(R.id.fl_root_detail), root)
+            capture(root, null, bars(detail)) { frame ->
+                if (backgroundGeneration != token || viewer.isDestroyed || returning) return@capture
+                if (!detail.isMediaPreviewLayoutReady(includeStoppedWindow = true) || generation != detail.mediaPreviewToolbarGeneration()) {
+                    prepare()
+                    return@capture
+                }
+                detailFrame = frame
+                detailChrome = chrome
+                detailBackground = fill
+                isRefreshingDismissBackground = false
+            }
         }
+        prepare()
     }
 
-    fun close() { cancelEnter(); backgroundGeneration++; detailFrame = null }
+    /** ON_STOP 会收起接收胶囊。生命周期观察者按逆序通知，须等整轮通知结束后再比较和捕获。 */
+    private fun observeOriginStop() {
+        val detail = origin.get() ?: return
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) {
+                stopObservingOrigin()
+                val token = backgroundGeneration
+                isRefreshingDismissBackground = true
+                main.post {
+                    if (token != backgroundGeneration || returning || viewer.isDestroyed) return@post
+                    // 即使几何没有改变，打开时的快照也可能带有触摸波纹。
+                    refreshDismissBackground()
+                }
+            }
+        }
+        originObserver = observer
+        detail.lifecycle.addObserver(observer)
+    }
+
+    private fun stopObservingOrigin() {
+        originObserver?.let { origin.get()?.lifecycle?.removeObserver(it) }
+        originObserver = null
+    }
+
+    fun close() {
+        cancelEnter(); stopObservingOrigin(); backgroundGeneration++; detailFrame = null; detailChrome = null
+        detailBackground = null
+        isRefreshingDismissBackground = false
+    }
 
     fun returnInteractively(photo: PhotoView?, key: String?, gesture: MediaPreviewDismissGesture?,
                             freezeMedia: () -> Unit, finish: () -> Unit): Boolean {
@@ -97,7 +167,7 @@ internal class MediaPreviewTransition private constructor(
             diagnosticImageGeometry?.invoke(false, travel.width, travel.height, travel.from, travel.to)
         }
         mark("return-prepared")
-        val started = gesture.animateReturn(target, travel.to, targetMedia, ThingDetailTransition.bounds(targetMedia, destination)) {
+        val started = gesture.animateReturn(target, travel.to, targetMedia, ThingDetailTransition.bounds(targetMedia, destination), detailChrome) {
             holdDetailEndpoint(detail, background, key)
             mark("return-finished")
             finish()
@@ -258,6 +328,7 @@ internal class MediaPreviewTransition private constructor(
         }
         private val layer = Layer()
         private var target: Frame? = null
+        private var targetBackground: MediaPreviewDetailBackground? = null
         private var travel: Travel? = null
         private var animator: ValueAnimator? = null
         private var stableFrames = 0
@@ -307,6 +378,7 @@ internal class MediaPreviewTransition private constructor(
                 val contentRect = ThingDetailTransition.bounds(content, host)
                 val detail = activity as? DetailActivity
                 val toolbarGeneration = detail?.mediaPreviewToolbarGeneration()
+                val fill = detail?.let { MediaPreviewDetailBackground.capture(it.findViewById(R.id.fl_root_detail), host) }
                 // 内容根不含 Decor 上的承接层，捕获的是既有布局处理后的真实页面。
                 capture(content, rect?.apply { offset(-contentRect.left, -contentRect.top) }, destinationBars) { result ->
                     if (!running || frozen) return@capture
@@ -330,6 +402,7 @@ internal class MediaPreviewTransition private constructor(
                             offset(contentRect.left, contentRect.top)
                         }, result.lightBars)
                     }
+                    targetBackground = fill
                     destinationPrepared = true
                     mark(if (entering) "enter-captured" else "return-captured")
                     travel = travelProvider()
@@ -379,7 +452,7 @@ internal class MediaPreviewTransition private constructor(
             if (activity.window.callback === backInput) activity.window.callback = previousCallback
             systemBars.isAppearanceLightStatusBars = destinationBars
             layer.visibility = View.GONE
-            main.post { host.removeView(layer); target = null; travel = null }
+            main.post { host.removeView(layer); target = null; targetBackground = null; travel = null }
             lease.release()
             completed()
             mark("${if (entering) "enter" else "return"}-$reason")
@@ -389,9 +462,13 @@ internal class MediaPreviewTransition private constructor(
             private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
             private val crop = Rect()
             private val screen = RectF()
-            private fun drawFrame(canvas: Canvas, frame: Frame, alpha: Float, omitMedia: Boolean = false) {
+            private fun drawFrame(canvas: Canvas, frame: Frame, alpha: Float, omitMedia: Boolean = false,
+                                  background: MediaPreviewDetailBackground? = null) {
                 val save = canvas.save()
-                if (omitMedia) frame.rect?.let(canvas::clipOutRect)
+                if (omitMedia) frame.rect?.let {
+                    background?.draw(canvas, it, alpha)
+                    canvas.clipOutRect(it)
+                }
                 paint.alpha = (alpha.coerceIn(0f, 1f) * 255).roundToInt()
                 canvas.drawBitmap(frame.pixels, null, screen, paint)
                 canvas.restoreToCount(save)
@@ -439,7 +516,7 @@ internal class MediaPreviewTransition private constructor(
                 }
                 canvas.drawColor(Color.BLACK)
                 // 两端的固定媒体均挖去，只画一处随进度移动的媒体，避免双重图像。
-                drawFrame(canvas, end, progress, omitMedia = true)
+                drawFrame(canvas, end, progress, omitMedia = true, background = targetBackground)
                 drawFrame(canvas, source, 1f - progress, omitMedia = true)
                 val image = travel
                 if (image != null) {
@@ -450,7 +527,7 @@ internal class MediaPreviewTransition private constructor(
                     if (!entering) drawAlignedMedia(canvas, source, image.from, imageRect, rect, 1f)
                     // 来源徽标和不同播放帧仅在端点附近交接，不在整个运动中重叠两套裁剪。
                     drawAlignedMedia(canvas, source, image.from, imageRect, rect, (1f - progress / .16f).coerceAtLeast(0f))
-                    drawAlignedMedia(canvas, end, image.to, imageRect, rect, ((progress - .84f) / .16f).coerceAtLeast(0f))
+                    drawAlignedMedia(canvas, end, image.to, imageRect, rect, endpointBlend(progress))
                 } else {
                     drawMedia(canvas, source, rect, 1f)
                     drawMedia(canvas, end, rect, ((progress - .75f) / .25f).coerceAtLeast(0f))
@@ -523,6 +600,7 @@ internal class MediaPreviewTransition private constructor(
             if (!ValueAnimator.areAnimatorsEnabled()) return null
             return MediaPreviewTransition(activity, data.origin).also { session ->
                 session.detailFrame = data.frame
+                session.observeOriginStop()
                 session.animation = Presentation(activity, data.frame, true, photo,
                     travelProvider = { data.origin.get()?.let { imageTravel(photo(), it, data.key, true) } }, completed = {
                     session.animation = null
@@ -595,5 +673,7 @@ internal class MediaPreviewTransition private constructor(
         private fun mix(a: RectF, b: RectF, p: Float) = RectF(
             a.left + (b.left - a.left) * p, a.top + (b.top - a.top) * p,
             a.right + (b.right - a.right) * p, a.bottom + (b.bottom - a.bottom) * p)
+
+        internal fun endpointBlend(progress: Float) = ((progress - .84f) / .16f).coerceIn(0f, 1f)
     }
 }

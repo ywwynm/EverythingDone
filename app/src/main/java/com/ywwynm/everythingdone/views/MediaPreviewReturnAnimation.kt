@@ -26,7 +26,8 @@ internal class MediaPreviewReturnAnimation(
     private val vy: Float,
     private val widthVelocity: Float,
     private val updateBackground: (Float) -> Unit,
-    private val finished: () -> Unit
+    private val finished: () -> Unit,
+    private val detailChrome: MediaPreviewDetailChrome? = null
 ) {
     private var startMs = 0L
     private val initialScaleX = page.scaleX
@@ -37,7 +38,7 @@ internal class MediaPreviewReturnAnimation(
     private val pivotY = from.top - (localImage.top - page.pivotY) * initialScaleY
     private val host = pager.parent as ViewGroup
     private val under = MediaLayer()
-    private val over = MediaLayer()
+    private val over = MediaLayer(includeChrome = true)
     private val density = root.resources.displayMetrics.density
     private fun spring(start: Float, target: Float, velocity: Float, excursion: Float) =
         MediaPreviewReturnMotion.Spring(start, target, velocity, excursion, .5f * density, 12f * density)
@@ -95,7 +96,8 @@ internal class MediaPreviewReturnAnimation(
             page.clipBounds = Rect().also(localClip::roundOut)
         }
         under.update(moving, clip, 1f)
-        over.update(moving, clip, ((p - .84f) / .16f).coerceIn(0f, 1f))
+        // 与返回键使用相同的末段交接，按已缓动的进度渐显，而不是挤在线性时间的最后几帧。
+        over.update(moving, clip, MediaPreviewTransition.endpointBlend(ease))
         updateBackground(ease)
         MediaPreviewTransition.mark("return-progress:$p")
         MediaPreviewTransition.reportInteractiveFrame(p, elapsedMs, moving, clip)
@@ -118,7 +120,7 @@ internal class MediaPreviewReturnAnimation(
         host.removeView(over)
     }
 
-    private inner class MediaLayer : View(page.context) {
+    private inner class MediaLayer(private val includeChrome: Boolean = false) : View(page.context) {
         private val moving = RectF(from)
         private val clip = RectF(fromClip)
         init { importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO }
@@ -130,6 +132,7 @@ internal class MediaPreviewReturnAnimation(
             val save = canvas.save()
             val offset = ThingDetailTransition.bounds(this, root)
             canvas.translate(-offset.left, -offset.top)
+            val mediaSave = canvas.save()
             canvas.clipRect(clip)
             val scale = moving.width() / targetImage.width()
             canvas.translate(moving.left + (targetMediaBounds.left - targetImage.left) * scale,
@@ -137,6 +140,9 @@ internal class MediaPreviewReturnAnimation(
             canvas.scale(scale, scale)
             // 只重绘已解码的图片控件；祖先工具栏、删除按钮和徽标保持在固定详情背景中。
             targetMedia.draw(canvas)
+            canvas.restoreToCount(mediaSave)
+            // 固定背景挖去了目标媒体区域；只补挖空或被移动媒体遮住的图标，避免重复加深。
+            if (includeChrome) detailChrome?.draw(canvas, clip, targetClip)
             canvas.restoreToCount(save)
         }
     }

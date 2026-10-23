@@ -80,7 +80,9 @@ class DetailToolbarContrast(
     fun refresh() { revision++; toolbar.invalidate() }
 
     /** 转场截图前提交当前静态媒体的取色，等待本次计算完成再冻结顶栏。 */
-    internal fun isReadyForSnapshot(): Boolean { update(); return !pending }
+    internal fun isReadyForSnapshot(includeStoppedWindow: Boolean = false): Boolean {
+        update(includeStoppedWindow); return !pending
+    }
 
     fun dispose() {
         closed = true
@@ -92,11 +94,11 @@ class DetailToolbarContrast(
         lastFrame = null
     }
 
-    private fun update() {
-        if (closed || !toolbar.isShown || toolbar.width == 0 || toolbar.height == 0) return
+    private fun update(includeStoppedWindow: Boolean = false) {
+        if (closed || !visibleForSnapshot(toolbar, includeStoppedWindow) || toolbar.width == 0 || toolbar.height == 0) return
         val started = if (BuildConfig.DEBUG) System.nanoTime() else 0L
         val toolbarBounds = screenBounds(toolbar)
-        val glyphs = controls().mapNotNull(::glyph)
+        val glyphs = controls().mapNotNull { glyph(it, includeStoppedWindow) }
         val active = glyphs.mapTo(mutableSetOf()) { it.button.view }
         buttons.keys.filter { it !in active }.forEach { buttons.remove(it)?.ripple?.stopAnimations() }
         val media = ArrayList<Media>()
@@ -104,7 +106,25 @@ class DetailToolbarContrast(
             val holder = list.getChildViewHolder(list.getChildAt(i)) as? ImageAttachmentAdapter.ImageViewHolder ?: continue
             val image = holder.ivImage ?: continue
             val clip = Rect()
-            if (!image.isShown || !image.getGlobalVisibleRect(clip) || !Rect.intersects(clip, toolbarBounds)) continue
+            if (!visibleForSnapshot(image, includeStoppedWindow)) continue
+            if (includeStoppedWindow) {
+                clip.set(screenBounds(image))
+                var parent = image.parent as? View
+                while (parent != null) {
+                    val bounds = screenBounds(parent)
+                    if (parent is ViewGroup && parent.clipChildren && !clip.intersect(bounds)) {
+                        clip.setEmpty()
+                        break
+                    }
+                    parent.clipBounds?.let { local ->
+                        val crop = Rect(local).apply { offset(bounds.left, bounds.top) }
+                        if (!clip.intersect(crop)) clip.setEmpty()
+                    }
+                    if (parent === root) break
+                    parent = parent.parent as? View
+                }
+            } else if (!image.getGlobalVisibleRect(clip)) continue
+            if (!Rect.intersects(clip, toolbarBounds)) continue
             media += Media(holder.overlayColors.staticRaster, RectF(screenBounds(image)), clip,
                 image.alpha * holder.itemView.alpha)
         }
@@ -200,8 +220,19 @@ class DetailToolbarContrast(
         }
     }
 
-    private fun glyph(view: View): Glyph? {
-        if (!view.isShown || view.width == 0 || view.height == 0) return null
+    private fun visibleForSnapshot(view: View, includeStoppedWindow: Boolean): Boolean {
+        if (!includeStoppedWindow) return view.isShown
+        var current: View? = view
+        while (current != null) {
+            if (current.visibility != View.VISIBLE) return false
+            if (current === root) return true
+            current = current.parent as? View
+        }
+        return false
+    }
+
+    private fun glyph(view: View, includeStoppedWindow: Boolean): Glyph? {
+        if (!visibleForSnapshot(view, includeStoppedWindow) || view.width == 0 || view.height == 0) return null
         val icon: Drawable
         val bounds: RectF
         when (view) {

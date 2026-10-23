@@ -5497,13 +5497,28 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         return null
     }
 
-    internal fun isMediaPreviewLayoutReady(typePathName: String? = null): Boolean = mDetailContent.recyclerView.let {
+    internal fun isMediaPreviewLayoutReady(typePathName: String? = null, includeStoppedWindow: Boolean = false): Boolean = mDetailContent.recyclerView.let {
         !it.isComputingLayout && !it.isLayoutRequested && !it.hasPendingAdapterUpdates() &&
             // 返回的目标页可能在后台被 Glide 清理；等实际图片恢复后再冻结画面及顶栏配色。
             (findMediaPreviewSource(typePathName)?.findViewById<ImageView>(R.id.iv_image_attachment)?.let { image ->
                 image.drawable != null
             } != false) &&
-            mToolbarContrast?.isReadyForSnapshot() != false
+            mToolbarContrast?.isReadyForSnapshot(includeStoppedWindow) != false
+    }
+
+    /** 按详情实际绘制顺序提取媒体上方控件，供手势返回在原位置渐显。 */
+    internal fun mediaPreviewChromeViews(): List<View> = buildList {
+        val list = mDetailContent.recyclerView
+        for (i in 0 until list.childCount) {
+            val holder = list.getChildViewHolder(list.getChildAt(i)) as? ImageAttachmentAdapter.ImageViewHolder ?: continue
+            val container = holder.fl ?: continue
+            for (j in 0 until container.childCount) {
+                val child = container.getChildAt(j)
+                if (child !== holder.ivImage) add(child)
+            }
+        }
+        mImageCover?.let(::add)
+        mActionbar?.let(::add)
     }
 
     internal fun mediaPreviewToolbarGeneration(): Int = mToolbarContrast?.snapshotGeneration ?: 0
